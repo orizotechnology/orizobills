@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import "./themes.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Transparent body when showing auth dialog only */
+body.auth-only {
+  background: transparent !important;
+}
+body.auth-only html,
+html.auth-only {
+  background: transparent !important;
+}
+
+:focus-visible {
+  outline: 2px solid #F97316;
+  outline-offset: 2px;
+}
+
+/* Thin custom scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* Hide scrollbar for sidebar nav */
+.scrollbar-hide { scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+::selection {
+  background-color: rgba(249, 115, 22, 0.15);
+}

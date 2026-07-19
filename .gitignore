@@ -1,0 +1,52 @@
+# ── Dependencies ────────────────────────────────────────────
+node_modules/
+server/node_modules/
+frontend/node_modules/
+
+# ── Build outputs ────────────────────────────────────────────
+dist/
+build/
+server/dist/
+tsconfig.*.tsbuildinfo
+
+# ── Tauri ────────────────────────────────────────────────────
+src-tauri/target/
+src-tauri/gen/
+
+# ── Environment variables (NEVER commit real credentials) ────
+.env
+.env.local
+.env.*.local
+server/.env
+server/.env.local
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+logs/
+server/logs/*.log
+
+# ── Runtime generated files (auto-created on startup) ────────
+server/data/branches-registry.json
+server/backups/
+server/uploads/
+uploads/
+
+# ── Prisma migrations (managed separately per deploy) ────────
+server/prisma/migrations/
+
+# ── OS / Editor ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── Docker (not used — project is Tauri + MySQL local) ───────
+.env.docker

@@ -1,0 +1,43 @@
+{
+  "productName": "Orizo Bills",
+  "version": "1.0.0",
+  "identifier": "com.orizobills.app",
+  "build": {
+    "beforeDevCommand": "npm run dev:vite",
+    "devUrl": "http://localhost:3000",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Orizo Bills",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true,
+        "visible": true,
+        "shadow": true,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' tauri: asset: http://localhost:5000 http://127.0.0.1:5000; connect-src 'self' http://localhost:5000 http://127.0.0.1:5000 ws://localhost:3000 ws://localhost:3001 ws://127.0.0.1:3000 ws://127.0.0.1:3001; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: tauri: http://localhost:5000 http://127.0.0.1:5000;"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}
