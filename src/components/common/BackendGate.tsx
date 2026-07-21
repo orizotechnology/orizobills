@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useBackendStatus } from "@/hooks/useBackendStatus";
 import { useBranchStore } from "@/store/branch.store";
 import { http } from "@/lib/axios";
@@ -18,6 +18,14 @@ interface BackendGateProps {
 export function BackendGate({ children }: BackendGateProps) {
   const status = useBackendStatus();
   const { setBranches, branches } = useBranchStore();
+  const [elapsed, setElapsed] = useState(0);
+
+  // Tick elapsed seconds while not online
+  useEffect(() => {
+    if (status === "online") { setElapsed(0); return; }
+    const t = setInterval(() => setElapsed((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [status]);
 
   // Once backend is online, fetch branches so activeBranchId is set
   // before any API call is made by child components.
@@ -32,7 +40,14 @@ export function BackendGate({ children }: BackendGateProps) {
   // Backend is up — render the app
   if (status === "online") return <>{children}</>;
 
-  // Still checking — show spinner
+  // Dynamic subtitle based on elapsed time
+  const checkingMsg =
+    elapsed < 8  ? "Connecting to backend server…" :
+    elapsed < 25 ? `Starting backend server… (${elapsed}s)` :
+    elapsed < 55 ? `Initializing database… first run can take ~30s (${elapsed}s)` :
+                   `Still starting — please wait… (${elapsed}s)`;
+
+  // Still checking — show spinner with elapsed time
   if (status === "checking") {
     return (
       <>
@@ -40,7 +55,7 @@ export function BackendGate({ children }: BackendGateProps) {
         <Overlay>
           <StatusCard
             title="Starting Orizo Bills"
-            subtitle="Connecting to backend server..."
+            subtitle={checkingMsg}
             showSpinner
           />
         </Overlay>
@@ -48,7 +63,7 @@ export function BackendGate({ children }: BackendGateProps) {
     );
   }
 
-  // Offline
+  // Offline — show error but useBackendStatus keeps retrying in background
   return (
     <>
       <div style={{ display: "none" }}>{children}</div>
@@ -56,8 +71,9 @@ export function BackendGate({ children }: BackendGateProps) {
         <StatusCard
           title="Cannot reach the server"
           subtitle={
-            "Make sure the backend is running on port 5000.\n" +
-            "Run: npm run dev  (from the project root)"
+            "Backend on port 5000 is not responding.\n" +
+            "Retrying automatically every few seconds…\n\n" +
+            "If this persists: run  npm run dev  from the project root."
           }
           showSpinner={false}
           error

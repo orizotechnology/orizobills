@@ -8,10 +8,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 export type BackendStatus = "checking" | "online" | "offline";
 
-const MAX_ATTEMPTS  = 40;
-const INITIAL_DELAY = 500;
-const NORMAL_DELAY  = 1500;
-const OFFLINE_DELAY = 3000;
+// Give the backend up to ~90 seconds to start (DB init + Prisma push can be slow).
+// Once connected it keeps polling every 3s. If it drops it retries forever.
+const MAX_ATTEMPTS  = 90;   // 90 × 1s = 90s initial window
+const INITIAL_DELAY = 800;
+const NORMAL_DELAY  = 3000;
+const OFFLINE_DELAY = 4000;
 const HEALTH_URL    = "http://localhost:5000/api/health";
 
 export function useBackendStatus(): BackendStatus {
@@ -27,19 +29,20 @@ export function useBackendStatus(): BackendStatus {
           mode: "cors",
           signal: AbortSignal.timeout(4000),
         });
-        if (!cancelled.value && res.ok) { setStatus("online"); return; }
+        if (!cancelled.value && res.ok) { setStatus("online"); attempts.current = 0; return; }
       } catch { /* keep retrying */ }
 
       if (cancelled.value) return;
       attempts.current++;
 
-      let delay: number;
+      // After MAX_ATTEMPTS set status to offline so the UI shows the banner,
+      // but keep retrying — if the backend comes up later, flip back online.
       if (attempts.current >= MAX_ATTEMPTS) {
         setStatus("offline");
-        delay = OFFLINE_DELAY;
-      } else {
-        delay = attempts.current < 5 ? INITIAL_DELAY : NORMAL_DELAY;
       }
+      const delay = attempts.current < 5 ? INITIAL_DELAY
+                  : attempts.current < MAX_ATTEMPTS ? NORMAL_DELAY
+                  : OFFLINE_DELAY;
       setTimer(setTimeout(() => check(cancelled, setTimer), delay));
     },
     []

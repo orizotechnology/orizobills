@@ -1,177 +1,183 @@
-// =============================================================
-// vite-plugin-backend
-//
-// Spawns the Fastify backend alongside Vite dev server.
-// Checks if port 5000 is already in use before spawning — safe
-// to include in all modes (Tauri dev, browser dev, etc.)
-// =============================================================
-
-import type { Plugin }      from "vite";
+import { type Plugin } from "vite";
 import { spawn, type ChildProcess } from "child_process";
-import * as path  from "path";
-import * as fs    from "fs";
-import * as net   from "net";
+import { join } from "path";
+import { existsSync } from "fs";
+import * as net from "net";
 
-const BACKEND_PORT  = 5000;
-const MAX_RESTARTS  = 3;
-const RESTART_DELAY = 2000;
+// =============================================================
+// VITE PLUGIN — AUTO-START BACKEND (Windows/Tauri)
+//
+// Uses the correct Vite hook:
+//   configureServer  → fires when `vite` dev server starts
+//   closeBundle      → NOT used for dev (use server.close hook)
+//
+// The backend is spawned via cmd.exe → npx tsx src/index.ts
+// from the server/ directory, with all env vars forwarded.
+// Output is piped to the Vite console.
+// =============================================================
 
-interface BackendPluginOptions {
-  serverDir?: string;
-  entry?: string;
-  env?: Record<string, string>;
+let backendProcess: ChildProcess | null = null;
+let restartCount   = 0;
+const MAX_RESTARTS = 5;
+const BACKEND_PORT = 5000;
+
+const log   = (m: string) => process.stdout.write(`\x1b[36m[backend]\x1b[0m ${m}\n`);
+const warn  = (m: string) => process.stdout.write(`\x1b[33m[backend]\x1b[0m ${m}\n`);
+const error = (m: string) => process.stderr.write(`\x1b[31m[backend]\x1b[0m ${m}\n`);
+
+// ── Check if a TCP port is accepting connections ──────────────
+function isPortOpen(port: number, host = "127.0.0.1", timeout = 1200): Promise<boolean> {
+  return new Promise((resolve) => {
+    const sock = new net.Socket();
+    const done = (v: boolean) => { try { sock.destroy(); } catch { /* ok */ } resolve(v); };
+    sock.setTimeout(timeout);
+    sock.once("connect", () => done(true));
+    sock.once("timeout", () => done(false));
+    sock.once("error",   () => done(false));
+    try { sock.connect(port, host); } catch { done(false); }
+  });
 }
 
-export function backendPlugin(options: BackendPluginOptions = {}): Plugin {
-  let child: ChildProcess | null = null;
-  let restarts = 0;
-  let stopping = false;
-  let ownedByPlugin = false;
-
-  const getServerDir = (root: string) =>
-    options.serverDir ?? path.resolve(root, "server");
-
-  // ── Port probe — single attempt ───────────────────────────
-  function isPortInUse(port: number): Promise<boolean> {
-    return new Promise((resolve) => {
-      const s = net.createConnection({ port, host: "127.0.0.1" });
-      s.setTimeout(500);
-      s.on("connect", () => { s.destroy(); resolve(true);  });
-      s.on("error",   () => { s.destroy(); resolve(false); });
-      s.on("timeout", () => { s.destroy(); resolve(false); });
-    });
+// ── Wait until the port is open (backend ready) ───────────────
+async function waitForPort(port: number, retries = 30, interval = 1000): Promise<boolean> {
+  for (let i = 0; i < retries; i++) {
+    if (await isPortOpen(port)) return true;
+    await new Promise((r) => setTimeout(r, interval));
   }
+  return false;
+}
 
-  // ── Spawn using node + tsx cli — no .cmd, no shell:true ───
-  function startBackend(serverDir: string, entry: string, env: NodeJS.ProcessEnv) {
-    if (stopping) return;
-    ownedByPlugin = true;
+// ── Kill existing backend process ─────────────────────────────
+async function killBackend(): Promise<void> {
+  if (!backendProcess) return;
+  const pid = backendProcess.pid;
+  backendProcess.removeAllListeners();
+  backendProcess = null;
 
-    const tsxCli =
-      [
-        path.join(serverDir, "node_modules", "tsx", "dist", "cli.mjs"),
-        path.join(serverDir, "node_modules", "tsx", "dist", "cli.js"),
-      ].find(fs.existsSync);
+  if (!pid) return;
 
-    if (!tsxCli) {
-      process.stderr.write(
-        `\x1b[31m[backend]\x1b[0m tsx not found — run: cd server && npm install\n`
-      );
-      return;
+  await new Promise<void>((resolve) => {
+    if (process.platform === "win32") {
+      const k = spawn("taskkill", ["/F", "/T", "/PID", String(pid)], { stdio: "ignore" });
+      k.once("exit",  () => setTimeout(resolve, 400));
+      k.once("error", () => setTimeout(resolve, 400));
+      setTimeout(resolve, 2500);
+    } else {
+      try { process.kill(pid, "SIGTERM"); } catch { /* ok */ }
+      setTimeout(resolve, 800);
     }
+  });
+}
 
-    child = spawn(process.execPath, [tsxCli, entry], {
-      cwd:   serverDir,
-      env,
-      shell: false,
+// ── Spawn the backend ─────────────────────────────────────────
+async function startBackend(): Promise<void> {
+  // Already up?
+  if (backendProcess && !backendProcess.killed) return;
+  if (await isPortOpen(BACKEND_PORT)) {
+    log(`port ${BACKEND_PORT} already open — backend is running`);
+    return;
+  }
+
+  const serverDir = join(process.cwd(), "server");
+  if (!existsSync(join(serverDir, "package.json"))) {
+    error(`server/package.json not found in ${serverDir}`);
+    return;
+  }
+
+  log(`spawning → ${serverDir}\\src\\index.ts`);
+
+  const isWin = process.platform === "win32";
+
+  backendProcess = spawn(
+    isWin ? "cmd.exe" : "npx",
+    isWin ? ["/c", "npx", "tsx", "src/index.ts"] : ["tsx", "src/index.ts"],
+    {
+      cwd: serverDir,
       stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    child.stdout?.on("data", (d: Buffer) =>
-      d.toString().trimEnd().split("\n")
-        .forEach((l) => process.stdout.write(`\x1b[36m[backend]\x1b[0m ${l}\n`))
-    );
-    child.stderr?.on("data", (d: Buffer) =>
-      d.toString().trimEnd().split("\n")
-        .forEach((l) => process.stderr.write(`\x1b[33m[backend]\x1b[0m ${l}\n`))
-    );
-
-    child.on("close", (code) => {
-      child = null;
-      if (stopping) return;
-      if (code === 0) {
-        // Clean exit = port conflict — another instance is already running
-        process.stdout.write(`\x1b[36m[backend]\x1b[0m already running on :${BACKEND_PORT}\n`);
-        return;
-      }
-      if (restarts < MAX_RESTARTS) {
-        restarts++;
-        process.stdout.write(
-          `\x1b[33m[backend]\x1b[0m crashed (${code}), retry ${restarts}/${MAX_RESTARTS} in ${RESTART_DELAY}ms\n`
-        );
-        setTimeout(() => startBackend(serverDir, entry, env), RESTART_DELAY);
-      } else {
-        process.stderr.write(`\x1b[31m[backend]\x1b[0m gave up after ${MAX_RESTARTS} crashes\n`);
-      }
-    });
-
-    child.on("error", (err) =>
-      process.stderr.write(`\x1b[31m[backend]\x1b[0m spawn error: ${err.message}\n`)
-    );
-  }
-
-  function stopBackend() {
-    if (!ownedByPlugin || !child || child.killed) return;
-    stopping = true;
-    process.stdout.write("\x1b[36m[backend]\x1b[0m stopping…\n");
-    child.kill("SIGTERM");
-    setTimeout(() => { if (child && !child.killed) child.kill("SIGKILL"); }, 4000);
-  }
-
-  return {
-    name:  "vite-plugin-backend",
-    apply: "serve",
-
-    async configureServer(server) {
-      const root      = server.config.root;
-      const serverDir = getServerDir(root);
-      const entry     = options.entry ?? "src/index.ts";
-
-      if (!fs.existsSync(serverDir)) {
-        process.stderr.write(`\x1b[31m[backend]\x1b[0m server/ not found: ${serverDir}\n`);
-        return;
-      }
-
-      // Check if backend already running (e.g. started by launch.ps1)
-      const alreadyUp = await isPortInUse(BACKEND_PORT);
-      if (alreadyUp) {
-        process.stdout.write(
-          `\x1b[36m[backend]\x1b[0m :${BACKEND_PORT} already occupied — skipping spawn\n`
-        );
-        return;
-      }
-
-      // Build env block from server/.env + process.env
-      const fileEnv    = parseEnvFile(path.join(serverDir, ".env"));
-      const backendEnv: NodeJS.ProcessEnv = {
+      env: {
         ...process.env,
-        ...fileEnv,
-        PORT:        String(BACKEND_PORT),
-        NODE_ENV:    "development",
-        FORCE_COLOR: "1",
-        ...options.env,
-      };
+        NODE_ENV:     "development",
+        PORT:         String(BACKEND_PORT),
+        HOST:         "0.0.0.0",
+        FORCE_COLOR:  "0",
+      },
+      detached:    false,
+      windowsHide: true,
+    }
+  );
 
-      process.stdout.write(
-        `\x1b[36m[backend]\x1b[0m starting → ${path.join(serverDir, entry)}\n`
-      );
-      startBackend(serverDir, entry, backendEnv);
+  backendProcess.stdout?.on("data", (d: Buffer) => {
+    d.toString().split("\n").map((l) => l.trim()).filter(Boolean).forEach((l) =>
+      process.stdout.write(`\x1b[36m[backend]\x1b[0m ${l}\n`)
+    );
+  });
 
-      server.httpServer?.on("close", stopBackend);
-      process.once("SIGINT",  stopBackend);
-      process.once("SIGTERM", stopBackend);
-      process.once("exit",    stopBackend);
+  backendProcess.stderr?.on("data", (d: Buffer) => {
+    d.toString().split("\n").map((l) => l.trim()).filter(Boolean)
+      .filter((l) => !l.includes("ExperimentalWarning"))
+      .forEach((l) => process.stderr.write(`\x1b[31m[backend]\x1b[0m ${l}\n`));
+  });
+
+  backendProcess.once("spawn", () => log(`spawned PID ${backendProcess?.pid}`));
+
+  backendProcess.once("error", (err) => {
+    error(`spawn error: ${err.message}`);
+    backendProcess = null;
+  });
+
+  backendProcess.once("exit", async (code, signal) => {
+    const reason = signal ?? `code ${code}`;
+    log(`exited (${reason})`);
+    backendProcess = null;
+
+    // Auto-restart on non-SIGTERM unexpected exits
+    if (signal !== "SIGTERM" && signal !== "SIGINT" && code !== 0 && restartCount < MAX_RESTARTS) {
+      restartCount++;
+      warn(`restarting in 3s… (${restartCount}/${MAX_RESTARTS})`);
+      await new Promise((r) => setTimeout(r, 3000));
+      await startBackend();
+    }
+  });
+
+  // Wait for it to be ready
+  log(`waiting for port ${BACKEND_PORT}…`);
+  const ready = await waitForPort(BACKEND_PORT, 40, 1000);
+  if (ready) {
+    log(`\x1b[32mbackend ready on http://localhost:${BACKEND_PORT}\x1b[0m`);
+    restartCount = 0;
+  } else {
+    warn(`backend did not become ready on port ${BACKEND_PORT} within 40s`);
+    warn("check the [backend] output above for errors");
+  }
+}
+
+// ── Vite Plugin export ─────────────────────────────────────────
+export function backendPlugin(): Plugin {
+  return {
+    name: "vite-plugin-backend",
+
+    // configureServer fires when the Vite dev server starts.
+    // This is the correct hook — buildStart only fires during builds.
+    async configureServer(server) {
+      log("Vite dev server starting — launching backend…");
+      await startBackend();
+
+      // Kill backend when Vite dev server closes
+      server.httpServer?.once("close", async () => {
+        log("Vite dev server closed — shutting down backend…");
+        await killBackend();
+      });
     },
 
-    buildEnd() { stopBackend(); },
-  };
-}
+    // Also handle the build path (for completeness)
+    async buildStart() {
+      if (!backendProcess) {
+        await startBackend();
+      }
+    },
 
-// ── Parse server/.env file ────────────────────────────────────
-function parseEnvFile(filePath: string): Record<string, string> {
-  if (!fs.existsSync(filePath)) return {};
-  const out: Record<string, string> = {};
-  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
-    const t  = line.trim();
-    if (!t || t.startsWith("#")) continue;
-    const eq = t.indexOf("=");
-    if (eq < 1) continue;
-    const key = t.slice(0, eq).trim();
-    let   val = t.slice(eq + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) ||
-        (val.startsWith("'") && val.endsWith("'")))
-      val = val.slice(1, -1);
-    out[key] = val;
-  }
-  return out;
+    async closeBundle() {
+      await killBackend();
+    },
+  };
 }
