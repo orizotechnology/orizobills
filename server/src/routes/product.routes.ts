@@ -178,10 +178,14 @@ export async function productRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // DELETE /api/products/:id — soft delete
+  // DELETE /api/products/:id — hard delete
   fastify.delete("/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
     try {
-      await req.prisma.product.update({ where: { id: req.params.id }, data: { isActive: false } });
+      await req.prisma.$transaction(async (tx: typeof req.prisma) => {
+        await tx.inventoryItem.delete({ where: { productId: req.params.id } }).catch(() => {});
+        await tx.productBatch.deleteMany({ where: { productId: req.params.id } });
+        await tx.product.delete({ where: { id: req.params.id } });
+      });
       return reply.send(successResponse(null, "Product deleted"));
     } catch (err) {
       return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR));

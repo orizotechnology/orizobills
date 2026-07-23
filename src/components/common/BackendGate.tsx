@@ -63,20 +63,19 @@ export function BackendGate({ children }: BackendGateProps) {
     );
   }
 
-  // Offline — show error but useBackendStatus keeps retrying in background
+  // Offline — keep the startup overlay visible while polling in the background.
+  // This avoids presenting a misleading hard failure when the server is simply still warming up.
   return (
     <>
       <div style={{ display: "none" }}>{children}</div>
       <Overlay>
         <StatusCard
-          title="Cannot reach the server"
+          title="Starting Orizo Bills"
           subtitle={
-            "Backend on port 5000 is not responding.\n" +
-            "Retrying automatically every few seconds…\n\n" +
-            "If this persists: run  npm run dev  from the project root."
+            "The backend is still warming up on port 5000.\n" +
+            "Retrying automatically every few seconds…"
           }
-          showSpinner={false}
-          error
+          showSpinner
         />
       </Overlay>
     </>

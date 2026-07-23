@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,14 +14,9 @@ import {
   ChevronsLeft,
   ChevronDown,
   Wrench,
-  Building2,
-  Plus,
-  Check,
 } from "lucide-react";
 import { useUIStore } from "@/store";
 import { useAuthStore } from "@/store/auth.store";
-import { useBranchStore } from "@/store/branch.store";
-import { http } from "@/lib/axios";
 import { ProfileDrawer } from "@/components/profile/ProfileDrawer";
 import type { LucideIcon } from "lucide-react";
 
@@ -198,52 +193,12 @@ function NavEntry({ item, expanded, sidebarCollapsed, location, onToggle }: NavE
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
   const { user } = useAuthStore();
-  const { branches, activeBranchId, setBranches, setActiveBranch } = useBranchStore();
   const location = useLocation();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     return { "/app/sales": location.pathname.startsWith("/app/sales") };
   });
   const [profileOpen, setProfileOpen] = useState(false);
-  const [branchOpen, setBranchOpen]   = useState(false);
-  const [creatingBranch, setCreatingBranch] = useState(false);
-  const [newBranchName, setNewBranchName]   = useState("");
-  const [branchSaving, setBranchSaving]     = useState(false);
-  const [branchError, setBranchError]       = useState("");
-
-  const activeBranch = branches.find((b) => b.id === activeBranchId) ?? branches[0];
-
-  // Fetch branches on mount — only if not already loaded (BackendGate does the initial load)
-  useEffect(() => {
-    if (branches.length > 0) return;
-    http.get<{ success: boolean; data: typeof branches }>("/branches")
-      .then((r) => { if (r.success) setBranches(r.data); })
-      .catch(() => {});
-  }, [branches.length, setBranches]);
-
-  const handleCreateBranch = async () => {
-    if (!newBranchName.trim()) return;
-    setBranchSaving(true);
-    setBranchError("");
-    try {
-      const res = await http.post<{ success: boolean; data: { branch: typeof branches[0] }; error?: { message: string } }>(
-        "/branches", { name: newBranchName.trim() }
-      );
-      if (res.success) {
-        setBranches([...branches, res.data.branch]);
-        setActiveBranch(res.data.branch.id);
-        setNewBranchName("");
-        setCreatingBranch(false);
-        setBranchOpen(false);
-      } else {
-        setBranchError(res.error?.message ?? "Failed to create branch");
-      }
-    } catch (e) {
-      setBranchError(e instanceof Error ? e.message : "Failed to create branch");
-    } finally {
-      setBranchSaving(false);
-    }
-  };
 
   const toggleExpand = (to: string) => {
     setExpanded((prev) => ({ ...prev, [to]: !prev[to] }));
@@ -299,89 +254,6 @@ export function Sidebar() {
             >
               Orizo Bills
             </motion.span>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* ── Branch Switcher ───────────────────────────────── */}
-      <div style={{ padding: "8px 10px", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
-        <button
-          onClick={() => !sidebarCollapsed && setBranchOpen((p) => !p)}
-          title={sidebarCollapsed ? (activeBranch?.name ?? "Branch") : undefined}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", gap: 8,
-            padding: "7px 8px", borderRadius: 8, border: "1px solid #E2E8F0",
-            background: "#F8FAFC", cursor: "pointer", outline: "none",
-          }}
-        >
-          <Building2 size={15} color="#F97316" style={{ flexShrink: 0 }} />
-          <AnimatePresence initial={false}>
-            {!sidebarCollapsed && (
-              <motion.span key="bname"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                style={{ flex: 1, fontSize: 12, fontWeight: 600, color: "#0F172A", textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-              >
-                {activeBranch?.name ?? "Select Branch"}
-              </motion.span>
-            )}
-          </AnimatePresence>
-          {!sidebarCollapsed && <ChevronDown size={12} color="#94A3B8" style={{ flexShrink: 0, transform: branchOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />}
-        </button>
-
-        {/* Branch dropdown */}
-        <AnimatePresence initial={false}>
-          {branchOpen && !sidebarCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-              style={{ overflow: "hidden", marginTop: 4 }}
-            >
-              <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, overflow: "hidden" }}>
-                {branches.map((b) => (
-                  <button key={b.id}
-                    onClick={() => { setActiveBranch(b.id); setBranchOpen(false); }}
-                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: b.id === activeBranchId ? "rgba(249,115,22,0.07)" : "transparent", border: "none", cursor: "pointer", borderBottom: "1px solid #F8FAFC", outline: "none" }}
-                  >
-                    <span style={{ flex: 1, fontSize: 12, color: b.id === activeBranchId ? "#F97316" : "#475569", fontWeight: b.id === activeBranchId ? 600 : 400, textAlign: "left" }}>{b.name}</span>
-                    {b.id === activeBranchId && <Check size={12} color="#F97316" />}
-                  </button>
-                ))}
-
-                {/* Create new branch */}
-                {!creatingBranch ? (
-                  <button
-                    onClick={() => setCreatingBranch(true)}
-                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: "transparent", border: "none", cursor: "pointer", outline: "none", color: "#F97316", fontSize: 12, fontWeight: 600 }}
-                  >
-                    <Plus size={12} /> New Branch
-                  </button>
-                ) : (
-                  <div style={{ padding: "8px 10px" }}>
-                    <input
-                      autoFocus
-                      value={newBranchName}
-                      onChange={(e) => setNewBranchName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") handleCreateBranch(); if (e.key === "Escape") { setCreatingBranch(false); setBranchError(""); }}}
-                      placeholder="Branch name…"
-                      style={{ width: "100%", padding: "5px 8px", fontSize: 12, border: "1px solid #E2E8F0", borderRadius: 6, outline: "none", marginBottom: 4, boxSizing: "border-box" }}
-                    />
-                    {branchError && <div style={{ fontSize: 11, color: "#EF4444", marginBottom: 4 }}>{branchError}</div>}
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button
-                        onClick={handleCreateBranch}
-                        disabled={branchSaving || !newBranchName.trim()}
-                        style={{ flex: 1, padding: "5px 0", fontSize: 11, fontWeight: 600, background: "#F97316", color: "#fff", border: "none", borderRadius: 5, cursor: "pointer" }}
-                      >
-                        {branchSaving ? "Creating…" : "Create"}
-                      </button>
-                      <button
-                        onClick={() => { setCreatingBranch(false); setNewBranchName(""); setBranchError(""); }}
-                        style={{ padding: "5px 8px", fontSize: 11, background: "#F1F5F9", color: "#64748B", border: "none", borderRadius: 5, cursor: "pointer" }}
-                      >Cancel</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
           )}
         </AnimatePresence>
       </div>

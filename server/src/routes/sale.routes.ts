@@ -1,7 +1,8 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
+﻿import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { successResponse, errorResponse } from "../utils/response.util";
 import { HTTP_STATUS, ERROR_CODES } from "../constants/http.constants";
+import { getNextSaleNumber, getNextReturnNumber, getNextOrderNumber, getNextChallanNumber } from "../services/counter.service";
 
 const saleItemSchema = z.object({
   itemName: z.string().min(1), itemCode: z.string(), productId: z.string().optional(),
@@ -29,10 +30,10 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
   // ── Static routes FIRST ───────────────────────────────────
 
-  fastify.get("/next-number", async (req, reply) => {
+  fastify.get("/next-number", async (_req, reply) => {
     try {
-      const count = await req.prisma.saleInvoice.count();
-      return reply.send(successResponse({ number: `INV${String(count + 1).padStart(4, "0")}` }));
+      const number = await getNextSaleNumber();
+      return reply.send(successResponse({ number }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
@@ -72,6 +73,66 @@ export async function saleRoutes(fastify: FastifyInstance) {
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
+  // ── Dashboard stats endpoint ─────────────────────────────
+  fastify.get("/stats", async (req, reply) => {
+    try {
+      const [salesAgg, purchasesAgg, outstanding] = await Promise.all([
+        req.prisma.saleInvoice.aggregate({
+          _sum: { totalAmt: true, paidAmt: true },
+          where: { status: { not: "CANCELLED" } },
+        }),
+        req.prisma.purchaseInvoice.aggregate({
+          _sum: { totalAmt: true },
+          where: { status: { not: "CANCELLED" } },
+        }),
+        req.prisma.saleInvoice.aggregate({
+          _sum: { balanceDue: true },
+          where: { balanceDue: { gt: 0 }, status: { not: "CANCELLED" } },
+        }),
+      ]);
+      const totalSales     = parseFloat(String(salesAgg._sum.totalAmt ?? 0));
+      const totalPurchases = parseFloat(String(purchasesAgg._sum.totalAmt ?? 0));
+      return reply.send(successResponse({
+        totalSales,
+        totalPurchases,
+        totalProfit:  totalSales - totalPurchases,
+        outstanding:  parseFloat(String(outstanding._sum.balanceDue ?? 0)),
+      }));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  // ── Daily sales for chart ────────────────────────────────
+  fastify.get("/daily", async (req: FastifyRequest<{ Querystring: { year?: string; month?: string } }>, reply) => {
+    try {
+      const now   = new Date();
+      const year  = Number(req.query.year  ?? now.getFullYear());
+      const month = Number(req.query.month ?? now.getMonth() + 1);
+      const start = new Date(year, month - 1, 1);
+      const end   = new Date(year, month, 1);
+
+      const rows = await req.prisma.saleInvoice.findMany({
+        where: { invoiceDate: { gte: start, lt: end }, status: { not: "CANCELLED" } },
+        select: { invoiceDate: true, totalAmt: true },
+      });
+
+      // Aggregate by day
+      const byDay: Record<number, number> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rows.forEach((r: any) => {
+        const d = new Date(r.invoiceDate).getDate();
+        byDay[d] = (byDay[d] ?? 0) + parseFloat(String(r.totalAmt));
+      });
+
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const daily = Array.from({ length: daysInMonth }, (_, i) => ({
+        day: i + 1,
+        amount: byDay[i + 1] ?? 0,
+      }));
+
+      return reply.send(successResponse({ daily, year, month }));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
   // ── Collection & parameterised ─────────────────────────────
 
   fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string } }>, reply) => {
@@ -103,8 +164,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const count = await req.prisma.saleInvoice.count();
-      const invoiceNumber = `INV${String(count + 1).padStart(4, "0")}`;
+      const invoiceNumber = await getNextSaleNumber();
       const { items, paidAmt, discountPct, ...rest } = parse.data;
       const subtotal    = items.reduce((s: number, i: any) => s + i.unitPrice * i.quantity, 0);
       const discountAmt = subtotal * (discountPct / 100);
@@ -114,35 +174,52 @@ export async function saleRoutes(fastify: FastifyInstance) {
       const balanceDue  = Math.max(0, totalAmt - paidAmt);
       const status      = balanceDue === 0 ? "PAID" : paidAmt > 0 ? "PARTIAL" : "UNPAID";
 
-      const sale = await req.prisma.saleInvoice.create({
-        data: { invoiceNumber, ...rest, invoiceDate: new Date(rest.invoiceDate), customerId: rest.customerId ?? null, notes: rest.notes ?? null, subtotal, discountPct, discountAmt, cgst, sgst, totalAmt, paidAmt, balanceDue, status,
-          items: { create: items.map((i: any) => ({ productId: i.productId ?? null, itemName: i.itemName, itemCode: i.itemCode, quantity: i.quantity, unit: i.unit, mrp: i.mrp, unitPrice: i.unitPrice, discountPct: i.discountPct, discountAmt: i.discountAmt, taxPercent: i.taxPercent, taxAmount: i.taxAmount, totalAmount: i.totalAmount })) },
-        },
-        include: { _count: { select: { items: true } } },
+      // ── Wrap in transaction ────────────────────────────
+      const sale = await req.prisma.$transaction(async (tx: typeof req.prisma) => {
+        const s = await tx.saleInvoice.create({
+          data: { invoiceNumber, ...rest, invoiceDate: new Date(rest.invoiceDate), customerId: rest.customerId ?? null, notes: rest.notes ?? null, subtotal, discountPct, discountAmt, cgst, sgst, totalAmt, paidAmt, balanceDue, status,
+            items: { create: items.map((i: any) => ({ productId: i.productId ?? null, itemName: i.itemName, itemCode: i.itemCode, quantity: i.quantity, unit: i.unit, mrp: i.mrp, unitPrice: i.unitPrice, discountPct: i.discountPct, discountAmt: i.discountAmt, taxPercent: i.taxPercent, taxAmount: i.taxAmount, totalAmount: i.totalAmount })) },
+          },
+          include: { _count: { select: { items: true } } },
+        });
+        for (const item of items) {
+          if (item.productId) {
+            await tx.inventoryItem.upsert({ where: { productId: item.productId }, create: { productId: item.productId, openingStock: 0, stockIn: 0, stockOut: item.quantity, lowStockAlert: 5 }, update: { stockOut: { increment: item.quantity } } });
+          }
+        }
+        if (rest.customerId && balanceDue > 0) {
+          await tx.customer.update({ where: { id: rest.customerId }, data: { balance: { increment: balanceDue } } });
+        }
+        return s;
       });
 
-      for (const item of items) {
-        if (item.productId) {
-          await req.prisma.inventoryItem.upsert({ where: { productId: item.productId }, create: { productId: item.productId, openingStock: 0, stockIn: 0, stockOut: item.quantity, lowStockAlert: 5 }, update: { stockOut: { increment: item.quantity } } });
-        }
-      }
-      if (rest.customerId && balanceDue > 0) {
-        await req.prisma.customer.update({ where: { id: rest.customerId }, data: { balance: { increment: balanceDue } } });
-      }
       return reply.status(HTTP_STATUS.CREATED).send(successResponse(toSaleResult(sale), "Sale saved"));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
   fastify.delete("/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
     try {
-      const inv = await req.prisma.saleInvoice.findUnique({ where: { id: req.params.id }, include: { items: true } });
-      if (inv && inv.status !== "CANCELLED") {
-        for (const item of inv.items) {
-          if (item.productId) await req.prisma.inventoryItem.update({ where: { productId: item.productId }, data: { stockOut: { decrement: parseFloat(String(item.quantity)) } } });
+      const inv = await req.prisma.saleInvoice.findUnique({
+        where: { id: req.params.id },
+        include: { items: true, payments: true, returns: { include: { items: true } } },
+      });
+      if (!inv) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Invoice not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
+
+      await req.prisma.$transaction(async (tx: typeof req.prisma) => {
+        await tx.paymentIn.deleteMany({ where: { invoiceId: req.params.id } });
+        await tx.saleReturn.deleteMany({ where: { invoiceId: req.params.id } });
+
+        if (inv.status !== "CANCELLED") {
+          for (const item of inv.items) {
+            if (item.productId) {
+              await tx.inventoryItem.update({ where: { productId: item.productId }, data: { stockOut: { decrement: parseFloat(String(item.quantity)) } } }).catch(() => {});
+            }
+          }
         }
-        await req.prisma.saleInvoice.update({ where: { id: req.params.id }, data: { status: "CANCELLED" } });
-      }
-      return reply.send(successResponse(null, "Sale cancelled"));
+        await tx.saleInvoice.delete({ where: { id: req.params.id } });
+      });
+
+      return reply.send(successResponse(null, "Invoice deleted"));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
@@ -157,17 +234,19 @@ export async function saleRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const count = await req.prisma.saleReturn.count();
-      const returnNumber = `RET${String(count + 1).padStart(4, "0")}`;
+      const returnNumber = await getNextReturnNumber();
       const totalAmt = parse.data.items.reduce((s: number, i: any) => s + i.totalAmount, 0);
-      const ret = await req.prisma.saleReturn.create({
-        data: { returnNumber, invoiceId: parse.data.invoiceId ?? null, customerId: parse.data.customerId ?? null, customerName: parse.data.customerName, returnDate: new Date(parse.data.returnDate), reason: parse.data.reason ?? null, subtotal: totalAmt, totalAmt, status: "CONFIRMED",
-          items: { create: parse.data.items.map((i: any) => ({ productId: i.productId ?? null, itemName: i.itemName, itemCode: i.itemCode, quantity: i.quantity, unitPrice: i.unitPrice, totalAmount: i.totalAmount })) },
-        },
+      const ret = await req.prisma.$transaction(async (tx: typeof req.prisma) => {
+        const r = await tx.saleReturn.create({
+          data: { returnNumber, invoiceId: parse.data.invoiceId ?? null, customerId: parse.data.customerId ?? null, customerName: parse.data.customerName, returnDate: new Date(parse.data.returnDate), reason: parse.data.reason ?? null, subtotal: totalAmt, totalAmt, status: "CONFIRMED",
+            items: { create: parse.data.items.map((i: any) => ({ productId: i.productId ?? null, itemName: i.itemName, itemCode: i.itemCode, quantity: i.quantity, unitPrice: i.unitPrice, totalAmount: i.totalAmount })) },
+          },
+        });
+        for (const item of parse.data.items) {
+          if (item.productId) await tx.inventoryItem.update({ where: { productId: item.productId }, data: { stockOut: { decrement: item.quantity } } }).catch(() => {});
+        }
+        return r;
       });
-      for (const item of parse.data.items) {
-        if (item.productId) await req.prisma.inventoryItem.update({ where: { productId: item.productId }, data: { stockOut: { decrement: item.quantity } } });
-      }
       return reply.status(HTTP_STATUS.CREATED).send(successResponse(ret, "Sale return saved"));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
@@ -183,8 +262,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const count = await req.prisma.saleOrder.count();
-      const orderNumber = `ORD${String(count + 1).padStart(4, "0")}`;
+      const orderNumber = await getNextOrderNumber();
       const totalAmt = parse.data.items.reduce((s: number, i: any) => s + i.totalAmount, 0);
       const order = await req.prisma.saleOrder.create({
         data: { orderNumber, customerId: parse.data.customerId ?? null, customerName: parse.data.customerName, orderDate: new Date(parse.data.orderDate), dueDate: parse.data.dueDate ? new Date(parse.data.dueDate) : null, notes: parse.data.notes ?? null, totalAmt, subtotal: totalAmt, items: { create: parse.data.items } },
@@ -204,8 +282,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const count = await req.prisma.deliveryChallan.count();
-      const challanNumber = `CHN${String(count + 1).padStart(4, "0")}`;
+      const challanNumber = await getNextChallanNumber();
       const challan = await req.prisma.deliveryChallan.create({
         data: { challanNumber, customerId: parse.data.customerId ?? null, customerName: parse.data.customerName, challanDate: new Date(parse.data.challanDate), vehicleNo: parse.data.vehicleNo ?? null, notes: parse.data.notes ?? null, items: { create: parse.data.items } },
       });

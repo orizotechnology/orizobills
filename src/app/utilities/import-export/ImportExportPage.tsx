@@ -332,12 +332,12 @@ function ImportPanel() {
       else { setErrMsg(res.error?.message ?? "Import failed — check backend logs."); setPhase("error"); }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Import failed.";
-      // "Failed to fetch" usually means the server is unreachable
-      if (msg.toLowerCase().includes("failed to fetch") || msg.toLowerCase().includes("networkerror")) {
-        setErrMsg("Cannot reach the server. Make sure the backend is running on port 5000.");
-      } else {
-        setErrMsg(msg);
-      }
+      const isNetworkErr = msg.toLowerCase().includes("failed to fetch") || msg.toLowerCase().includes("networkerror");
+      setErrMsg(
+        isNetworkErr
+          ? "The backend request could not be completed right now. The server may still be starting — please wait a few seconds and retry."
+          : msg
+      );
       setPhase("error");
     }
   };

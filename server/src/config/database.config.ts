@@ -1,13 +1,13 @@
 // =============================================================
 // DATABASE CONFIGURATION
-// PostgreSQL connection via Prisma — ENV variables only.
+// MySQL 8.0 connection via Prisma — ENV variables only.
 // The DATABASE_URL env var is read directly by Prisma.
 // =============================================================
 
 export const databaseConfig = {
   // Prisma reads DATABASE_URL automatically from environment.
-  // Ensure it is set in .env:
-  // DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=public"
+  // Ensure it is set in server/.env:
+  // DATABASE_URL="mysql://root:password@localhost:3306/erp_system"
   url: process.env.DATABASE_URL,
 
   // Connection pool settings (Prisma defaults are suitable for most cases)

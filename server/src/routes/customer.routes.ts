@@ -56,7 +56,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
   fastify.delete("/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
     try {
-      await req.prisma.customer.update({ where: { id: req.params.id }, data: { isActive: false } });
+      await req.prisma.customer.delete({ where: { id: req.params.id } });
       return reply.send(successResponse(null, "Customer deleted"));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });

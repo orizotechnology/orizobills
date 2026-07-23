@@ -9,9 +9,10 @@ interface StatCardProps {
   changeLabel: string;
   icon: ReactNode;
   index?: number;
+  valueColor?: string;
 }
 
-export function StatCard({ title, value, change, changeLabel, icon, index = 0 }: StatCardProps) {
+export function StatCard({ title, value, change, changeLabel, icon, index = 0, valueColor }: StatCardProps) {
   const isPositive = change >= 0;
 
   return (
@@ -64,7 +65,7 @@ export function StatCard({ title, value, change, changeLabel, icon, index = 0 }:
       <div style={{ color: "#94A3B8", fontSize: 13, fontWeight: 500 }}>{title}</div>
 
       {/* Value */}
-      <div style={{ color: "#0F172A", fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", lineHeight: 1 }}>
+      <div style={{ color: valueColor ?? "#0F172A", fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", lineHeight: 1 }}>
         {value}
       </div>
 

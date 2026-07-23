@@ -135,7 +135,8 @@ export default function PurchaseEntryPage() {
     const validRows = rows.filter((r) => r.item.trim());
     const payload: PurchasePayload = {
       supplierName: party.trim(),
-      billNumber: billNo,
+      supplierId:   _partyId || undefined,   // fix: send supplierId for credit tracking
+      billNumber:   billNo,
       billDate,
       poNumber: poNo || undefined,
       poDate: poDate || undefined,
