@@ -56,7 +56,7 @@ export async function supplierRoutes(fastify: FastifyInstance) {
 
   fastify.delete("/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
     try {
-      await req.prisma.supplier.update({ where: { id: req.params.id }, data: { isActive: false } });
+      await req.prisma.supplier.delete({ where: { id: req.params.id } });
       return reply.send(successResponse(null, "Supplier deleted"));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });

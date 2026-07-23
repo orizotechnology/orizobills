@@ -1,4 +1,5 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent, TooltipComponent } from "echarts/components";
@@ -6,26 +7,47 @@ import { CanvasRenderer } from "echarts/renderers";
 import type { ECharts } from "echarts/core";
 import type { EChartsOption } from "echarts";
 import { ChevronDown } from "lucide-react";
+import { http } from "@/lib/axios";
 
 echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
-// Empty data — real data will come from API
-const ALL_DATES = Array.from({ length: 31 }, (_, i) => {
-  const d = i + 1;
-  return `${String(d).padStart(2, "0")} ${new Date(new Date().getFullYear(), new Date().getMonth(), d).toLocaleString("en-IN", { month: "short" })}`;
-});
+interface DailyData { day: number; amount: number }
+interface ApiResp { success: boolean; data: { daily: DailyData[]; year: number; month: number } }
 
-const DATA = Array(31).fill(0);
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export function SalesChart() {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref      = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ECharts | null>(null);
 
-  useEffect(() => {
-    if (!ref.current || chartRef.current) return;
+  const now = new Date();
+  const [year,  setYear]  = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
 
-    const chart = echarts.init(ref.current, undefined, { renderer: "canvas" });
-    chartRef.current = chart;
+  const { data, isLoading } = useQuery({
+    queryKey: ["sales-daily", year, month],
+    queryFn: () => http.get<ApiResp>(`/sales/daily?year=${year}&month=${month}`),
+    staleTime: 60_000,
+  });
+
+  const daily    = data?.data?.daily ?? [];
+  const amounts  = daily.map((d) => d.amount);
+  const dates    = daily.map((d) =>
+    `${String(d.day).padStart(2, "0")} ${MONTH_NAMES[month - 1]}`
+  );
+  const totalMonth = amounts.reduce((s, v) => s + v, 0);
+
+  // Build / update chart whenever data changes
+  useEffect(() => {
+    if (!ref.current) return;
+
+    if (!chartRef.current) {
+      chartRef.current = echarts.init(ref.current, undefined, { renderer: "canvas" });
+      const onResize = () => chartRef.current?.resize();
+      window.addEventListener("resize", onResize);
+      // store cleanup ref on the chart object (safe pattern)
+      (chartRef.current as any)._cleanup = () => window.removeEventListener("resize", onResize);
+    }
 
     const option: EChartsOption = {
       backgroundColor: "transparent",
@@ -36,10 +58,10 @@ export function SalesChart() {
         borderColor: "#E2E8F0",
         borderWidth: 1,
         padding: [8, 12],
-        textStyle: { color: "#1E293B", fontSize: 12, fontFamily: "inherit" },
+        textStyle: { color: "#1E293B", fontSize: 12 },
         axisPointer: {
           type: "cross",
-          lineStyle: { color: "#F97316", width: 1, type: "dashed" },
+          lineStyle:  { color: "#F97316", width: 1, type: "dashed" },
           crossStyle: { color: "#F97316", width: 1 },
         },
         formatter(params: unknown) {
@@ -47,25 +69,23 @@ export function SalesChart() {
           const p = arr[0];
           if (!p) return "";
           const v = p.value;
-          const label = v >= 100000
-            ? `₹${(v / 100000).toFixed(1)}L`
-            : `₹${(v / 1000).toFixed(0)}K`;
+          const label = v >= 100_000
+            ? `₹${(v / 100_000).toFixed(1)}L`
+            : v >= 1_000
+            ? `₹${(v / 1_000).toFixed(1)}K`
+            : `₹${v.toFixed(0)}`;
           return `<div style="font-size:11px;color:#64748B">${p.name}</div>
                   <div style="font-size:14px;font-weight:700;color:#0F172A;margin-top:3px">${label}</div>`;
         },
       },
       xAxis: {
         type: "category",
-        data: ALL_DATES,
+        data: dates.length ? dates : Array.from({ length: 31 }, (_, i) => `${String(i+1).padStart(2,"0")} ${MONTH_NAMES[month-1]}`),
         boundaryGap: false,
         axisLine: { lineStyle: { color: "#E2E8F0" } },
         axisTick: { show: false },
         splitLine: { show: false },
-        axisLabel: {
-          color: "#94A3B8",
-          fontSize: 11,
-          interval: 4,
-        },
+        axisLabel: { color: "#94A3B8", fontSize: 11, interval: 4 },
       },
       yAxis: {
         type: "value",
@@ -78,74 +98,102 @@ export function SalesChart() {
           fontSize: 11,
           formatter(v: number) {
             if (v === 0) return "₹0";
-            if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
-            if (v >= 1000) return `₹${(v / 1000).toFixed(0)}K`;
+            if (v >= 100_000) return `₹${(v / 100_000).toFixed(1)}L`;
+            if (v >= 1_000)   return `₹${(v / 1_000).toFixed(0)}K`;
             return `₹${v}`;
           },
         },
       },
-      series: [
-        {
-          type: "line",
-          data: DATA,
-          smooth: 0.5,
-          symbol: "none",
-          lineStyle: { color: "#F97316", width: 2.5 },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: "rgba(249,115,22,0.20)" },
-              { offset: 1, color: "rgba(249,115,22,0.00)" },
-            ]),
-          },
+      series: [{
+        type: "line",
+        data: amounts.length ? amounts : Array(31).fill(0),
+        smooth: 0.4,
+        symbol: "none",
+        lineStyle: { color: "#F97316", width: 2.5 },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: "rgba(249,115,22,0.20)" },
+            { offset: 1, color: "rgba(249,115,22,0.00)" },
+          ]),
         },
-      ],
+      }],
     };
 
-    chart.setOption(option);
+    chartRef.current.setOption(option, true);
+  }, [amounts, dates, month]);
 
-    const onResize = () => chart.resize();
-    window.addEventListener("resize", onResize);
-
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      window.removeEventListener("resize", onResize);
-      chart.dispose();
-      chartRef.current = null;
+      if (chartRef.current) {
+        (chartRef.current as any)._cleanup?.();
+        chartRef.current.dispose();
+        chartRef.current = null;
+      }
     };
   }, []);
 
+  // Navigate months
+  const prevMonth = () => {
+    if (month === 1) { setMonth(12); setYear((y) => y - 1); }
+    else setMonth((m) => m - 1);
+  };
+  const nextMonth = () => {
+    const n = new Date();
+    if (year > n.getFullYear() || (year === n.getFullYear() && month >= n.getMonth() + 1)) return;
+    if (month === 12) { setMonth(1); setYear((y) => y + 1); }
+    else setMonth((m) => m + 1);
+  };
+
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
+
+  const fmt = (v: number) =>
+    v >= 100_000 ? `₹${(v/100_000).toFixed(1)}L`
+    : v >= 1_000 ? `₹${(v/1_000).toFixed(1)}K`
+    : `₹${v.toFixed(0)}`;
+
   return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        border: "1px solid #E2E8F0",
-        padding: "20px 20px 12px",
-      }}
-    >
+    <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 20px 12px" }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <span style={{ fontSize: 15, fontWeight: 600, color: "#0F172A" }}>Sales Overview</span>
-        <button
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            border: "1px solid #E2E8F0",
-            borderRadius: 8,
-            padding: "5px 12px",
-            fontSize: 13,
-            color: "#64748B",
-            background: "#fff",
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          This Month <ChevronDown size={13} />
-        </button>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <div>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "#0F172A" }}>Sales Overview</span>
+          {!isLoading && totalMonth > 0 && (
+            <span style={{ marginLeft: 10, fontSize: 13, fontWeight: 700, color: "#F97316" }}>
+              {fmt(totalMonth)} this month
+            </span>
+          )}
+        </div>
+        {/* Month picker */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={prevMonth} style={navBtn}>←</button>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#475569", minWidth: 80, textAlign: "center" }}>
+            {MONTH_NAMES[month - 1]} {year}
+          </span>
+          <button onClick={nextMonth} disabled={isCurrentMonth} style={{ ...navBtn, opacity: isCurrentMonth ? 0.3 : 1 }}>
+            →
+          </button>
+          <button style={{ display: "flex", alignItems: "center", gap: 4, border: "1px solid #E2E8F0", borderRadius: 7, padding: "4px 10px", fontSize: 12, color: "#64748B", background: "#fff", cursor: "pointer", marginLeft: 4 }}>
+            <ChevronDown size={12} />
+          </button>
+        </div>
       </div>
 
-      {/* Chart */}
-      <div ref={ref} style={{ width: "100%", height: 220 }} />
+      {isLoading && (
+        <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center", color: "#94A3B8", fontSize: 13 }}>
+          <div style={{ width: 20, height: 20, border: "2px solid #F97316", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite", marginRight: 8 }} />
+          Loading chart data…
+        </div>
+      )}
+      <div ref={ref} style={{ width: "100%", height: 220, display: isLoading ? "none" : "block" }} />
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
+
+const navBtn: React.CSSProperties = {
+  width: 28, height: 28, border: "1px solid #E2E8F0", borderRadius: 6,
+  background: "#fff", cursor: "pointer", fontSize: 13, color: "#475569",
+  display: "flex", alignItems: "center", justifyContent: "center",
+};

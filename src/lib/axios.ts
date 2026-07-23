@@ -14,7 +14,7 @@ interface RequestOptions extends RequestInit {
 
 // Always use the absolute backend URL — works in both Tauri WebView
 // and browser because CORS allows localhost origins in development.
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = `${(import.meta as any).env?.VITE_API_BASE_URL ?? "http://localhost:5000"}/api`;
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { params, ...init } = options;
@@ -29,10 +29,16 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   const token    = localStorage.getItem("auth-token");
   const branchId = useBranchStore.getState().activeBranchId;
 
+  // Only set Content-Type: application/json when there is a body.
+  // DELETE (and GET) with no body must NOT send this header — Fastify's
+  // body parser will reject the request with 400 if it sees the header
+  // but receives an empty body.
+  const hasBody = init.body != null;
+
   const response = await fetch(url, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
       ...(token    ? { Authorization: `Bearer ${token}` } : {}),
       ...(branchId ? { "X-Branch-Id": branchId }          : {}),
       ...init.headers,

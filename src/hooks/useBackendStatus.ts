@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { APP_CONFIG } from "@/config/app.config";
 
 // =============================================================
 // useBackendStatus
-// Polls http://localhost:5000/api/health directly.
+// Polls the configured API health endpoint directly.
 // Works in both Tauri WebView and browser (CORS allows localhost).
 // =============================================================
 
@@ -14,7 +15,10 @@ const MAX_ATTEMPTS  = 90;   // 90 × 1s = 90s initial window
 const INITIAL_DELAY = 800;
 const NORMAL_DELAY  = 3000;
 const OFFLINE_DELAY = 4000;
-const HEALTH_URL    = "http://localhost:5000/api/health";
+const HEALTH_URLS   = [
+  `${APP_CONFIG.apiBaseUrl}/api/health`,
+  "http://127.0.0.1:5000/api/health",
+];
 
 export function useBackendStatus(): BackendStatus {
   const [status, setStatus] = useState<BackendStatus>("checking");
@@ -24,12 +28,23 @@ export function useBackendStatus(): BackendStatus {
     async (cancelled: { value: boolean }, setTimer: (t: ReturnType<typeof setTimeout>) => void) => {
       if (cancelled.value) return;
       try {
-        const res = await fetch(HEALTH_URL, {
-          cache: "no-store",
-          mode: "cors",
-          signal: AbortSignal.timeout(4000),
-        });
-        if (!cancelled.value && res.ok) { setStatus("online"); attempts.current = 0; return; }
+        for (const healthUrl of HEALTH_URLS) {
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), 4000);
+
+          try {
+            const res = await fetch(healthUrl, {
+              cache: "no-store",
+              mode: "cors",
+              signal: controller.signal,
+            });
+            if (!cancelled.value && res.ok) { setStatus("online"); attempts.current = 0; return; }
+          } catch {
+            // keep trying the next fallback URL
+          } finally {
+            window.clearTimeout(timeoutId);
+          }
+        }
       } catch { /* keep retrying */ }
 
       if (cancelled.value) return;

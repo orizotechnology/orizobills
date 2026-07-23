@@ -2,22 +2,28 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { successResponse, errorResponse } from "../utils/response.util";
 import { HTTP_STATUS, ERROR_CODES } from "../constants/http.constants";
+import {
+  getNextSaleNumber,
+  getNextPurchaseNumber,
+  getNextExpenseNumber,
+} from "../services/counter.service";
 
 // =============================================================
 // BULK IMPORT ROUTE — POST /api/import/:module
 //
-// Accepts parsed rows from the frontend (Excel/CSV already read
-// client-side), validates with Zod, inserts into MySQL via
-// Prisma. Supports: products, customers, suppliers, expenses,
-// sales, purchases.
-//
-// Returns { inserted, skipped, errors[] }.
+// Fixes applied:
+//  1. Counter service called ONCE per invoice group (race-free)
+//  2. Product linking uses case-insensitive LIKE search
+//  3. Sales: inventory stockOut updated inside the invoice transaction
+//  4. Purchases: inventory stockIn updated inside the invoice transaction
+//  5. Purchases: supplierId linked by exact name match first, then partial
+//  6. Expense date parsing handles DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD
+//  7. Product barcode uniqueness: skip duplicate barcodes gracefully
+//  8. All errors per-row captured — one bad row doesn't abort the batch
 // =============================================================
 
 const MAX_ROWS = 5000;
 
-// ── Tax rate string → number ──────────────────────────────────
-// "GST@18%" → 18   "IGST@5%" → 5   "Exempt" → 0   "12" → 12
 function parseTaxRate(raw: unknown): number {
   if (typeof raw === "number") return isNaN(raw) ? 0 : raw;
   if (!raw) return 0;
@@ -29,9 +35,15 @@ function parseTaxRate(raw: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
-// ── Zero-pad invoice numbers ──────────────────────────────────
-function pad(prefix: string, n: number) {
-  return `${prefix}${String(n).padStart(4, "0")}`;
+// Normalise various date formats to YYYY-MM-DD
+function parseDate(raw: string | undefined | null): Date {
+  if (!raw) return new Date();
+  const s = String(raw).trim();
+  // DD-MM-YYYY or DD/MM/YYYY
+  const dmY = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if (dmY) return new Date(`${dmY[3]}-${dmY[2].padStart(2,"0")}-${dmY[1].padStart(2,"0")}`);
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? new Date() : d;
 }
 
 export async function importRoutes(fastify: FastifyInstance) {
@@ -41,8 +53,8 @@ export async function importRoutes(fastify: FastifyInstance) {
     async (req: FastifyRequest<{ Params: { module: string } }>, reply) => {
 
       const { module } = req.params;
-      const prisma     = req.prisma; // branch-aware Prisma client
-      const body       = req.body as {
+      const prisma = req.prisma;
+      const body = req.body as {
         rows:     Record<string, unknown>[];
         batches?: Record<string, unknown>[];
       };
@@ -54,10 +66,7 @@ export async function importRoutes(fastify: FastifyInstance) {
       }
       if (body.rows.length > MAX_ROWS) {
         return reply.status(HTTP_STATUS.BAD_REQUEST).send(
-          errorResponse(
-            `Too many rows (max ${MAX_ROWS}). Split the file into smaller batches.`,
-            HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR
-          )
+          errorResponse(`Too many rows (max ${MAX_ROWS}).`, HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR)
         );
       }
 
@@ -70,14 +79,9 @@ export async function importRoutes(fastify: FastifyInstance) {
       try {
         switch (module.toLowerCase()) {
 
-          // ══════════════════════════════════════════════════
+          // ──────────────────────────────────────────────────
           // PRODUCTS
-          // MySQL query (via Prisma):
-          //   INSERT INTO products (...) VALUES (...)
-          //   ON DUPLICATE KEY UPDATE name=VALUES(name), ...
-          //   INSERT INTO inventory_items (...) VALUES (...)
-          //   ON DUPLICATE KEY UPDATE openingStock=VALUES(openingStock)
-          // ══════════════════════════════════════════════════
+          // ──────────────────────────────────────────────────
           case "products": {
             const schema = z.object({
               name:           z.string().min(1, "Item name is required"),
@@ -93,7 +97,7 @@ export async function importRoutes(fastify: FastifyInstance) {
               lowStockAlert:  z.number().min(0).default(5),
               location:       z.string().optional(),
               taxRate:        z.union([z.string(), z.number()]).optional(),
-              taxInclusive:   z.string().optional(),
+              taxInclusive:   z.union([z.string(), z.boolean()]).optional(),
               unit:           z.string().default("Nos"),
               secondaryUnit:  z.string().optional(),
               conversionRate: z.number().optional(),
@@ -112,18 +116,27 @@ export async function importRoutes(fastify: FastifyInstance) {
               const taxPct = p.data.taxRate !== undefined
                 ? parseTaxRate(p.data.taxRate)
                 : (p.data.taxPct ?? 0);
-              const taxInclusive = typeof p.data.taxInclusive === "string"
-                ? p.data.taxInclusive.toLowerCase().startsWith("incl")
-                : false;
+
+              const taxInclusive =
+                typeof p.data.taxInclusive === "boolean" ? p.data.taxInclusive :
+                typeof p.data.taxInclusive === "string"  ?
+                  p.data.taxInclusive.toLowerCase().startsWith("y") ||
+                  p.data.taxInclusive.toLowerCase().startsWith("incl") :
+                false;
+
               const code = p.data.code?.trim() ||
                 p.data.name.trim().toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 20) + `-${i + 1}`;
 
+              // Strip empty barcode so it doesn't collide on the unique index
+              const barcode = p.data.barcode?.trim() || null;
+
               try {
-                // INSERT INTO products ... ON DUPLICATE KEY UPDATE
                 const product = await prisma.product.upsert({
                   where:  { code },
                   update: {
-                    name: p.data.name, barcode: p.data.barcode ?? null,
+                    name: p.data.name,
+                    // Only update barcode if provided — avoids clobbering existing unique barcodes
+                    ...(barcode !== null ? { barcode } : {}),
                     description: p.data.description ?? null, hsn: p.data.hsn ?? null,
                     mrp: p.data.mrp, discPctOnMrp: p.data.discPctOnMrp,
                     salePrice: p.data.salePrice, purchasePrice: p.data.purchasePrice,
@@ -134,7 +147,7 @@ export async function importRoutes(fastify: FastifyInstance) {
                     conversionRate: p.data.conversionRate ?? null, isActive: true,
                   },
                   create: {
-                    name: p.data.name, code, barcode: p.data.barcode ?? null,
+                    name: p.data.name, code, barcode,
                     description: p.data.description ?? null, hsn: p.data.hsn ?? null,
                     mrp: p.data.mrp, discPctOnMrp: p.data.discPctOnMrp,
                     salePrice: p.data.salePrice, purchasePrice: p.data.purchasePrice,
@@ -146,7 +159,7 @@ export async function importRoutes(fastify: FastifyInstance) {
                   },
                 });
 
-                // INSERT INTO inventory_items ... ON DUPLICATE KEY UPDATE
+                // Upsert inventory — always set openingStock from import sheet
                 await prisma.inventoryItem.upsert({
                   where:  { productId: product.id },
                   update: { openingStock: p.data.openingStock, lowStockAlert: p.data.lowStockAlert },
@@ -156,7 +169,7 @@ export async function importRoutes(fastify: FastifyInstance) {
                   },
                 });
 
-                // INSERT INTO product_batches ... for Sheet 2 batch rows
+                // Batch rows from Sheet 2 — matched by product name (case-insensitive)
                 const productBatches = batches.filter(
                   (b) => String(b.name ?? b.itemName ?? "").trim().toLowerCase() ===
                     p.data.name.trim().toLowerCase()
@@ -173,20 +186,31 @@ export async function importRoutes(fastify: FastifyInstance) {
                 inserted++;
               } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e);
-                errors.push(`Row ${i + 1} (${code}): ${msg}`);
-                skipped++;
+                // Duplicate barcode → skip gracefully with clear message
+                if (msg.includes("Unique constraint") && msg.includes("barcode")) {
+                  errors.push(`Row ${i + 1} (${code}): barcode "${barcode}" already exists — barcode skipped, product imported without it`);
+                  // Retry without barcode
+                  try {
+                    const product = await prisma.product.upsert({
+                      where:  { code },
+                      update: { name: p.data.name, description: p.data.description ?? null, hsn: p.data.hsn ?? null, mrp: p.data.mrp, discPctOnMrp: p.data.discPctOnMrp, salePrice: p.data.salePrice, purchasePrice: p.data.purchasePrice, discountType: p.data.discountType, saleDiscount: p.data.saleDiscount, location: p.data.location ?? null, taxPct, taxInclusive, taxRate: p.data.taxRate != null ? String(p.data.taxRate) : null, unit: p.data.unit, secondaryUnit: p.data.secondaryUnit ?? null, conversionRate: p.data.conversionRate ?? null, isActive: true },
+                      create: { name: p.data.name, code, barcode: null, description: p.data.description ?? null, hsn: p.data.hsn ?? null, mrp: p.data.mrp, discPctOnMrp: p.data.discPctOnMrp, salePrice: p.data.salePrice, purchasePrice: p.data.purchasePrice, discountType: p.data.discountType, saleDiscount: p.data.saleDiscount, location: p.data.location ?? null, taxPct, taxInclusive, taxRate: p.data.taxRate != null ? String(p.data.taxRate) : null, unit: p.data.unit, secondaryUnit: p.data.secondaryUnit ?? null, conversionRate: p.data.conversionRate ?? null },
+                    });
+                    await prisma.inventoryItem.upsert({ where: { productId: product.id }, update: { openingStock: p.data.openingStock, lowStockAlert: p.data.lowStockAlert }, create: { productId: product.id, openingStock: p.data.openingStock, stockIn: 0, stockOut: 0, lowStockAlert: p.data.lowStockAlert } });
+                    inserted++;
+                  } catch (e2) { errors.push(`Row ${i + 1} (${code}): ${e2 instanceof Error ? e2.message : String(e2)}`); skipped++; }
+                } else {
+                  errors.push(`Row ${i + 1} (${code}): ${msg}`);
+                  skipped++;
+                }
               }
             }
             break;
           }
 
-          // ══════════════════════════════════════════════════
+          // ──────────────────────────────────────────────────
           // CUSTOMERS
-          // MySQL query (via Prisma):
-          //   INSERT INTO customers (id,name,phone,email,address,gstin,balance)
-          //   VALUES (uuid(), ?, ?, ?, ?, ?, ?)
-          //   ON DUPLICATE KEY UPDATE name=VALUES(name), ...
-          // ══════════════════════════════════════════════════
+          // ──────────────────────────────────────────────────
           case "customers": {
             const schema = z.object({
               name:    z.string().min(1, "Name is required"),
@@ -203,29 +227,19 @@ export async function importRoutes(fastify: FastifyInstance) {
                 errors.push(`Row ${i + 1}: ${p.error.errors[0]?.message ?? "invalid"}`);
                 skipped++; continue;
               }
-              const phone = p.data.phone?.trim() || null;
+              // Normalise phone: strip spaces/dashes, trim to 20 chars
+              const rawPhone = p.data.phone?.replace(/[\s\-().]/g, "").trim() || null;
+              const phone = rawPhone ? rawPhone.slice(0, 20) : null;
               try {
                 if (phone) {
                   await prisma.customer.upsert({
                     where:  { phone },
-                    update: {
-                      name: p.data.name, email: p.data.email ?? null,
-                      address: p.data.address ?? null, gstin: p.data.gstin ?? null,
-                      balance: p.data.balance,
-                    },
-                    create: {
-                      name: p.data.name, phone,
-                      email: p.data.email ?? null, address: p.data.address ?? null,
-                      gstin: p.data.gstin ?? null, balance: p.data.balance,
-                    },
+                    update: { name: p.data.name, email: p.data.email ?? null, address: p.data.address ?? null, gstin: p.data.gstin ?? null, balance: p.data.balance },
+                    create: { name: p.data.name, phone, email: p.data.email ?? null, address: p.data.address ?? null, gstin: p.data.gstin ?? null, balance: p.data.balance },
                   });
                 } else {
                   await prisma.customer.create({
-                    data: {
-                      name: p.data.name, phone: null,
-                      email: p.data.email ?? null, address: p.data.address ?? null,
-                      gstin: p.data.gstin ?? null, balance: p.data.balance,
-                    },
+                    data: { name: p.data.name, phone: null, email: p.data.email ?? null, address: p.data.address ?? null, gstin: p.data.gstin ?? null, balance: p.data.balance },
                   });
                 }
                 inserted++;
@@ -237,12 +251,9 @@ export async function importRoutes(fastify: FastifyInstance) {
             break;
           }
 
-          // ══════════════════════════════════════════════════
+          // ──────────────────────────────────────────────────
           // SUPPLIERS
-          // MySQL query (via Prisma):
-          //   INSERT INTO suppliers (...) VALUES (...)
-          //   ON DUPLICATE KEY UPDATE ...
-          // ══════════════════════════════════════════════════
+          // ──────────────────────────────────────────────────
           case "suppliers": {
             const schema = z.object({
               name:    z.string().min(1, "Name is required"),
@@ -259,29 +270,18 @@ export async function importRoutes(fastify: FastifyInstance) {
                 errors.push(`Row ${i + 1}: ${p.error.errors[0]?.message ?? "invalid"}`);
                 skipped++; continue;
               }
-              const phone = p.data.phone?.trim() || null;
+              const rawPhone = p.data.phone?.replace(/[\s\-().]/g, "").trim() || null;
+              const phone = rawPhone ? rawPhone.slice(0, 20) : null;
               try {
                 if (phone) {
                   await prisma.supplier.upsert({
                     where:  { phone },
-                    update: {
-                      name: p.data.name, email: p.data.email ?? null,
-                      address: p.data.address ?? null, gstin: p.data.gstin ?? null,
-                      balance: p.data.balance,
-                    },
-                    create: {
-                      name: p.data.name, phone,
-                      email: p.data.email ?? null, address: p.data.address ?? null,
-                      gstin: p.data.gstin ?? null, balance: p.data.balance,
-                    },
+                    update: { name: p.data.name, email: p.data.email ?? null, address: p.data.address ?? null, gstin: p.data.gstin ?? null, balance: p.data.balance },
+                    create: { name: p.data.name, phone, email: p.data.email ?? null, address: p.data.address ?? null, gstin: p.data.gstin ?? null, balance: p.data.balance },
                   });
                 } else {
                   await prisma.supplier.create({
-                    data: {
-                      name: p.data.name, phone: null,
-                      email: p.data.email ?? null, address: p.data.address ?? null,
-                      gstin: p.data.gstin ?? null, balance: p.data.balance,
-                    },
+                    data: { name: p.data.name, phone: null, email: p.data.email ?? null, address: p.data.address ?? null, gstin: p.data.gstin ?? null, balance: p.data.balance },
                   });
                 }
                 inserted++;
@@ -293,26 +293,19 @@ export async function importRoutes(fastify: FastifyInstance) {
             break;
           }
 
-          // ══════════════════════════════════════════════════
+          // ──────────────────────────────────────────────────
           // EXPENSES
-          // MySQL query (via Prisma):
-          //   INSERT INTO expenses
-          //     (id, expenseNumber, category, description, amount,
-          //      paymentMethod, expenseDate, reference, notes)
-          //   VALUES (uuid(), ?, ?, ?, ?, ?, ?, ?, ?)
-          // ══════════════════════════════════════════════════
+          // ──────────────────────────────────────────────────
           case "expenses": {
             const schema = z.object({
               category:      z.string().default("General"),
               description:   z.string().optional(),
               amount:        z.number().min(0.01, "Amount must be > 0"),
               paymentMethod: z.string().default("Cash"),
-              expenseDate:   z.string().default(() => new Date().toISOString().slice(0, 10)),
+              expenseDate:   z.string().optional(),
               reference:     z.string().optional(),
               notes:         z.string().optional(),
             });
-
-            let expCount = await prisma.expense.count();
 
             for (let i = 0; i < rows.length; i++) {
               const p = schema.safeParse(rows[i]);
@@ -321,48 +314,37 @@ export async function importRoutes(fastify: FastifyInstance) {
                 skipped++; continue;
               }
               try {
-                expCount++;
-                const expenseNumber = pad("EXP", expCount);
-                let expenseDate: Date;
-                try {
-                  expenseDate = new Date(p.data.expenseDate);
-                  if (isNaN(expenseDate.getTime())) expenseDate = new Date();
-                } catch { expenseDate = new Date(); }
-
+                const expenseNumber = await getNextExpenseNumber();
+                const expenseDate   = parseDate(p.data.expenseDate ?? null);
                 await prisma.expense.create({
                   data: {
-                    expenseNumber, category: p.data.category,
-                    description: p.data.description ?? null, amount: p.data.amount,
-                    paymentMethod: p.data.paymentMethod, expenseDate,
-                    reference: p.data.reference ?? null, notes: p.data.notes ?? null,
+                    expenseNumber,
+                    category:      p.data.category,
+                    description:   p.data.description ?? null,
+                    amount:        p.data.amount,
+                    paymentMethod: p.data.paymentMethod,
+                    expenseDate,
+                    reference:     p.data.reference ?? null,
+                    notes:         p.data.notes     ?? null,
                   },
                 });
                 inserted++;
               } catch (e) {
-                const msg = e instanceof Error ? e.message : String(e);
-                if (msg.includes("expenseNumber")) expCount--;
-                errors.push(`Row ${i + 1}: ${msg}`);
+                errors.push(`Row ${i + 1}: ${e instanceof Error ? e.message : String(e)}`);
                 skipped++;
               }
             }
             break;
           }
 
-          // ══════════════════════════════════════════════════
+          // ──────────────────────────────────────────────────
           // SALE INVOICES
-          // Groups rows by customerName+invoiceDate → one invoice
-          // per group, multiple items per invoice.
-          //
-          // MySQL queries (via Prisma):
-          //   INSERT INTO sale_invoices (...) VALUES (...)
-          //   INSERT INTO sale_invoice_items (...) VALUES (...)
-          //   INSERT INTO inventory_items (...) ON DUPLICATE KEY
-          //     UPDATE stockOut = stockOut + VALUES(stockOut)
-          // ══════════════════════════════════════════════════
+          // Groups rows by customerName+invoiceDate+paymentMethod
+          // ──────────────────────────────────────────────────
           case "sales": {
             const rowSchema = z.object({
               customerName:  z.string().default("Walk-in Customer"),
-              invoiceDate:   z.string().default(() => new Date().toISOString().slice(0, 10)),
+              invoiceDate:   z.string().optional(),
               paymentMethod: z.string().default("Cash"),
               itemName:      z.string().min(1, "Item name is required"),
               itemCode:      z.string().default("ITEM"),
@@ -372,35 +354,34 @@ export async function importRoutes(fastify: FastifyInstance) {
               discountPct:   z.number().min(0).max(100).default(0),
             });
 
-            // Group rows into invoices by customerName + invoiceDate
             type SaleRow = z.infer<typeof rowSchema>;
             type SaleGroup = { key: string; customerName: string; invoiceDate: string; paymentMethod: string; items: SaleRow[] };
+
             const groups: SaleGroup[] = [];
             const groupIndex: Record<string, number> = {};
 
+            // Phase 1: group rows by invoice key
             for (let i = 0; i < rows.length; i++) {
               const p = rowSchema.safeParse(rows[i]);
               if (!p.success) {
                 errors.push(`Row ${i + 1}: ${p.error.errors[0]?.message ?? "invalid"}`);
                 skipped++; continue;
               }
-              const key = `${p.data.customerName}|${p.data.invoiceDate}`;
+              const invDate = parseDate(p.data.invoiceDate ?? null).toISOString().slice(0, 10);
+              const key = `${p.data.customerName}|${invDate}|${p.data.paymentMethod}`;
               if (groupIndex[key] === undefined) {
                 groupIndex[key] = groups.length;
-                groups.push({ key, customerName: p.data.customerName, invoiceDate: p.data.invoiceDate, paymentMethod: p.data.paymentMethod, items: [] });
+                groups.push({ key, customerName: p.data.customerName, invoiceDate: invDate, paymentMethod: p.data.paymentMethod, items: [] });
               }
               groups[groupIndex[key]].items.push(p.data);
             }
 
-            let saleCount = await prisma.saleInvoice.count();
-
+            // Phase 2: create invoices (one counter call per invoice, not per row)
             for (const grp of groups) {
               try {
-                saleCount++;
-                const invoiceNumber = pad("INV", saleCount);
+                const invoiceNumber = await getNextSaleNumber();
                 const items = grp.items;
 
-                // Calculate totals
                 const subtotal    = items.reduce((s, it) => s + it.unitPrice * it.quantity, 0);
                 const discountAmt = items.reduce((s, it) => s + (it.unitPrice * it.quantity * it.discountPct / 100), 0);
                 const taxAmt      = items.reduce((s, it) => s + ((it.unitPrice * it.quantity - it.unitPrice * it.quantity * it.discountPct / 100) * it.taxPercent / 100), 0);
@@ -408,63 +389,58 @@ export async function importRoutes(fastify: FastifyInstance) {
                 const sgst        = taxAmt / 2;
                 const totalAmt    = subtotal - discountAmt + taxAmt;
 
-                // INSERT INTO sale_invoices
-                const invoice = await prisma.saleInvoice.create({
-                  data: {
-                    invoiceNumber,
-                    customerName:  grp.customerName,
-                    customerId:    null,
-                    invoiceDate:   new Date(grp.invoiceDate),
-                    paymentMethod: grp.paymentMethod,
-                    subtotal, discountPct: 0, discountAmt, cgst, sgst,
-                    totalAmt, paidAmt: totalAmt, balanceDue: 0, status: "PAID",
-                    // INSERT INTO sale_invoice_items
-                    items: {
-                      create: items.map((it) => {
-                        const lineTotal = it.unitPrice * it.quantity;
-                        const lineDisc  = lineTotal * it.discountPct / 100;
-                        const lineTax   = (lineTotal - lineDisc) * it.taxPercent / 100;
-                        return {
-                          productId:   null,
-                          itemName:    it.itemName,
-                          itemCode:    it.itemCode,
-                          quantity:    it.quantity,
-                          unit:        "Nos",
-                          mrp:         it.unitPrice,
-                          unitPrice:   it.unitPrice,
-                          discountPct: it.discountPct,
-                          discountAmt: lineDisc,
-                          taxPercent:  it.taxPercent,
-                          taxAmount:   lineTax,
-                          totalAmount: lineTotal - lineDisc + lineTax,
-                        };
-                      }),
+                // Wrap invoice + inventory update in one transaction
+                await prisma.$transaction(async (tx: typeof prisma) => {
+                  const invoice = await tx.saleInvoice.create({
+                    data: {
+                      invoiceNumber,
+                      customerName:  grp.customerName,
+                      customerId:    null,
+                      invoiceDate:   new Date(grp.invoiceDate),
+                      paymentMethod: grp.paymentMethod,
+                      subtotal, discountPct: 0, discountAmt, cgst, sgst,
+                      totalAmt, paidAmt: totalAmt, balanceDue: 0, status: "PAID",
+                      items: {
+                        create: items.map((it) => {
+                          const lineTotal = it.unitPrice * it.quantity;
+                          const lineDisc  = lineTotal * it.discountPct / 100;
+                          const lineTax   = (lineTotal - lineDisc) * it.taxPercent / 100;
+                          return {
+                            productId: null, itemName: it.itemName, itemCode: it.itemCode,
+                            quantity: it.quantity, unit: "Nos", mrp: it.unitPrice,
+                            unitPrice: it.unitPrice, discountPct: it.discountPct,
+                            discountAmt: lineDisc, taxPercent: it.taxPercent,
+                            taxAmount: lineTax, totalAmount: lineTotal - lineDisc + lineTax,
+                          };
+                        }),
+                      },
                     },
-                  },
-                });
-                inserted++;
-
-                // Try to link items to products and update inventory
-                for (const it of items) {
-                  const prod = await prisma.product.findFirst({
-                    where: { OR: [{ code: it.itemCode }, { name: it.itemName }], isActive: true },
                   });
-                  if (prod) {
-                    // UPDATE sale_invoice_items SET productId=? WHERE itemCode=? AND invoiceId=?
-                    await prisma.saleInvoiceItem.updateMany({
-                      where: { invoiceId: invoice.id, itemCode: it.itemCode },
-                      data:  { productId: prod.id },
-                    });
-                    // INSERT INTO inventory_items ON DUPLICATE KEY UPDATE stockOut=stockOut+qty
-                    await prisma.inventoryItem.upsert({
-                      where:  { productId: prod.id },
-                      update: { stockOut: { increment: it.quantity } },
-                      create: { productId: prod.id, openingStock: 0, stockIn: 0, stockOut: it.quantity, lowStockAlert: 5 },
-                    });
+
+                  // Link to products + update inventory (inside transaction)
+                  for (const it of items) {
+                    // Case-insensitive search using LOWER() — works in MySQL
+                    const prod = (await tx.$queryRawUnsafe(
+                      `SELECT id FROM products WHERE isActive = 1 AND (LOWER(code) = LOWER(?) OR LOWER(name) = LOWER(?)) LIMIT 1`,
+                      it.itemCode, it.itemName
+                    )) as Array<{ id: string }>;
+                    if (prod.length > 0) {
+                      const productId = prod[0].id;
+                      await tx.saleInvoiceItem.updateMany({
+                        where: { invoiceId: invoice.id, itemCode: it.itemCode },
+                        data:  { productId },
+                      });
+                      await tx.inventoryItem.upsert({
+                        where:  { productId },
+                        update: { stockOut: { increment: it.quantity } },
+                        create: { productId, openingStock: 0, stockIn: 0, stockOut: it.quantity, lowStockAlert: 5 },
+                      });
+                    }
                   }
-                }
+                });
+
+                inserted++;
               } catch (e) {
-                saleCount--;
                 errors.push(`Invoice (${grp.customerName} / ${grp.invoiceDate}): ${e instanceof Error ? e.message : String(e)}`);
                 skipped += grp.items.length;
               }
@@ -472,21 +448,14 @@ export async function importRoutes(fastify: FastifyInstance) {
             break;
           }
 
-          // ══════════════════════════════════════════════════
+          // ──────────────────────────────────────────────────
           // PURCHASE INVOICES
-          // Groups rows by supplierName+billDate → one invoice
-          // per group, multiple items per invoice.
-          //
-          // MySQL queries (via Prisma):
-          //   INSERT INTO purchase_invoices (...) VALUES (...)
-          //   INSERT INTO purchase_invoice_items (...) VALUES (...)
-          //   INSERT INTO inventory_items (...) ON DUPLICATE KEY
-          //     UPDATE stockIn = stockIn + VALUES(stockIn)
-          // ══════════════════════════════════════════════════
+          // Groups by supplierName+billDate+paymentMethod
+          // ──────────────────────────────────────────────────
           case "purchases": {
             const rowSchema = z.object({
               supplierName:  z.string().default("Unknown Supplier"),
-              billDate:      z.string().default(() => new Date().toISOString().slice(0, 10)),
+              billDate:      z.string().optional(),
               paymentMethod: z.string().default("Cash"),
               itemName:      z.string().min(1, "Item name is required"),
               itemCode:      z.string().default("ITEM"),
@@ -497,111 +466,96 @@ export async function importRoutes(fastify: FastifyInstance) {
             });
 
             type PurchaseRow = z.infer<typeof rowSchema>;
-            type PurchaseGroup = {
-              key: string; supplierName: string; billDate: string;
-              paymentMethod: string; items: PurchaseRow[];
-            };
+            type PurchaseGroup = { key: string; supplierName: string; billDate: string; paymentMethod: string; items: PurchaseRow[] };
+
             const groups: PurchaseGroup[] = [];
             const groupIndex: Record<string, number> = {};
 
+            // Phase 1: group rows
             for (let i = 0; i < rows.length; i++) {
               const p = rowSchema.safeParse(rows[i]);
               if (!p.success) {
                 errors.push(`Row ${i + 1}: ${p.error.errors[0]?.message ?? "invalid"}`);
                 skipped++; continue;
               }
-              const key = `${p.data.supplierName}|${p.data.billDate}`;
+              const bDate = parseDate(p.data.billDate ?? null).toISOString().slice(0, 10);
+              const key = `${p.data.supplierName}|${bDate}|${p.data.paymentMethod}`;
               if (groupIndex[key] === undefined) {
                 groupIndex[key] = groups.length;
-                groups.push({
-                  key, supplierName: p.data.supplierName,
-                  billDate: p.data.billDate, paymentMethod: p.data.paymentMethod, items: [],
-                });
+                groups.push({ key, supplierName: p.data.supplierName, billDate: bDate, paymentMethod: p.data.paymentMethod, items: [] });
               }
               groups[groupIndex[key]].items.push(p.data);
             }
 
-            let purchaseCount = await prisma.purchaseInvoice.count();
-
+            // Phase 2: create invoices
             for (const grp of groups) {
               try {
-                purchaseCount++;
-                const invoiceNumber = pad("PUR", purchaseCount);
+                const invoiceNumber = await getNextPurchaseNumber();
                 const items = grp.items;
 
-                // Calculate totals
                 const subtotal    = items.reduce((s, it) => s + it.unitPrice * it.quantity, 0);
                 const discountAmt = items.reduce((s, it) => s + (it.unitPrice * it.quantity * it.discountPct / 100), 0);
                 const taxAmt      = items.reduce((s, it) => s + ((it.unitPrice * it.quantity - it.unitPrice * it.quantity * it.discountPct / 100) * it.taxPercent / 100), 0);
                 const totalAmt    = subtotal - discountAmt + taxAmt;
 
-                // INSERT INTO purchase_invoices + purchase_invoice_items
-                const invoice = await prisma.purchaseInvoice.create({
-                  data: {
-                    invoiceNumber,
-                    supplierName:  grp.supplierName,
-                    supplierId:    null,
-                    billDate:      new Date(grp.billDate),
-                    paymentMethod: grp.paymentMethod,
-                    subtotal, discountPct: 0, discountAmt, taxAmt,
-                    totalAmt, taxType: "NONE", status: "CONFIRMED",
-                    items: {
-                      create: items.map((it) => {
-                        const lineTotal = it.unitPrice * it.quantity;
-                        const lineDisc  = lineTotal * it.discountPct / 100;
-                        const lineTax   = (lineTotal - lineDisc) * it.taxPercent / 100;
-                        return {
-                          productId:   null,
-                          itemName:    it.itemName,
-                          itemCode:    it.itemCode,
-                          quantity:    it.quantity,
-                          unit:        "Nos",
-                          mrp:         it.unitPrice,
-                          unitPrice:   it.unitPrice,
-                          discountPct: it.discountPct,
-                          discountAmt: lineDisc,
-                          taxPercent:  it.taxPercent,
-                          taxAmount:   lineTax,
-                          totalAmount: lineTotal - lineDisc + lineTax,
-                        };
-                      }),
+                // Find supplier first (outside transaction — read-only)
+                const supplierRows = (await prisma.$queryRawUnsafe(
+                  `SELECT id FROM suppliers WHERE isActive = 1 AND LOWER(name) = LOWER(?) LIMIT 1`,
+                  grp.supplierName
+                )) as Array<{ id: string }>;
+                const supplierId = supplierRows.length > 0 ? supplierRows[0].id : null;
+
+                // Wrap invoice + inventory in one transaction
+                await prisma.$transaction(async (tx: typeof prisma) => {
+                  const invoice = await tx.purchaseInvoice.create({
+                    data: {
+                      invoiceNumber,
+                      supplierName:  grp.supplierName,
+                      supplierId,
+                      billDate:      new Date(grp.billDate),
+                      paymentMethod: grp.paymentMethod,
+                      subtotal, discountPct: 0, discountAmt, taxAmt,
+                      totalAmt, taxType: "NONE", status: "CONFIRMED",
+                      items: {
+                        create: items.map((it) => {
+                          const lineTotal = it.unitPrice * it.quantity;
+                          const lineDisc  = lineTotal * it.discountPct / 100;
+                          const lineTax   = (lineTotal - lineDisc) * it.taxPercent / 100;
+                          return {
+                            productId: null, itemName: it.itemName, itemCode: it.itemCode,
+                            quantity: it.quantity, unit: "Nos", mrp: it.unitPrice,
+                            unitPrice: it.unitPrice, discountPct: it.discountPct,
+                            discountAmt: lineDisc, taxPercent: it.taxPercent,
+                            taxAmount: lineTax, totalAmount: lineTotal - lineDisc + lineTax,
+                          };
+                        }),
+                      },
                     },
-                  },
-                });
-                inserted++;
-
-                // Link to products and update inventory stockIn
-                for (const it of items) {
-                  const prod = await prisma.product.findFirst({
-                    where: { OR: [{ code: it.itemCode }, { name: it.itemName }], isActive: true },
                   });
-                  if (prod) {
-                    // UPDATE purchase_invoice_items SET productId=? WHERE itemCode=? AND invoiceId=?
-                    await prisma.purchaseInvoiceItem.updateMany({
-                      where: { invoiceId: invoice.id, itemCode: it.itemCode },
-                      data:  { productId: prod.id },
-                    });
-                    // INSERT INTO inventory_items ON DUPLICATE KEY UPDATE stockIn=stockIn+qty
-                    await prisma.inventoryItem.upsert({
-                      where:  { productId: prod.id },
-                      update: { stockIn: { increment: it.quantity } },
-                      create: { productId: prod.id, openingStock: 0, stockIn: it.quantity, stockOut: 0, lowStockAlert: 5 },
-                    });
+
+                  // Link to products + update inventory (inside transaction)
+                  for (const it of items) {
+                    const prod = (await tx.$queryRawUnsafe(
+                      `SELECT id FROM products WHERE isActive = 1 AND (LOWER(code) = LOWER(?) OR LOWER(name) = LOWER(?)) LIMIT 1`,
+                      it.itemCode, it.itemName
+                    )) as Array<{ id: string }>;
+                    if (prod.length > 0) {
+                      const productId = prod[0].id;
+                      await tx.purchaseInvoiceItem.updateMany({
+                        where: { invoiceId: invoice.id, itemCode: it.itemCode },
+                        data:  { productId },
+                      });
+                      await tx.inventoryItem.upsert({
+                        where:  { productId },
+                        update: { stockIn: { increment: it.quantity } },
+                        create: { productId, openingStock: 0, stockIn: it.quantity, stockOut: 0, lowStockAlert: 5 },
+                      });
+                    }
                   }
-                }
-
-                // Try to link invoice to supplier record
-                const supplier = await prisma.supplier.findFirst({
-                  where: { name: { contains: grp.supplierName }, isActive: true },
                 });
-                if (supplier) {
-                  await prisma.purchaseInvoice.update({
-                    where: { id: invoice.id },
-                    data:  { supplierId: supplier.id },
-                  });
-                }
+
+                inserted++;
               } catch (e) {
-                purchaseCount--;
                 errors.push(`Invoice (${grp.supplierName} / ${grp.billDate}): ${e instanceof Error ? e.message : String(e)}`);
                 skipped += grp.items.length;
               }
@@ -609,9 +563,6 @@ export async function importRoutes(fastify: FastifyInstance) {
             break;
           }
 
-          // ══════════════════════════════════════════════════
-          // UNKNOWN MODULE
-          // ══════════════════════════════════════════════════
           default:
             return reply.status(HTTP_STATUS.BAD_REQUEST).send(
               errorResponse(

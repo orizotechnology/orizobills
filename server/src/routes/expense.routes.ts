@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { successResponse, errorResponse } from "../utils/response.util";
 import { HTTP_STATUS, ERROR_CODES } from "../constants/http.constants";
+import { getNextExpenseNumber } from "../services/counter.service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toResult(e: any) {
@@ -12,11 +13,6 @@ function toResult(e: any) {
     reference: e.reference ?? null, notes: e.notes ?? null,
     createdAt: e.createdAt?.toISOString?.() ?? "",
   };
-}
-
-async function nextExpenseNumber(prisma: any): Promise<string> {
-  const count = await prisma.expense.count();
-  return `EXP${String(count + 1).padStart(4, "0")}`;
 }
 
 export async function expenseRoutes(fastify: FastifyInstance) {
@@ -42,7 +38,8 @@ export async function expenseRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const expenseNumber = await nextExpenseNumber(req.prisma);
+      // Use counter.service — safe after deletes (MAX-based, not COUNT-based)
+      const expenseNumber = await getNextExpenseNumber();
       const e = await req.prisma.expense.create({
         data: { expenseNumber, ...parse.data, expenseDate: new Date(parse.data.expenseDate), description: parse.data.description ?? null, reference: parse.data.reference ?? null, notes: parse.data.notes ?? null },
       });

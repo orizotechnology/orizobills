@@ -2,10 +2,12 @@ import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import {
   Upload, FileSpreadsheet, CheckCircle2,
-  AlertCircle, Loader2, X, Download,
+  AlertCircle, Loader2, X, Download, Wifi, WifiOff,
 } from "lucide-react";
 import { http } from "@/lib/axios";
 import { useBranchStore } from "@/store/branch.store";
+import { useBackendStatus } from "@/hooks/useBackendStatus";
+import { APP_CONFIG } from "@/config/app.config";
 
 // =============================================================
 // IMPORT PAGE — dedicated bulk data import
@@ -232,6 +234,7 @@ export default function ImportPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const { getActiveBranch }   = useBranchStore();
   const activeBranch          = getActiveBranch();
+  const backendStatus         = useBackendStatus();
 
   const reset = () => {
     setPhase("idle"); setFN(""); setParsed(null); setResult(null); setErrMsg("");
@@ -256,6 +259,7 @@ export default function ImportPage() {
 
   const confirmImport = async () => {
     if (!parsed) return;
+
     setPhase("importing");
     try {
       const payload: Record<string, unknown> = { rows: parsed.rows };
@@ -268,7 +272,16 @@ export default function ImportPage() {
       else { setErrMsg(res.error?.message ?? "Import failed."); setPhase("error"); }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Import failed.";
-      setErrMsg(msg.toLowerCase().includes("failed to fetch") ? "Cannot reach the server. Make sure the backend is running." : msg);
+      const isNetworkErr =
+        msg.toLowerCase().includes("failed to fetch") ||
+        msg.toLowerCase().includes("networkerror") ||
+        msg.toLowerCase().includes("cannot reach") ||
+        msg.toLowerCase().includes("load failed");
+      setErrMsg(
+        isNetworkErr
+          ? "The backend request could not be completed right now. The server may still be starting — please wait a few seconds and retry."
+          : msg
+      );
       setPhase("error");
     }
   };
@@ -283,13 +296,47 @@ export default function ImportPage() {
         <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(249,115,22,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <FileSpreadsheet size={20} color="#F97316" />
         </div>
-        <div>
+        <div style={{ flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0F172A" }}>Import Data</h1>
           <p style={{ margin: 0, fontSize: 13, color: "#64748B" }}>
             Bulk import into <strong style={{ color: "#F97316" }}>{activeBranch?.name ?? "current branch"}</strong> — columns detected automatically
           </p>
         </div>
+        {/* Backend status pill */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "5px 12px", borderRadius: 20,
+          background: backendStatus === "online" ? "rgba(34,197,94,0.1)" : backendStatus === "checking" ? "rgba(249,115,22,0.1)" : "rgba(239,68,68,0.1)",
+          border: `1px solid ${backendStatus === "online" ? "rgba(34,197,94,0.3)" : backendStatus === "checking" ? "rgba(249,115,22,0.3)" : "rgba(239,68,68,0.3)"}`,
+        }}>
+          {backendStatus === "online"
+            ? <><Wifi size={13} color="#16A34A" /><span style={{ fontSize: 12, fontWeight: 600, color: "#16A34A" }}>Server Online</span></>
+            : backendStatus === "checking"
+            ? <><Loader2 size={13} color="#F97316" style={{ animation: "spin 0.7s linear infinite" }} /><span style={{ fontSize: 12, fontWeight: 600, color: "#F97316" }}>Connecting…</span></>
+            : <><WifiOff size={13} color="#DC2626" /><span style={{ fontSize: 12, fontWeight: 600, color: "#DC2626" }}>Server Offline</span></>
+          }
+        </div>
       </div>
+
+      {/* Status note — non-blocking, since the import request itself is the real source of truth */}
+      {backendStatus === "checking" && (
+        <div style={{
+          background: "rgba(249,115,22,0.06)",
+          border: "1px solid rgba(249,115,22,0.25)",
+          borderRadius: 10, padding: "14px 18px", marginTop: 14,
+          display: "flex", alignItems: "flex-start", gap: 12,
+        }}>
+          <Loader2 size={18} color="#F97316" style={{ flexShrink: 0, marginTop: 1, animation: "spin 0.7s linear infinite" }} />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
+              Connecting to backend server…
+            </div>
+            <div style={{ fontSize: 13, color: "#64748B", lineHeight: 1.6 }}>
+              Please wait while the server starts up. This may take up to 30 seconds on first run.
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>
 
@@ -339,9 +386,24 @@ export default function ImportPage() {
               <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={onInput} style={{ display: "none" }} />
             </div>
             {errMsg && (
-              <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-                <AlertCircle size={15} color="#EF4444" />
-                <span style={{ fontSize: 13, color: "#EF4444" }}>{errMsg}</span>
+              <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: "14px 16px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <AlertCircle size={16} color="#EF4444" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: "#EF4444", fontWeight: 600, marginBottom: 4 }}>
+                      {errMsg.includes("Cannot reach") ? "Backend server is not running" : "Import Error"}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#EF4444", lineHeight: 1.6, whiteSpace: "pre-line" }}>
+                      {errMsg}
+                    </div>
+                    {errMsg.includes("Cannot reach") && (
+                      <div style={{ marginTop: 10, padding: "8px 12px", background: "#FFF1F2", borderRadius: 6, fontSize: 12, color: "#7F1D1D", fontFamily: "monospace" }}>
+                        → Open a terminal in the project folder and run:<br />
+                        <strong style={{ fontSize: 13 }}>npm run dev</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </>
@@ -409,8 +471,14 @@ export default function ImportPage() {
 
             <div style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "flex-end", gap: 10 }}>
               <button onClick={reset} style={{ ...btn, background: "#fff", border: "1.5px solid #E2E8F0", color: "#475569" }}>Cancel</button>
-              <button onClick={confirmImport} style={{ ...btn, background: "#F97316", border: "none", color: "#fff" }}>
-                Import {parsed.total} rows into {moduleInfo.label}
+              <button
+                onClick={confirmImport}
+                style={{ ...btn, background: "#F97316", border: "none", color: "#fff", cursor: "pointer" }}
+              >
+                {backendStatus === "checking"
+                  ? <><Loader2 size={13} style={{ animation: "spin 0.7s linear infinite", display: "inline-block", verticalAlign: "middle", marginRight: 6 }} />Connecting…</>
+                  : `Import ${parsed.total} rows into ${moduleInfo.label}`
+                }
               </button>
             </div>
           </div>

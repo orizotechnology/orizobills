@@ -131,22 +131,27 @@ async function startBackend(): Promise<void> {
     backendProcess = null;
 
     // Auto-restart on non-SIGTERM unexpected exits
+    // First restart: 1s, subsequent: 3s, max 5 attempts
     if (signal !== "SIGTERM" && signal !== "SIGINT" && code !== 0 && restartCount < MAX_RESTARTS) {
       restartCount++;
-      warn(`restarting in 3s… (${restartCount}/${MAX_RESTARTS})`);
-      await new Promise((r) => setTimeout(r, 3000));
+      const delay = restartCount === 1 ? 1000 : 3000;
+      warn(`restarting in ${delay/1000}s… (attempt ${restartCount}/${MAX_RESTARTS})`);
+      await new Promise((r) => setTimeout(r, delay));
       await startBackend();
+    } else if (code === 0) {
+      // Exited cleanly (e.g. port in use on second launch) — don't restart
+      log("exited cleanly");
     }
   });
 
-  // Wait for it to be ready
+  // Wait for it to be ready — 60 retries × 1s = 60s (covers slow first-run DB init)
   log(`waiting for port ${BACKEND_PORT}…`);
-  const ready = await waitForPort(BACKEND_PORT, 40, 1000);
+  const ready = await waitForPort(BACKEND_PORT, 60, 1000);
   if (ready) {
     log(`\x1b[32mbackend ready on http://localhost:${BACKEND_PORT}\x1b[0m`);
     restartCount = 0;
   } else {
-    warn(`backend did not become ready on port ${BACKEND_PORT} within 40s`);
+    warn(`backend did not respond on port ${BACKEND_PORT} within 60s`);
     warn("check the [backend] output above for errors");
   }
 }
