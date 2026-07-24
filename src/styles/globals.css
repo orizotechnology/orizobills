@@ -14,13 +14,24 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Start transparent — AuthGuard sets background to #F8FAFC after login */
+  background: transparent;
 }
 
 body {
-  background-color: hsl(var(--background));
+  /* Background controlled entirely by AuthGuard via inline style.
+     Do NOT set background-color here — it overrides the transparent
+     state needed during the auth/setup screens. */
   color: hsl(var(--foreground));
   font-family: var(--font-sans);
   line-height: 1.5;
+  min-height: 100vh;
+  background: transparent;
+}
+
+#root {
+  /* Root div must also be transparent so the WebView shows through */
+  background: transparent;
   min-height: 100vh;
 }
 

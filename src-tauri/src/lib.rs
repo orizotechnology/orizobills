@@ -1,18 +1,19 @@
 // =============================================================
 // TAURI APPLICATION LIBRARY
-// Add Tauri commands and plugins here as features are built.
+//
+// Transparent background is configured in tauri.conf.json:
+//   "transparent": true
+//   "backgroundColor": "#00000000"
+//
+// This allows the auth/login dialog to float with no white
+// WebView background behind it. AuthGuard restores the
+// background to #F8FAFC after login via inline style on <html>.
 // =============================================================
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        // Register plugins here as needed
-        // .plugin(tauri_plugin_shell::init())
-        // .plugin(tauri_plugin_dialog::init())
-        // Register commands here
-        // .invoke_handler(tauri::generate_handler![])
         .setup(|_app| {
-            // App setup — open main window, initialize state, etc.
             Ok(())
         })
         .run(tauri::generate_context!())

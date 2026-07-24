@@ -4,16 +4,15 @@
 // 0. Ensures required application folders exist
 // 1. Creates the MySQL database if it doesn't exist (with retry)
 // 2. Pushes the Prisma schema (idempotent)
-// 3. Seeds a default branch if none exists
-// 4. Back-fills InventoryItem rows for products missing one
-// 5. Registers default branch in the credentials registry
+// 3. Leaves the database empty after reset
+// 4. Skips back-fill so no default inventory rows are created
+// 5. Skips registry initialization so no default branch metadata is created
 // =============================================================
 
 import { execSync }  from "child_process";
 import * as path     from "path";
 import * as fs       from "fs";
 import * as mysql    from "mysql2/promise";
-import { registerDefaultBranchInRegistry } from "../services/branch.service";
 
 function log(msg: string)  { process.stdout.write(`[DB-INIT] ${msg}\n`); }
 function warn(msg: string) { process.stderr.write(`[DB-INIT] WARN: ${msg}\n`); }
@@ -144,39 +143,17 @@ function pushSchema(): void {
 }
 
 // =============================================================
-// Step 4: Seed default branch
+// Step 4: Keep the database empty after reset
 // =============================================================
 
-async function seedBranch(prisma: PrismaLike): Promise<void> {
-  const n = await prisma.branch.count();
-  if (n > 0) { log(`Branch seed skipped (${n} branch(es) already exist).`); return; }
-  await prisma.branch.create({
-    data: {
-      name:      "Main Branch",
-      slug:      "branch_main_branch",
-      isDefault: true,
-      isActive:  true,
-    },
-  });
-  log("Default branch 'Main Branch' created.");
-}
-
-// =============================================================
-// Step 5: Back-fill InventoryItem rows for orphan products
-// =============================================================
-
-async function backfillInventory(prisma: PrismaLike): Promise<void> {
-  const orphans = await prisma.product.findMany({
-    where:  { isActive: true, inventoryItem: null },
-    select: { id: true },
-  });
-  if (!orphans.length) { log("All products have inventory rows."); return; }
-  for (const { id } of orphans) {
-    await prisma.inventoryItem.create({
-      data: { productId: id, openingStock: 0, stockIn: 0, stockOut: 0, lowStockAlert: 5 },
-    });
+async function ensureEmptyState(prisma: PrismaLike): Promise<void> {
+  const branchCount = await prisma.branch.count();
+  if (branchCount > 0) {
+    log(`Existing branches present (${branchCount}); leaving database unchanged.`);
+    return;
   }
-  log(`Back-filled ${orphans.length} inventory row(s).`);
+
+  log("Database is empty; no seed rows created.");
 }
 
 // =============================================================
@@ -208,19 +185,8 @@ export async function initDatabase(prisma: PrismaLike): Promise<void> {
     throw new Error(`Prisma connect failed: ${(err as Error).message}`);
   }
 
-  // 4. Seed
-  await seedBranch(prisma);
-
-  // 5. Back-fill inventory
-  await backfillInventory(prisma);
-
-  // 6. Register default branch in file-based registry
-  try {
-    await registerDefaultBranchInRegistry();
-    log("Branch registry updated.");
-  } catch (err) {
-    warn(`Registry seed failed: ${(err as Error).message}`);
-  }
+  // 4. Keep database empty
+  await ensureEmptyState(prisma);
 
   log("=== DB init complete — erp_system is ready ===");
 }

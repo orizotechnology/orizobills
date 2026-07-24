@@ -14,6 +14,7 @@ import { paymentRoutes }   from "./routes/payment.routes";
 import { expenseRoutes }   from "./routes/expense.routes";
 import { inventoryRoutes } from "./routes/inventory.routes";
 import { importRoutes }    from "./routes/import.routes";
+import { configRoutes }    from "./routes/config.routes";
 
 // =============================================================
 // FASTIFY APPLICATION FACTORY
@@ -76,7 +77,8 @@ export async function buildServer() {
   server.get("/", async () => ({ name: "Orizo Bills API", version: "1.0.0" }));
 
   // ── Feature routes ────────────────────────────────────────
-  await server.register(branchRoutes,    { prefix: "/api/branches"   });
+  await server.register(configRoutes,    { prefix: "/api/config"    });
+  await server.register(branchRoutes,    { prefix: "/api/branches"  });
   await server.register(productRoutes,   { prefix: "/api/products"   });
   await server.register(customerRoutes,  { prefix: "/api/customers"  });
   await server.register(supplierRoutes,  { prefix: "/api/suppliers"  });

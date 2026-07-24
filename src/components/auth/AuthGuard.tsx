@@ -15,11 +15,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
     const html = document.documentElement;
     const body = document.body;
     if (!isAuthenticated) {
+      // Transparent — lets Tauri window background show through
       html.style.background = "transparent";
       body.style.background = "transparent";
     } else {
-      html.style.background = "";
-      body.style.background = "";
+      // Restore app background (#F8FAFC = hsl(210 40% 98%))
+      html.style.background = "#F8FAFC";
+      body.style.background = "#F8FAFC";
     }
   }, [isAuthenticated]);
 

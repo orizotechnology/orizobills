@@ -22,7 +22,8 @@
         "decorations": true,
         "visible": true,
         "shadow": true,
-        "transparent": false
+        "transparent": true,
+        "backgroundColor": "#00000000"
       }
     ],
     "security": {

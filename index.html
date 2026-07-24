@@ -4,8 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Orizo Bills - Smart Billing & ERP" />
-
-    <!-- Tauri: disable context menu and selection in desktop mode -->
     <meta name="theme-color" content="#F97316" />
 
     <link rel="icon" type="image/png" href="/taskbar.png" />
@@ -15,6 +13,17 @@
 
     <!-- Force light mode — dark mode not yet implemented -->
     <script>document.documentElement.classList.add('light');</script>
+
+    <!--
+      Start with transparent background so the Tauri window shows through
+      during the auth/login screen. AuthGuard restores the background once
+      the user is authenticated.
+    -->
+    <style>
+      html, body {
+        background: transparent !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
