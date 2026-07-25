@@ -6,18 +6,21 @@ import { AuthDialog } from "./AuthDialog";
 // =============================================================
 // AUTH GUARD
 //
-// - Not authenticated → transparent background, centered dialog
-// - Authenticated     → #F8FAFC background, full app renders
+// Waits for zustand to rehydrate from localStorage (_hasHydrated)
+// before deciding what to show — prevents the login dialog from
+// flashing on returning users whose isAuthenticated is persisted.
 //
-// The custom TitleBar (in AppLayout) handles minimize/maximize/close.
-// No OS decorations are used (decorations: false in tauri.conf.json).
+// - Not hydrated yet → null (invisible, no flash)
+// - Hydrated + authenticated → full app
+// - Hydrated + not authenticated → login dialog
 // =============================================================
 
 interface AuthGuardProps { children: React.ReactNode; }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, _hasHydrated } = useAuthStore();
 
+  // Set background based on auth state
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
@@ -29,6 +32,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
       body.style.background = "transparent";
     }
   }, [isAuthenticated]);
+
+  // Don't render anything until localStorage has been read.
+  // This prevents the 1-frame flash of the login dialog on
+  // users who are already authenticated.
+  if (!_hasHydrated) return null;
 
   return (
     <>
@@ -63,14 +71,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
               zIndex: 9999,
             }}
           >
-            {/* Invisible drag strip at top so the window is still movable */}
+            {/* Invisible drag strip — window is movable in dialog mode */}
             <div
               data-tauri-drag-region
               style={{
                 position: "fixed", top: 0, left: 0, right: 0,
-                height: 28,
-                zIndex: 10001,
-                cursor: "default",
+                height: 28, zIndex: 10001, cursor: "default",
               }}
             />
             <AuthDialog />

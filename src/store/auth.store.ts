@@ -5,7 +5,9 @@ import bcrypt from "bcryptjs";
 // =============================================================
 // AUTH STORE
 // - isAuthenticated IS persisted — stays logged in across reloads
-// - Only resets to false when user explicitly calls logout()
+// - _hasHydrated: true once zustand finishes reading localStorage
+//   → AuthGuard waits for this before deciding what to show,
+//     preventing the login dialog flashing on returning users
 // - Passwords stored as bcrypt hashes — never plain text
 // =============================================================
 
@@ -20,7 +22,9 @@ interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   lastSeenName: string | null;
+  _hasHydrated: boolean;
 
+  setHasHydrated: (v: boolean) => void;
   register: (name: string, mobile: string, password: string) => Promise<void>;
   login: (mobile: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -35,6 +39,9 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       lastSeenName: null,
+      _hasHydrated: false,
+
+      setHasHydrated: (v) => set({ _hasHydrated: v }),
 
       register: async (name, mobile, password) => {
         const salt = await bcrypt.genSalt(10);
@@ -59,7 +66,6 @@ export const useAuthStore = create<AuthState>()(
         return valid;
       },
 
-      // Explicit logout — only this resets isAuthenticated
       logout: () => {
         set({ isAuthenticated: false });
       },
@@ -87,13 +93,17 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "orizo-auth",
-      // Persist ALL state including isAuthenticated
-      // so the user stays logged in across page reloads / app restarts
       partialize: (state) => ({
         user: state.user,
         lastSeenName: state.lastSeenName,
         isAuthenticated: state.isAuthenticated,
+        // _hasHydrated is NOT persisted — it's always false on start,
+        // then set to true once rehydration completes
       }),
+      onRehydrateStorage: () => (state) => {
+        // Called after zustand finishes reading from localStorage
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
