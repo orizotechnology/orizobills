@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore } from "@/store/auth.store";
 import { AuthDialog } from "./AuthDialog";
+import { expandToAppWindow, shrinkToDialogWindow } from "@/hooks/useWindowManager";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -9,20 +10,34 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const { isAuthenticated } = useAuthStore();
+  const prevAuth = useRef<boolean | null>(null);
 
-  // Toggle transparent background on html/body when showing auth dialog
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
-    if (!isAuthenticated) {
-      // Transparent — lets Tauri window background show through
-      html.style.background = "transparent";
-      body.style.background = "transparent";
-    } else {
-      // Restore app background (#F8FAFC = hsl(210 40% 98%))
+
+    if (isAuthenticated) {
+      // ── Expand to full app window ─────────────────────────
       html.style.background = "#F8FAFC";
       body.style.background = "#F8FAFC";
+
+      // Only expand if transitioning from unauthenticated
+      // (avoid re-expanding on every re-render)
+      if (prevAuth.current === false || prevAuth.current === null) {
+        expandToAppWindow().catch(() => {});
+      }
+    } else {
+      // ── Shrink back to dialog window ──────────────────────
+      html.style.background = "transparent";
+      body.style.background = "transparent";
+
+      // Only shrink if transitioning from authenticated (logout)
+      if (prevAuth.current === true) {
+        shrinkToDialogWindow().catch(() => {});
+      }
     }
+
+    prevAuth.current = isAuthenticated;
   }, [isAuthenticated]);
 
   return (
@@ -42,7 +57,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         )}
       </AnimatePresence>
 
-      {/* Auth dialog — no background, just the floating card */}
+      {/* Auth dialog — transparent overlay, just the floating card */}
       <AnimatePresence>
         {!isAuthenticated && (
           <motion.div
@@ -54,7 +69,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
             style={{
               position: "fixed",
               inset: 0,
-              background: "transparent", // fully transparent — no color
+              background: "transparent",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
