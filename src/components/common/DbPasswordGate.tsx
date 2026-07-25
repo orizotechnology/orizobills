@@ -104,12 +104,29 @@ export function DbPasswordGate({ children }: Props) {
   // Still checking or already configured/done → render app
   if (step === "checking" || step === "skip") return <>{children}</>;
 
+  // Close app handler
+  const handleClose = async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().close();
+    } catch { /* browser */ }
+  };
+
   return (
     <>
       {/* App pre-rendered but hidden so it loads instantly after setup */}
       <div style={{ visibility: "hidden", pointerEvents: "none", position: "absolute", inset: 0 }}>
         {children}
       </div>
+
+      {/* Invisible drag strip — window is movable even in dialog mode */}
+      <div
+        data-tauri-drag-region
+        style={{
+          position: "fixed", top: 0, left: 0, right: 0,
+          height: 28, zIndex: 10002, cursor: "default",
+        }}
+      />
 
       {/* Transparent overlay — same pattern as AuthGuard */}
       <AnimatePresence>
@@ -143,7 +160,25 @@ export function DbPasswordGate({ children }: Props) {
             <div style={{
               background: "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
               padding: "28px 32px 24px", textAlign: "center",
+              position: "relative",
             }}>
+              {/* Close button — closes the app */}
+              <button
+                onClick={handleClose}
+                style={{
+                  position: "absolute", top: 14, right: 14,
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: "rgba(255,255,255,0.25)", border: "none",
+                  cursor: "pointer", display: "flex", alignItems: "center",
+                  justifyContent: "center", color: "#fff", zIndex: 10,
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.4)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.25)"; }}
+                aria-label="Close"
+                title="Close"
+              >
+                ✕
+              </button>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 14 }}>
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                   <img src="/logo.png" alt="Orizo Bills" style={{ width: 40, height: 40, objectFit: "contain" }}

@@ -63,6 +63,16 @@ export function AuthGuard({ children }: AuthGuardProps) {
               zIndex: 9999,
             }}
           >
+            {/* Invisible drag strip at top so the window is still movable */}
+            <div
+              data-tauri-drag-region
+              style={{
+                position: "fixed", top: 0, left: 0, right: 0,
+                height: 28,
+                zIndex: 10001,
+                cursor: "default",
+              }}
+            />
             <AuthDialog />
           </motion.div>
         )}
