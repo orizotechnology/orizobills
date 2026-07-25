@@ -12,11 +12,11 @@
     "windows": [
       {
         "title": "Orizo Bills",
-        "width": 500,
-        "height": 620,
-        "minWidth": 500,
-        "minHeight": 620,
-        "resizable": false,
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 600,
+        "resizable": true,
         "fullscreen": false,
         "center": true,
         "decorations": false,

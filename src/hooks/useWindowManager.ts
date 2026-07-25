@@ -1,45 +1,19 @@
 // =============================================================
-// useWindowManager
+// useWindowManager — no-op stubs (kept for import compatibility)
 //
-// DIALOG STATE  (unauthenticated / setup):
-//   500×620, no decorations, transparent, not resizable
+// Window decorations are permanently OFF (decorations: false in
+// tauri.conf.json). The custom TitleBar component handles all
+// window controls (minimize / maximize / close).
 //
-// APP STATE (authenticated):
-//   1440×900, decorations ON, resizable, min 1024×600
+// These exports are kept so AuthGuard doesn't need changing,
+// but they no longer do anything — the window is always the
+// same size and the title bar is always shown by the app itself.
 // =============================================================
 
-import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
-
-function isTauri(): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return typeof window !== "undefined" && !!(window as any).__TAURI_INTERNALS__;
-}
-
 export async function expandToAppWindow(): Promise<void> {
-  if (!isTauri()) return; // browser dev — no-op
-  try {
-    const win = getCurrentWindow();
-    // Order matters: decorations first, then size/constraints
-    await win.setDecorations(true);
-    await win.setResizable(true);
-    await win.setMinSize(new LogicalSize(1024, 600));
-    await win.setSize(new LogicalSize(1440, 900));
-    await win.center();
-  } catch (err) {
-    console.error("[WindowManager] expandToAppWindow failed:", err);
-  }
+  // No longer needed — window starts full-size, TitleBar handles controls
 }
 
 export async function shrinkToDialogWindow(): Promise<void> {
-  if (!isTauri()) return;
-  try {
-    const win = getCurrentWindow();
-    await win.setDecorations(false);
-    await win.setResizable(false);
-    await win.setMinSize(null);
-    await win.setSize(new LogicalSize(500, 620));
-    await win.center();
-  } catch (err) {
-    console.error("[WindowManager] shrinkToDialogWindow failed:", err);
-  }
+  // No longer needed
 }
