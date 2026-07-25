@@ -11,13 +11,11 @@ import { useAuthStore } from "@/store/auth.store";
 // =============================================================
 
 export function AuthDialog() {
-  const { user, lastSeenName, register, login, isRegistered } = useAuthStore();
+  const { lastSeenName, register, login, isRegistered } = useAuthStore();
   const isFirstTime = !isRegistered();
 
   const [name, setName] = useState("");
-  const [mobile, setMobile] = useState(() =>
-    !isFirstTime && user?.mobile ? user.mobile : ""
-  );
+  const [mobile, setMobile] = useState("");  // always empty — user must type manually
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
