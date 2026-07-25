@@ -62,7 +62,8 @@ export function TitleBar() {
         display: "flex",
         alignItems: "center",
         height: 32,
-        background: "#0F172A",   // same as sidebar
+        background: "#ffffff",   // white — matches the TopBar
+        borderBottom: "1px solid #E2E8F0",
         flexShrink: 0,
         userSelect: "none",
         WebkitUserSelect: "none",
@@ -70,7 +71,7 @@ export function TitleBar() {
         zIndex: 1000,
       }}
     >
-      {/* Drag region — covers full bar minus button area */}
+      {/* Drag region */}
       <div
         data-tauri-drag-region
         style={{
@@ -85,7 +86,7 @@ export function TitleBar() {
         <span style={{
           fontSize: 12,
           fontWeight: 600,
-          color: "rgba(255,255,255,0.5)",
+          color: "#94A3B8",
           letterSpacing: "0.02em",
           pointerEvents: "none",
         }}>
@@ -93,25 +94,20 @@ export function TitleBar() {
         </span>
       </div>
 
-      {/* Window controls — only shown in Tauri */}
+      {/* Window controls */}
       {inTauri && (
         <div style={{ display: "flex", alignItems: "center", height: "100%", flexShrink: 0 }}>
-          {/* Minimize */}
-          <WinBtn onClick={handleMinimize} label="Minimize" hoverBg="rgba(255,255,255,0.1)">
-            <Minus size={14} strokeWidth={2} />
+          <WinBtn onClick={handleMinimize} label="Minimize" hoverBg="#F1F5F9">
+            <Minus size={14} strokeWidth={2} color="currentColor" />
           </WinBtn>
-
-          {/* Maximize / Restore */}
-          <WinBtn onClick={handleMaximize} label={isMaximized ? "Restore" : "Maximize"} hoverBg="rgba(255,255,255,0.1)">
+          <WinBtn onClick={handleMaximize} label={isMaximized ? "Restore" : "Maximize"} hoverBg="#F1F5F9">
             {isMaximized
-              ? <Maximize2 size={12} strokeWidth={2} />
-              : <Square size={11} strokeWidth={2} />
+              ? <Maximize2 size={12} strokeWidth={2} color="currentColor" />
+              : <Square size={11} strokeWidth={2} color="currentColor" />
             }
           </WinBtn>
-
-          {/* Close */}
-          <WinBtn onClick={handleClose} label="Close" hoverBg="#E81123" isClose>
-            <X size={14} strokeWidth={2} />
+          <WinBtn onClick={handleClose} label="Close" hoverBg="#EF4444" isClose>
+            <X size={14} strokeWidth={2} color="currentColor" />
           </WinBtn>
         </div>
       )}
@@ -145,13 +141,17 @@ function WinBtn({
         background: hovered ? hoverBg : "transparent",
         border: "none",
         cursor: "pointer",
-        color: hovered && isClose ? "#fff" : "rgba(255,255,255,0.7)",
+        // On close hover → icon turns white; others keep dark
+        color: hovered && isClose ? "#fff" : "#64748B",
         transition: "background 0.1s, color 0.1s",
         outline: "none",
         flexShrink: 0,
       }}
     >
-      {children}
+      {/* Re-render children with correct color via CSS currentColor */}
+      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "inherit" }}>
+        {children}
+      </span>
     </button>
   );
 }
