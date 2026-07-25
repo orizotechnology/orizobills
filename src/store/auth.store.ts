@@ -3,105 +3,251 @@ import { persist } from "zustand/middleware";
 import bcrypt from "bcryptjs";
 
 // =============================================================
-// AUTH STORE
-// - isAuthenticated IS persisted — stays logged in across reloads
-// - _hasHydrated: true once zustand finishes reading localStorage
-//   → AuthGuard waits for this before deciding what to show,
-//     preventing the login dialog flashing on returning users
-// - Passwords stored as bcrypt hashes — never plain text
+// AUTH STORE — Role-based (Admin + Officers)
+//
+// Storage:
+//   "orizo-admin"    → single AdminUser (business owner)
+//   "orizo-officers" → OfficerUser[] (staff accounts)
+//   "orizo-session"  → active session (who is logged in now)
+//
+// Rules:
+//   - First run: admin registers with name, mobile, password,
+//     role="admin", businessType
+//   - If admin is already logged in → only officers can log in
+//   - Admin logout → both roles can log in again
+//   - Officers are created by admin from Settings
+//   - Each user has independent credentials
 // =============================================================
 
-export interface AuthUser {
-  name: string;
-  mobile: string;
+export type UserRole = "admin" | "officer";
+
+export const BUSINESS_TYPES = [
+  "Retail Shop",
+  "Wholesale",
+  "Clothing & Apparel",
+  "Electronics",
+  "Grocery & Supermarket",
+  "Pharmacy / Medical",
+  "Restaurant / Food",
+  "Hardware & Tools",
+  "Furniture",
+  "Jewellery",
+  "Auto Parts",
+  "Stationery & Books",
+  "Agriculture & Seeds",
+  "Mobile & Accessories",
+  "General Trading",
+] as const;
+
+export type BusinessType = (typeof BUSINESS_TYPES)[number];
+
+export interface AdminUser {
+  name:         string;
+  mobile:       string;
   passwordHash: string;
+  businessType: BusinessType | string;
   registeredAt: string;
+  role:         "admin";
+}
+
+export interface OfficerUser {
+  id:           string;
+  name:         string;
+  mobile:       string;
+  passwordHash: string;
+  createdAt:    string;
+  role:         "officer";
+  isActive:     boolean;
+}
+
+export interface ActiveSession {
+  name:         string;
+  mobile:       string;
+  role:         UserRole;
+  businessType: string;
+  loginAt:      string;
 }
 
 interface AuthState {
-  user: AuthUser | null;
+  // Persisted separately
+  admin:         AdminUser | null;
+  officers:      OfficerUser[];
+  session:       ActiveSession | null;
+  _hasHydrated:  boolean;
+
+  // Computed
   isAuthenticated: boolean;
-  lastSeenName: string | null;
-  _hasHydrated: boolean;
+  lastSeenName:    string | null;
 
   setHasHydrated: (v: boolean) => void;
-  register: (name: string, mobile: string, password: string) => Promise<void>;
-  login: (mobile: string, password: string) => Promise<boolean>;
+
+  // Admin registration (first run)
+  registerAdmin: (
+    name: string, mobile: string, password: string, businessType: string
+  ) => Promise<void>;
+
+  // Login — picks admin or officer based on role
+  login: (mobile: string, password: string, role: UserRole) => Promise<{ ok: boolean; error?: string }>;
+
+  // Logout current session
   logout: () => void;
-  isRegistered: () => boolean;
-  updateName: (name: string) => void;
-  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ ok: boolean; error?: string }>;
+
+  // Officer management (admin only)
+  addOfficer:    (name: string, mobile: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  removeOfficer: (id: string) => void;
+  toggleOfficer: (id: string) => void;
+
+  // Helpers
+  isAdminRegistered:  () => boolean;
+  isAdminLoggedIn:    () => boolean;
+  canAdminLogin:      () => boolean;  // false if admin already active
+  getActiveSession:   () => ActiveSession | null;
+  updateAdminPassword:(current: string, next: string) => Promise<{ ok: boolean; error?: string }>;
+  updateAdminName:    (name: string) => void;
 }
 
+// ── Admin store (single object) ───────────────────────────────
+const adminStore = create<{ admin: AdminUser | null; set: (a: AdminUser | null) => void }>()(
+  persist(
+    (set) => ({ admin: null, set: (a) => set({ admin: a }) }),
+    { name: "orizo-admin" }
+  )
+);
+
+// ── Officers store (array) ────────────────────────────────────
+const officersStore = create<{ officers: OfficerUser[]; set: (o: OfficerUser[]) => void }>()(
+  persist(
+    (set) => ({ officers: [], set: (o) => set({ officers: o }) }),
+    { name: "orizo-officers" }
+  )
+);
+
+// ── Main session store ────────────────────────────────────────
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      user: null,
+      admin:           null,
+      officers:        [],
+      session:         null,
+      _hasHydrated:    false,
       isAuthenticated: false,
-      lastSeenName: null,
-      _hasHydrated: false,
+      lastSeenName:    null,
 
       setHasHydrated: (v) => set({ _hasHydrated: v }),
 
-      register: async (name, mobile, password) => {
+      registerAdmin: async (name, mobile, password, businessType) => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
-        const user: AuthUser = {
-          name: name.trim(),
-          mobile: mobile.trim(),
-          passwordHash,
-          registeredAt: new Date().toISOString(),
+        const admin: AdminUser = {
+          name: name.trim(), mobile: mobile.trim(),
+          passwordHash, businessType,
+          registeredAt: new Date().toISOString(), role: "admin",
         };
-        set({ user, isAuthenticated: true, lastSeenName: user.name });
+        const session: ActiveSession = {
+          name: admin.name, mobile: admin.mobile,
+          role: "admin", businessType, loginAt: new Date().toISOString(),
+        };
+        set({ admin, session, isAuthenticated: true, lastSeenName: admin.name });
       },
 
-      login: async (mobile, password) => {
-        const { user } = get();
-        if (!user) return false;
-        if (user.mobile !== mobile.trim()) return false;
-        const valid = await bcrypt.compare(password, user.passwordHash);
-        if (valid) {
-          set({ isAuthenticated: true, lastSeenName: user.name });
+      login: async (mobile, password, role) => {
+        const state = get();
+
+        if (role === "admin") {
+          const admin = state.admin;
+          if (!admin) return { ok: false, error: "No admin account found." };
+          // Block if admin is already in an active session
+          if (state.session?.role === "admin")
+            return { ok: false, error: "Admin is already logged in on this device. Only officers can log in now." };
+          if (admin.mobile !== mobile.trim()) return { ok: false, error: "Incorrect mobile number or password." };
+          const valid = await bcrypt.compare(password, admin.passwordHash);
+          if (!valid) return { ok: false, error: "Incorrect mobile number or password." };
+          const session: ActiveSession = {
+            name: admin.name, mobile: admin.mobile,
+            role: "admin", businessType: admin.businessType,
+            loginAt: new Date().toISOString(),
+          };
+          set({ session, isAuthenticated: true, lastSeenName: admin.name });
+          return { ok: true };
         }
-        return valid;
+
+        // Officer login
+        const officer = state.officers.find(
+          (o) => o.mobile === mobile.trim() && o.isActive
+        );
+        if (!officer) return { ok: false, error: "Incorrect mobile number or password." };
+        const valid = await bcrypt.compare(password, officer.passwordHash);
+        if (!valid) return { ok: false, error: "Incorrect mobile number or password." };
+        const session: ActiveSession = {
+          name: officer.name, mobile: officer.mobile,
+          role: "officer", businessType: state.admin?.businessType ?? "",
+          loginAt: new Date().toISOString(),
+        };
+        set({ session, isAuthenticated: true, lastSeenName: officer.name });
+        return { ok: true };
       },
 
-      logout: () => {
-        set({ isAuthenticated: false });
-      },
+      logout: () => set({ session: null, isAuthenticated: false }),
 
-      isRegistered: () => get().user !== null,
-
-      updateName: (name: string) => {
-        const { user } = get();
-        if (!user) return;
-        const updated = { ...user, name: name.trim() };
-        set({ user: updated, lastSeenName: updated.name });
-      },
-
-      updatePassword: async (currentPassword, newPassword) => {
-        const { user } = get();
-        if (!user) return { ok: false, error: "Not logged in" };
-        const valid = await bcrypt.compare(currentPassword, user.passwordHash);
-        if (!valid) return { ok: false, error: "Current password is incorrect" };
-        if (newPassword.length < 6) return { ok: false, error: "New password must be at least 6 characters" };
+      addOfficer: async (name, mobile, password) => {
+        const { officers } = get();
+        if (officers.some((o) => o.mobile === mobile.trim()))
+          return { ok: false, error: "An officer with this mobile already exists." };
         const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash(newPassword, salt);
-        set({ user: { ...user, passwordHash } });
+        const passwordHash = await bcrypt.hash(password, salt);
+        const officer: OfficerUser = {
+          id: `off_${Date.now()}`,
+          name: name.trim(), mobile: mobile.trim(),
+          passwordHash, createdAt: new Date().toISOString(),
+          role: "officer", isActive: true,
+        };
+        set({ officers: [...officers, officer] });
+        return { ok: true };
+      },
+
+      removeOfficer: (id) => set({ officers: get().officers.filter((o) => o.id !== id) }),
+
+      toggleOfficer: (id) => set({
+        officers: get().officers.map((o) => o.id === id ? { ...o, isActive: !o.isActive } : o),
+      }),
+
+      isAdminRegistered: () => !!get().admin,
+
+      isAdminLoggedIn: () => get().session?.role === "admin",
+
+      canAdminLogin: () => get().session?.role !== "admin",
+
+      getActiveSession: () => get().session,
+
+      updateAdminName: (name) => {
+        const { admin } = get();
+        if (!admin) return;
+        const updated = { ...admin, name: name.trim() };
+        set({ admin: updated, lastSeenName: updated.name });
+      },
+
+      updateAdminPassword: async (current, next) => {
+        const { admin } = get();
+        if (!admin) return { ok: false, error: "Not logged in" };
+        const valid = await bcrypt.compare(current, admin.passwordHash);
+        if (!valid) return { ok: false, error: "Current password is incorrect" };
+        if (next.length < 6) return { ok: false, error: "New password must be at least 6 characters" };
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(next, salt);
+        set({ admin: { ...admin, passwordHash } });
         return { ok: true };
       },
     }),
     {
-      name: "orizo-auth",
+      name: "orizo-session",
       partialize: (state) => ({
-        user: state.user,
-        lastSeenName: state.lastSeenName,
+        admin:           state.admin,
+        officers:        state.officers,
+        session:         state.session,
         isAuthenticated: state.isAuthenticated,
-        // _hasHydrated is NOT persisted — it's always false on start,
-        // then set to true once rehydration completes
+        lastSeenName:    state.lastSeenName,
       }),
       onRehydrateStorage: () => (state) => {
-        // Called after zustand finishes reading from localStorage
         state?.setHasHydrated(true);
       },
     }

@@ -28,11 +28,15 @@ interface ProfileDrawerProps {
 }
 
 export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
-  const { user, updateName, updatePassword, logout } = useAuthStore();
+  const { session, admin, updateAdminName, updateAdminPassword, logout } = useAuthStore();
   const { profile, updateProfile } = useBusinessStore();
 
+  const isAdmin  = session?.role === "admin";
+  const userName = session?.name ?? "";
+  const userMobile = session?.mobile ?? "";
+
   // ── Account fields ──────────────────────────────────────────
-  const [name, setName] = useState(user?.name ?? "");
+  const [name, setName] = useState(userName);
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw]         = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -55,7 +59,7 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
   // Sync when drawer reopens
   useEffect(() => {
     if (open) {
-      setName(user?.name ?? "");
+      setName(userName);
       setStoreName(profile.storeName);
       setAddress(profile.address);
       setPhone(profile.phone);
@@ -76,7 +80,7 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
   const saveAccount = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    updateName(trimmed);
+    if (isAdmin) updateAdminName(trimmed);
     showToast("Name updated");
   };
 
@@ -86,7 +90,8 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
     if (!currentPw) { setPwError("Enter your current password"); return; }
     if (!newPw)     { setPwError("Enter a new password"); return; }
     if (newPw !== confirmPw) { setPwError("Passwords don't match"); return; }
-    const result = await updatePassword(currentPw, newPw);
+    if (!isAdmin)   { setPwError("Password change is only available for admin."); return; }
+    const result = await updateAdminPassword(currentPw, newPw);
     if (result.ok) {
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
       showToast("Password changed");
@@ -154,14 +159,14 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
                   border: "2.5px solid #FED7AA",
                   flexShrink: 0,
                 }}>
-                  {(name || user?.name || "U").charAt(0).toUpperCase()}
+                  {(name || userName || "U").charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>
-                    {name || user?.name || "User"}
+                    {name || userName || "User"}
                   </div>
                   <div style={{ fontSize: 12, color: "#94A3B8" }}>
-                    {user?.mobile ?? ""}
+                    {userMobile}
                   </div>
                 </div>
               </div>
@@ -192,12 +197,12 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
                       placeholder="Your name"
                       style={inputStyle}
                     />
-                    <SaveBtn onClick={saveAccount} disabled={!name.trim() || name.trim() === user?.name} />
+                    <SaveBtn onClick={saveAccount} disabled={!name.trim() || name.trim() === userName} />
                   </div>
                 </Field>
                 <Field label="Mobile">
                   <input
-                    value={user?.mobile ?? ""}
+                    value={userMobile}
                     disabled
                     style={{ ...inputStyle, color: "#94A3B8", background: "#F8FAFC", cursor: "not-allowed" }}
                   />

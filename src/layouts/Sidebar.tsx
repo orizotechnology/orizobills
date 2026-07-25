@@ -93,6 +93,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Product",             to: "/app/settings/product"      },
       { label: "Service Reminders",   to: "/app/settings/reminders"    },
       { label: "Accounting",          to: "/app/settings/accounting"   },
+      { label: "Officer Management",  to: "/app/settings/officers"     },
     ],
   },
 ];
@@ -192,7 +193,7 @@ function NavEntry({ item, expanded, sidebarCollapsed, location, onToggle }: NavE
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
-  const { user } = useAuthStore();
+  const { session } = useAuthStore();
   const location = useLocation();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
@@ -300,7 +301,7 @@ export function Sidebar() {
           flexShrink: 0, fontSize: 13, fontWeight: 700,
           border: "2px solid #FED7AA",
         }}>
-          {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+          {session?.name?.charAt(0)?.toUpperCase() ?? "U"}
         </div>
         <AnimatePresence initial={false}>
           {!sidebarCollapsed && (
@@ -318,9 +319,11 @@ export function Sidebar() {
                   color: "#0F172A", fontSize: 12, fontWeight: 600,
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}>
-                  {user?.name ?? "User"}
+                  {session?.name ?? "User"}
                 </div>
-                <div style={{ color: "#94A3B8", fontSize: 11 }}>Admin</div>
+                <div style={{ color: "#94A3B8", fontSize: 11 }}>
+                  {session?.role === "admin" ? "Admin" : "Officer"}
+                </div>
               </div>
               <ChevronDown size={14} color="#94A3B8" style={{ flexShrink: 0 }} />
             </motion.div>

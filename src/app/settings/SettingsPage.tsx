@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
+import { Plus, Trash2, ToggleLeft, ToggleRight, UserCog, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { useAuthStore } from "@/store/auth.store";
 
 // =============================================================
 // SETTINGS PAGE
@@ -175,6 +177,165 @@ function AccountingSettings() {
   );
 }
 
+// ── Officer Management (admin-only) ──────────────────────────
+
+function OfficerManagement() {
+  const { session, officers, addOfficer, removeOfficer, toggleOfficer } = useAuthStore();
+  const isAdmin = session?.role === "admin";
+
+  const [showForm,  setShowForm]  = useState(false);
+  const [name,      setName]      = useState("");
+  const [mobile,    setMobile]    = useState("");
+  const [password,  setPassword]  = useState("");
+  const [showPass,  setShowPass]  = useState(false);
+  const [loading,   setLoading]   = useState(false);
+  const [formError, setFormError] = useState("");
+  const [success,   setSuccess]   = useState("");
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(""); setSuccess("");
+    if (!name.trim() || name.trim().length < 2) { setFormError("Name must be at least 2 characters."); return; }
+    if (!/^[6-9]\d{9}$/.test(mobile.replace(/\s/g, ""))) { setFormError("Enter a valid 10-digit mobile number."); return; }
+    if (!password || password.length < 6) { setFormError("Password must be at least 6 characters."); return; }
+    setLoading(true);
+    const result = await addOfficer(name.trim(), mobile.replace(/\s/g, ""), password);
+    setLoading(false);
+    if (result.ok) {
+      setSuccess(`Officer "${name.trim()}" added successfully.`);
+      setName(""); setMobile(""); setPassword(""); setShowForm(false);
+    } else {
+      setFormError(result.error ?? "Failed to add officer.");
+    }
+  };
+
+  if (!isAdmin) {
+    return (
+      <div style={{ padding: "32px", textAlign: "center" }}>
+        <ShieldCheck size={40} color="#E2E8F0" style={{ margin: "0 auto 12px" }} />
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#94A3B8" }}>Admin access required</div>
+        <div style={{ fontSize: 13, color: "#CBD5E1", marginTop: 4 }}>Only the admin can manage officers.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>Officers</div>
+          <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>{officers.length} officer{officers.length !== 1 ? "s" : ""} registered</div>
+        </div>
+        <button onClick={() => { setShowForm(p => !p); setFormError(""); setSuccess(""); }}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "#F97316", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+          <Plus size={14} /> Add Officer
+        </button>
+      </div>
+
+      {/* Success banner */}
+      {success && (
+        <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#166534" }}>
+          ✓ {success}
+        </div>
+      )}
+
+      {/* Add officer form */}
+      {showForm && (
+        <div style={{ background: "#fff", border: "1.5px solid #F97316", borderRadius: 12, padding: "18px 20px", marginBottom: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+            <UserCog size={15} color="#F97316" /> New Officer
+          </div>
+          <form onSubmit={handleAdd} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={lbl2}>Full Name</label>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="Officer name" style={inp2} />
+              </div>
+              <div>
+                <label style={lbl2}>Mobile Number</label>
+                <input type="tel" value={mobile} onChange={e => setMobile(e.target.value)} maxLength={10} placeholder="10-digit mobile" style={inp2} />
+              </div>
+            </div>
+            <div>
+              <label style={lbl2}>Password</label>
+              <div style={{ position: "relative" }}>
+                <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters" style={{ ...inp2, paddingRight: 36, width: "100%", boxSizing: "border-box" as const }} />
+                <button type="button" onClick={() => setShowPass(p => !p)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94A3B8", display: "flex" }}>
+                  {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+            {formError && <div style={{ fontSize: 12, color: "#E11D48", background: "#FFF1F2", border: "1px solid #FECDD3", borderRadius: 7, padding: "8px 12px" }}>⚠️ {formError}</div>}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: "8px 0", border: "1.5px solid #E2E8F0", borderRadius: 8, background: "#fff", color: "#475569", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px 0", border: "none", borderRadius: 8, background: "#F97316", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: loading ? 0.7 : 1 }}>
+                {loading ? "Adding…" : "Add Officer"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Officers list */}
+      {officers.length === 0 ? (
+        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "40px", textAlign: "center" }}>
+          <UserCog size={36} color="#E2E8F0" style={{ margin: "0 auto 10px" }} />
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#94A3B8" }}>No officers yet</div>
+          <div style={{ fontSize: 12, color: "#CBD5E1", marginTop: 4 }}>Add officers to let staff access the app</div>
+        </div>
+      ) : (
+        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                {["Name", "Mobile", "Status", "Added", ""].map(h => (
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.04em" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {officers.map((o, idx) => (
+                <tr key={o.id} style={{ borderBottom: idx < officers.length - 1 ? "1px solid #F1F5F9" : "none" }}>
+                  <td style={{ padding: "12px 14px", fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{o.name}</td>
+                  <td style={{ padding: "12px 14px", fontSize: 13, color: "#64748B" }}>{o.mobile}</td>
+                  <td style={{ padding: "12px 14px" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "3px 10px", background: o.isActive ? "rgba(34,197,94,0.1)" : "rgba(148,163,184,0.15)", color: o.isActive ? "#16A34A" : "#94A3B8" }}>
+                      {o.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "12px 14px", fontSize: 12, color: "#94A3B8" }}>
+                    {new Date(o.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                  </td>
+                  <td style={{ padding: "12px 14px" }}>
+                    <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                      <button onClick={() => toggleOfficer(o.id)} title={o.isActive ? "Deactivate" : "Activate"}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: o.isActive ? "#F97316" : "#94A3B8", display: "flex", padding: 4, borderRadius: 6 }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#F8FAFC"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                        {o.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                      </button>
+                      <button onClick={() => removeOfficer(o.id)} title="Remove"
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#CBD5E1", display: "flex", padding: 4, borderRadius: 6 }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#EF4444"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF1F2"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "#CBD5E1"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const lbl2: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 5 };
+const inp2: React.CSSProperties = { border: "1.5px solid #E2E8F0", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "#1E293B", outline: "none", fontFamily: "inherit", background: "#F8FAFC", width: "100%" };
+
 // ── Route → key map ──────────────────────────────────────────
 
 const ROUTE_MAP: Record<string, { key: string; label: string; content: React.ReactNode }> = {
@@ -187,6 +348,7 @@ const ROUTE_MAP: Record<string, { key: string; label: string; content: React.Rea
   "/app/settings/product":     { key: "product",      label: "Product",              content: <ProductSettings /> },
   "/app/settings/reminders":   { key: "reminders",    label: "Service Reminders",    content: <ReminderSettings /> },
   "/app/settings/accounting":  { key: "accounting",   label: "Accounting",           content: <AccountingSettings /> },
+  "/app/settings/officers":    { key: "officers",     label: "Officer Management",   content: <OfficerManagement /> },
 };
 
 // ── Page ─────────────────────────────────────────────────────
