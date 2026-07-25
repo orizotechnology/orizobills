@@ -75,15 +75,13 @@ export function AuthDialog() {
     >
       {/* ── Close button ───────────────────────────────────── */}
       <button
-        onClick={() => {
-          // Close = minimise — in Tauri we just hide to tray.
-          // For browser/web, we can't truly close, but we can
-          // signal the window to close via Tauri API if available.
+        onClick={async () => {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (window as any).__TAURI__?.window?.getCurrentWindow().hide();
+            // Tauri v2 — properly close the window (exits the app)
+            const { getCurrentWindow } = await import("@tauri-apps/api/window");
+            await getCurrentWindow().close();
           } catch {
-            // In browser mode, do nothing — user must authenticate
+            // Browser fallback — nothing to close
           }
         }}
         style={{
