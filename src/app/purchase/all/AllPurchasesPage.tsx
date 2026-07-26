@@ -194,11 +194,13 @@ export default function AllPurchasesPage() {
             {isError && <tr><td colSpan={10} style={{ padding: "40px", textAlign: "center", color: "#EF4444" }}><AlertTriangle size={18} /> Backend not connected</td></tr>}
             {!isLoading && !isError && purchases.length === 0 && (
               <tr><td colSpan={10} style={{ padding: "64px", textAlign: "center" }}>
-                <ShoppingCart size={40} color="#E2E8F0" />
-                <div style={{ marginTop: 8, fontWeight: 600, color: "#94A3B8" }}>No purchases yet</div>
-                <button onClick={() => navigate("/app/purchase/new")} style={{ ...primaryBtn, marginTop: 12 }}>
-                  <Plus size={14} /> Create first purchase
-                </button>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <ShoppingCart size={40} color="#E2E8F0" />
+                  <div style={{ fontWeight: 600, color: "#94A3B8" }}>No purchases yet</div>
+                  <button onClick={() => navigate("/app/purchase/new")} style={{ ...primaryBtn, marginTop: 4 }}>
+                    <Plus size={14} /> Create first purchase
+                  </button>
+                </div>
               </td></tr>
             )}
             <AnimatePresence initial={false}>
