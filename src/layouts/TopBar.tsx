@@ -480,65 +480,66 @@ export function TopBar() {
         )}
       </AnimatePresence>
 
-      {/* ── Help Dialog (centered, slides down like notifications) ── */}
+      {/* ── Help Dialog (anchored below ? button) ── */}
       <AnimatePresence>
         {helpOpen && (
           <>
-            {/* Backdrop */}
+            {/* Backdrop — light, no blur */}
             <motion.div
               key="help-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
               onClick={() => setHelpOpen(false)}
-              style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(15,23,42,0.35)", backdropFilter: "blur(2px)" }}
+              style={{ position: "fixed", inset: 0, zIndex: 1100 }}
             />
-            {/* Centered dialog — slides down from top */}
+            {/* Panel anchored below ? button — same as notifications */}
             <motion.div
               key="help-dialog"
               ref={helpRef}
-              initial={{ y: -24, opacity: 0, scale: 0.97 }}
-              animate={{ y: 0,   opacity: 1, scale: 1    }}
-              exit={{    y: -24, opacity: 0, scale: 0.97 }}
-              transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0,   opacity: 1 }}
+              exit={{    y: -10, opacity: 0 }}
+              transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
               style={{
                 position: "fixed",
-                top: "50%", left: "50%",
-                transform: "translate(-50%, -50%)",
-                zIndex: 1200,
-                width: "100%", maxWidth: 520,
-                maxHeight: "82vh",
+                top: 62,          // just below the 56px TopBar + 6px gap
+                right: 64,        // aligned below the ? button
+                width: 420,
+                maxHeight: "calc(100vh - 80px)",
                 background: "#fff",
-                borderRadius: 18,
-                boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
+                border: "1px solid #E2E8F0",
+                borderRadius: 14,
+                boxShadow: "0 12px 40px rgba(0,0,0,0.14)",
+                zIndex: 1200,
                 display: "flex", flexDirection: "column",
                 overflow: "hidden",
               }}
             >
               {/* Header */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px 14px", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(249,115,22,0.10)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <HelpCircle size={19} color="#F97316" strokeWidth={1.8} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 12px", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: "rgba(249,115,22,0.10)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <HelpCircle size={17} color="#F97316" strokeWidth={1.8} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>Help Center</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Help Center</div>
                     <div style={{ fontSize: 11, color: "#94A3B8" }}>How-to guides & support</div>
                   </div>
                 </div>
                 <button
                   onClick={() => setHelpOpen(false)}
-                  style={{ width: 30, height: 30, borderRadius: 8, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#94A3B8" }}
+                  style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 4, borderRadius: 6, color: "#94A3B8" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#F1F5F9"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
                 >
-                  <X size={16} />
+                  <X size={14} />
                 </button>
               </div>
 
               {/* Accordion sections */}
-              <div style={{ flex: 1, overflowY: "auto", padding: "8px 0", scrollbarWidth: "none" }}>
+              <div style={{ flex: 1, overflowY: "auto", padding: "6px 0", scrollbarWidth: "none" }}>
                 {HELP_SECTIONS.map((section) => (
                   <HelpAccordion key={section.title} section={section} />
                 ))}
