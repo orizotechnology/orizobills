@@ -18,7 +18,7 @@ interface InventoryItem {
   id: string;
   productName: string;
   currentStock: number;
-  lowStockThreshold: number;
+  lowStockAlert: number;
   status: string;
 }
 
@@ -148,22 +148,28 @@ export function TopBar() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // ── Data: inventory & sales ─────────────────────────────────
-  const { data: inventoryData } = useQuery<{ data: InventoryItem[] }>({
+  const { data: inventoryData } = useQuery({
     queryKey: ["topbar-inventory"],
-    queryFn:  () => http.get<{ data: InventoryItem[] }>("/inventory"),
+    queryFn:  async () => {
+      const res = await http.get<{ success: boolean; data: { items: InventoryItem[] } }>("/inventory");
+      return res.data?.items ?? [];
+    },
     staleTime: 60_000,
   });
 
-  const { data: salesData } = useQuery<{ data: SaleInvoice[] }>({
+  const { data: salesData } = useQuery({
     queryKey: ["topbar-sales"],
-    queryFn:  () => http.get<{ data: SaleInvoice[] }>("/sales"),
+    queryFn:  async () => {
+      const res = await http.get<{ success: boolean; data: { data: SaleInvoice[]; total: number } }>("/sales?page=1&pageSize=100");
+      return res.data?.data ?? [];
+    },
     staleTime: 60_000,
   });
 
-  const lowStockItems = (inventoryData?.data ?? []).filter(
+  const lowStockItems  = (inventoryData ?? []).filter(
     (i) => i.status === "LOW_STOCK" || i.status === "OUT_OF_STOCK"
   );
-  const unpaidInvoices = (salesData?.data ?? []).filter(
+  const unpaidInvoices = (salesData ?? []).filter(
     (s) => s.status === "UNPAID" || s.status === "PARTIAL"
   );
   const totalNotifCount = lowStockItems.length + unpaidInvoices.length;
@@ -427,7 +433,7 @@ export function TopBar() {
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.productName}</div>
-                            <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 1 }}>Stock: {item.currentStock} · Threshold: {item.lowStockThreshold}</div>
+                            <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 1 }}>Stock: {item.currentStock} · Alert at: {item.lowStockAlert}</div>
                           </div>
                           <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 99, background: item.status === "OUT_OF_STOCK" ? "#FEE2E2" : "#FFF7ED", color: item.status === "OUT_OF_STOCK" ? "#EF4444" : "#F97316", flexShrink: 0 }}>
                             {item.status === "OUT_OF_STOCK" ? "Out of Stock" : "Low Stock"}
