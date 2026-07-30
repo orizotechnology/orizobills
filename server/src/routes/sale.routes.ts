@@ -74,20 +74,39 @@ export async function saleRoutes(fastify: FastifyInstance) {
   });
 
   // ── Dashboard stats endpoint ─────────────────────────────
-  fastify.get("/stats", async (req, reply) => {
+  fastify.get("/stats", async (req: FastifyRequest<{ Querystring: { year?: string; month?: string } }>, reply) => {
     try {
+      // If year+month provided → filter to that month, else all-time
+      const { year: y, month: m } = req.query;
+      let dateWhere: Record<string, unknown> = {};
+      if (y && m) {
+        const yr    = Number(y);
+        const mo    = Number(m);
+        const start = new Date(yr, mo - 1, 1);
+        const end   = new Date(yr, mo, 1);
+        dateWhere   = { invoiceDate: { gte: start, lt: end } };
+      }
+      let purchaseDateWhere: Record<string, unknown> = {};
+      if (y && m) {
+        const yr    = Number(y);
+        const mo    = Number(m);
+        const start = new Date(yr, mo - 1, 1);
+        const end   = new Date(yr, mo, 1);
+        purchaseDateWhere = { billDate: { gte: start, lt: end } };
+      }
+
       const [salesAgg, purchasesAgg, outstanding] = await Promise.all([
         req.prisma.saleInvoice.aggregate({
           _sum: { totalAmt: true, paidAmt: true },
-          where: { status: { not: "CANCELLED" } },
+          where: { status: { not: "CANCELLED" }, ...dateWhere },
         }),
         req.prisma.purchaseInvoice.aggregate({
           _sum: { totalAmt: true },
-          where: { status: { not: "CANCELLED" } },
+          where: { status: { not: "CANCELLED" }, ...purchaseDateWhere },
         }),
         req.prisma.saleInvoice.aggregate({
           _sum: { balanceDue: true },
-          where: { balanceDue: { gt: 0 }, status: { not: "CANCELLED" } },
+          where: { balanceDue: { gt: 0 }, status: { not: "CANCELLED" }, ...dateWhere },
         }),
       ]);
       const totalSales     = parseFloat(String(salesAgg._sum.totalAmt ?? 0));
@@ -135,12 +154,17 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
   // ── Collection & parameterised ─────────────────────────────
 
-  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string } }>, reply) => {
+  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; startDate?: string; endDate?: string } }>, reply) => {
     try {
       const page = Number(req.query.page ?? 1), size = Number(req.query.pageSize ?? 20);
+      // Optional date filter
+      const dateWhere: Record<string, unknown> = {};
+      if (req.query.startDate && req.query.endDate) {
+        dateWhere.invoiceDate = { gte: new Date(req.query.startDate), lte: new Date(req.query.endDate + "T23:59:59.999Z") };
+      }
       const [rows, total] = await Promise.all([
-        req.prisma.saleInvoice.findMany({ where: { status: { not: "CANCELLED" } }, include: { _count: { select: { items: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
-        req.prisma.saleInvoice.count({ where: { status: { not: "CANCELLED" } } }),
+        req.prisma.saleInvoice.findMany({ where: { status: { not: "CANCELLED" }, ...dateWhere }, include: { _count: { select: { items: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
+        req.prisma.saleInvoice.count({ where: { status: { not: "CANCELLED" }, ...dateWhere } }),
       ]);
       return reply.send(successResponse({ data: rows.map(toSaleResult), total }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
@@ -6,7 +6,6 @@ import { GridComponent, TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import type { ECharts } from "echarts/core";
 import type { EChartsOption } from "echarts";
-import { ChevronDown } from "lucide-react";
 import { http } from "@/lib/axios";
 
 echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
@@ -16,13 +15,11 @@ interface ApiResp { success: boolean; data: { daily: DailyData[]; year: number; 
 
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-export function SalesChart() {
+interface SalesChartProps { year: number; month: number; }
+
+export function SalesChart({ year, month }: SalesChartProps) {
   const ref      = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ECharts | null>(null);
-
-  const now = new Date();
-  const [year,  setYear]  = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
 
   const { data, isLoading } = useQuery({
     queryKey: ["sales-daily", year, month],
@@ -133,19 +130,7 @@ export function SalesChart() {
     };
   }, []);
 
-  // Navigate months
-  const prevMonth = () => {
-    if (month === 1) { setMonth(12); setYear((y) => y - 1); }
-    else setMonth((m) => m - 1);
-  };
-  const nextMonth = () => {
-    const n = new Date();
-    if (year > n.getFullYear() || (year === n.getFullYear() && month >= n.getMonth() + 1)) return;
-    if (month === 12) { setMonth(1); setYear((y) => y + 1); }
-    else setMonth((m) => m + 1);
-  };
-
-  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
+  const isCurrentMonth = false; // navigation handled by parent
 
   const fmt = (v: number) =>
     v >= 100_000 ? `₹${(v/100_000).toFixed(1)}L`
@@ -164,19 +149,9 @@ export function SalesChart() {
             </span>
           )}
         </div>
-        {/* Month picker */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <button onClick={prevMonth} style={navBtn}>←</button>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#475569", minWidth: 80, textAlign: "center" }}>
-            {MONTH_NAMES[month - 1]} {year}
-          </span>
-          <button onClick={nextMonth} disabled={isCurrentMonth} style={{ ...navBtn, opacity: isCurrentMonth ? 0.3 : 1 }}>
-            →
-          </button>
-          <button style={{ display: "flex", alignItems: "center", gap: 4, border: "1px solid #E2E8F0", borderRadius: 7, padding: "4px 10px", fontSize: 12, color: "#64748B", background: "#fff", cursor: "pointer", marginLeft: 4 }}>
-            <ChevronDown size={12} />
-          </button>
-        </div>
+        <span style={{ fontSize: 12, color: "#94A3B8" }}>
+          {MONTH_NAMES[month - 1]} {year}
+        </span>
       </div>
 
       {isLoading && (

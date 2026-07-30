@@ -16,7 +16,7 @@ interface SaleInvoice {
   paymentMethod: string;
 }
 
-interface ApiResp { success: boolean; data: { data: SaleInvoice[]; total: number } }
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   PAID:      { bg: "rgba(34,197,94,0.1)",    color: "#16A34A" },
@@ -41,12 +41,19 @@ function SkeletonRow() {
   );
 }
 
-export function RecentInvoices() {
+interface RecentInvoicesProps { year: number; month: number; }
+
+export function RecentInvoices({ year, month }: RecentInvoicesProps) {
   const navigate = useNavigate();
 
+  // Build date range for selected month
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay   = new Date(year, month, 0).getDate();
+  const endDate   = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
   const { data, isLoading } = useQuery({
-    queryKey: ["recent-invoices"],
-    queryFn: () => http.get<ApiResp>("/sales?page=1&pageSize=5"),
+    queryKey: ["recent-invoices", year, month],
+    queryFn: () => http.get<ApiResp>(`/sales?page=1&pageSize=8&startDate=${startDate}&endDate=${endDate}`),
     staleTime: 30_000,
   });
 
@@ -57,8 +64,13 @@ export function RecentInvoices() {
       {/* Header */}
       <div style={{ padding: "18px 20px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontSize: 15, fontWeight: 600, color: "#0F172A" }}>Recent Invoices</span>
-        {!isLoading && invoices.length > 0 && (
-          <span style={{ fontSize: 12, color: "#94A3B8" }}>Latest {invoices.length} sale{invoices.length !== 1 ? "s" : ""}</span>
+        {!isLoading && (
+          <span style={{ fontSize: 12, color: "#94A3B8" }}>
+            {invoices.length > 0
+              ? `${invoices.length} invoice${invoices.length !== 1 ? "s" : ""} in ${MONTH_NAMES[month - 1]} ${year}`
+              : `No invoices in ${MONTH_NAMES[month - 1]} ${year}`
+            }
+          </span>
         )}
       </div>
 
@@ -78,7 +90,7 @@ export function RecentInvoices() {
             {!isLoading && invoices.length === 0 && (
               <tr>
                 <td colSpan={6} style={{ padding: "36px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>
-                  No invoices yet — create one from the POS or Sales section.
+                  No invoices in {MONTH_NAMES[month - 1]} {year}.
                 </td>
               </tr>
             )}
