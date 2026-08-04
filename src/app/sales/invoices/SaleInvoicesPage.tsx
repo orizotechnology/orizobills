@@ -1,21 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Plus,
-  Search,
-  FileText,
-  Trash2,
-  RefreshCw,
-  AlertTriangle,
-  X,
-  AlertCircle,
-  ChevronDown,
-  Settings,
-  BarChart3,
-  Printer,
-} from "lucide-react";
-
+import { Plus, Search, FileText, Trash2, RefreshCw, AlertTriangle, X, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { http } from "@/lib/axios";
 
@@ -200,10 +187,11 @@ function DeleteConfirmDialog({ invoice, isDeleting, onConfirm, onCancel }: Delet
 
 export default function SaleInvoicesPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<SaleInvoice | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState("This Week");
+
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["sales", page],
     queryFn: async () => {
@@ -242,6 +230,17 @@ export default function SaleInvoicesPage() {
   const handleDeleteClick = (inv: SaleInvoice) => setDeleteTarget(inv);
   const handleDeleteConfirm = () => { if (deleteTarget) deleteMutation.mutate(deleteTarget.id); };
   const handleDeleteCancel  = () => { if (!deleteMutation.isPending) setDeleteTarget(null); };
+  const handleRefresh = async () => {
+    await qc.invalidateQueries({ queryKey: ["sales"], refetchType: "active" });
+    await qc.invalidateQueries({ queryKey: ["dashboard-sales"], refetchType: "active" });
+    await qc.invalidateQueries({ queryKey: ["recent-invoices"], refetchType: "active" });
+    await qc.invalidateQueries({ queryKey: ["inventory"], refetchType: "active" });
+    await qc.refetchQueries({ queryKey: ["sales"], type: "active" });
+    await qc.refetchQueries({ queryKey: ["dashboard-sales"], type: "active" });
+    await qc.refetchQueries({ queryKey: ["recent-invoices"], type: "active" });
+    await qc.refetchQueries({ queryKey: ["inventory"], type: "active" });
+    await refetch();
+  };
 
   return (
     <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC" }}>
@@ -249,78 +248,31 @@ export default function SaleInvoicesPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
         <div>
-         <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    fontSize: 20,
-    fontWeight: 700,
-    color: "#0F172A",
-  }}
->
-  Sale Invoices
-  <ChevronDown size={18} color="#64748B" />
-</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>Sale Invoices</div>
+          <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 2 }}>{total} invoice{total !== 1 ? "s" : ""}</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-
-  <button
-    style={{
-      background: "#F97316",
-      color: "#fff",
-      border: "none",
-      borderRadius: 8,
-      padding: "8px 14px",
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      cursor: "pointer",
-      fontWeight: 600,
-      fontSize: 13,
-    }}
-  >
-    <Plus size={15} />
-    Add Sale
-  </button>
-
-  <button style={iconBtn}>
-    <Settings size={16} color="#64748B" />
-  </button>
-
-  <button style={iconBtn}>
-    <X size={16} color="#64748B" />
-  </button>
-
-</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={() => { void handleRefresh(); }} style={iconBtn} title="Refresh">
+            <RefreshCw size={15} color="#64748B" style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
+          </button>
+          <button type="button" onClick={() => navigate("/app/pos")} style={primaryBtn}><Plus size={15} /> New Invoice</button>
+        </div>
       </div>
 
-      
+      {/* Search */}
+      <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #E2E8F0", padding: "10px 14px", marginBottom: 14 }}>
+        <div style={{ position: "relative", flex: 1, maxWidth: 340 }}>
+          <Search size={13} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none" }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search invoice or customer…"
+            style={searchInput}
+          />
+        </div>
+      </div>
 
-     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 30, flexWrap: "wrap" }}>
-  <span
-  style={{
-    fontSize: 13,
-    color: "#64748B",
-    fontWeight: 600,
-  }}
->
-  Filter by:
-</span>
-
-{["This Week", "This Month", "This Year", "Custom Range", "All Time"].map((filter) => (
-  <button
-    key={filter}
-    onClick={() => setSelectedFilter(filter)}
-    style={selectedFilter === filter ? activeFilterBtn : filterBtn}
-  >
-    {filter}
-  </button>
-))}
-</div>
-
-
-{/* Table */}
+      {/* Table */}
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -340,12 +292,27 @@ export default function SaleInvoicesPage() {
               </td></tr>
             )}
             {!isLoading && !isError && invoices.length === 0 && (
-              <tr><td colSpan={10} style={emptyCell}>
-                <FileText size={40} color="#E2E8F0" />
-                <div style={{ marginTop: 8, fontWeight: 600, color: "#94A3B8" }}>
-                  {search ? `No invoices matching "${search}"` : "No invoices yet"}
-                </div>
-              </td></tr>
+              <tr>
+                <td
+                  colSpan={10}
+                  style={{
+                    padding: "64px",
+                    textAlign: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "100%",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    <FileText size={40} color="#E2E8F0" />
+                    <div style={{ fontWeight: 600, color: "#94A3B8" }}>
+                      {search ? `No invoices matching "${search}"` : "No invoices yet"}
+                    </div>
+                  </div>
+                </td>
+              </tr>
             )}
             <AnimatePresence initial={false}>
               {invoices.map((inv, idx) => {
@@ -428,29 +395,6 @@ export default function SaleInvoicesPage() {
 // ── Styles ─────────────────────────────────────────────────────
 
 const primaryBtn:  React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "#F97316", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
-const filterBtn: React.CSSProperties = {
-  padding: "6px 12px",
-  fontSize: "12px",
-  fontWeight: 500,
-  border: "1px solid #E2E8F0",
-  borderRadius: "6px",
-  background: "#fff",
-  color: "#475569",
-  cursor: "pointer",
-  fontFamily: "inherit",
-};
-
-const activeFilterBtn: React.CSSProperties = {
-  padding: "6px 12px",
-  fontSize: "12px",
-  fontWeight: 600,
-  border: "none",
-  borderRadius: "6px",
-  background: "#F97316",
-  color: "#fff",
-  cursor: "pointer",
-  fontFamily: "inherit",
-};
 const iconBtn:     React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
 const searchInput: React.CSSProperties = { width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "7px 10px 7px 28px", fontSize: 13, color: "#475569", background: "#F8FAFC", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
 const thStyle:     React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.04em", whiteSpace: "nowrap" };
@@ -460,9 +404,35 @@ const badge:       React.CSSProperties = { fontSize: 11, fontWeight: 600, border
 const rowIconBtn:  React.CSSProperties = { width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: "#CBD5E1", display: "flex", alignItems: "center", justifyContent: "center" };
 const paginationRow: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderTop: "1px solid #F1F5F9" };
 const pgBtn = (d: boolean): React.CSSProperties => ({ padding: "6px 14px", borderRadius: 7, border: "1px solid #E2E8F0", background: d ? "#F8FAFC" : "#fff", color: d ? "#CBD5E1" : "#475569", fontSize: 13, cursor: d ? "not-allowed" : "pointer", fontFamily: "inherit" });
-const loadingCell: React.CSSProperties = { padding: "48px", textAlign: "center", color: "#94A3B8", fontSize: 13, display: "flex" as never };
-const errorCell:   React.CSSProperties = { padding: "48px", textAlign: "center", color: "#EF4444", fontSize: 13 };
-const emptyCell:   React.CSSProperties = { padding: "64px", textAlign: "center" };
+const loadingCell: React.CSSProperties = {
+  padding: "48px",
+  textAlign: "center",
+  color: "#94A3B8",
+  fontSize: 13,
+  display: "flex" as never,
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+};
+const errorCell: React.CSSProperties = {
+  padding: "48px",
+  textAlign: "center",
+  color: "#EF4444",
+  fontSize: 13,
+  display: "flex" as never,
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+};
+const emptyCell: React.CSSProperties = {
+  padding: "64px",
+  textAlign: "center",
+  display: "flex" as never,
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+};
 
 function Spinner() {
   return <div style={{ width: 20, height: 20, border: "2.5px solid #F97316", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block", marginRight: 8 }} />;

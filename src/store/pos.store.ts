@@ -16,9 +16,9 @@ export interface Bill {
 interface PosState {
   bills: Bill[];
   activeBillId: string;
-  _counter: number; // invoice counter lives inside store — survives StrictMode
 
   addBill: () => void;
+  resetAfterSave: () => void;
   closeBill: (id: string) => void;
   setActiveBill: (id: string) => void;
   getActiveBill: () => Bill | undefined;
@@ -28,43 +28,81 @@ interface PosState {
   removeRowFromBill: (billId: string, rowId: string) => void;
 }
 
-function makeInvoiceNo(n: number) {
+// =============================================================
+// Invoice number helpers
+// Numbers are LOCAL tab labels only — the real invoice number
+// comes from the server after save.
+//
+// Strategy: always find the lowest positive integer NOT already
+// used by an open tab. So if tabs 1, 3, 4 are open, next = 2.
+// If 1, 2, 3 are open, next = 4.
+// After closing tab 2, the next new tab gets 2 again.
+// =============================================================
+
+function parseTabNum(invoiceNo: string): number {
+  // invoiceNo format: "#OB0003" → 3
+  const match = invoiceNo.match(/\d+$/);
+  return match ? parseInt(match[0], 10) : 0;
+}
+
+function nextTabNumber(bills: Bill[]): number {
+  const used = new Set(bills.map((b) => parseTabNum(b.invoiceNo)));
+  let n = 1;
+  while (used.has(n)) n++;
+  return n;
+}
+
+function makeInvoiceNo(n: number): string {
   return `#OB${String(n).padStart(4, "0")}`;
 }
 
-function makeBill(counter: number): Bill {
+function makeBill(n: number): Bill {
   return {
     id: nanoid(),
-    invoiceNo: makeInvoiceNo(counter),
+    invoiceNo: makeInvoiceNo(n),
     customer: "",
     rows: [],
     paymentMode: "Cash",
-    paidAmount: "0.00",
+    paidAmount: "",
     discount: 0,
     createdAt: new Date().toISOString(),
   };
 }
+
+// ── Store ─────────────────────────────────────────────────────
 
 export const usePosStore = create<PosState>((set, get) => {
   const first = makeBill(1);
   return {
     bills: [first],
     activeBillId: first.id,
-    _counter: 2, // next bill will be #OB0002
 
+    // Open a new tab — gets the lowest available number
     addBill: () => {
-      const { _counter } = get();
-      const bill = makeBill(_counter);
+      const { bills } = get();
+      const bill = makeBill(nextTabNumber(bills));
       set((s) => ({
         bills: [...s.bills, bill],
         activeBillId: bill.id,
-        _counter: s._counter + 1,
       }));
     },
 
+    // After save: remove the saved tab, open a fresh #OB0001
+    // (or lowest available if #OB0001 is still open as another tab)
+    resetAfterSave: () => {
+      const { activeBillId, bills } = get();
+      const remaining = bills.filter((b) => b.id !== activeBillId);
+      const fresh = makeBill(nextTabNumber(remaining));
+      set({
+        bills: [...remaining, fresh],
+        activeBillId: fresh.id,
+      });
+    },
+
+    // Close a tab — switch to the nearest neighbour
     closeBill: (id) => {
       const { bills, activeBillId } = get();
-      if (bills.length === 1) return;
+      if (bills.length === 1) return; // never close the last tab
       const idx = bills.findIndex((b) => b.id === id);
       const next = bills[idx - 1] ?? bills[idx + 1];
       set({
@@ -105,8 +143,13 @@ export const usePosStore = create<PosState>((set, get) => {
               const u = { ...r, [field]: value };
               const discAmt = (u.mrp * u.qty * u.discPct) / 100;
               const taxable = u.price * u.qty - discAmt;
-              const taxAmt = (taxable * u.taxPct) / 100;
-              return { ...u, discAmt: +discAmt.toFixed(2), taxAmt: +taxAmt.toFixed(2), total: +(taxable + taxAmt).toFixed(2) };
+              const taxAmt  = (taxable * u.taxPct) / 100;
+              return {
+                ...u,
+                discAmt: +discAmt.toFixed(2),
+                taxAmt:  +taxAmt.toFixed(2),
+                total:   +(taxable + taxAmt).toFixed(2),
+              };
             }),
           };
         }),
@@ -116,7 +159,9 @@ export const usePosStore = create<PosState>((set, get) => {
     removeRowFromBill: (billId, rowId) => {
       set((s) => ({
         bills: s.bills.map((b) =>
-          b.id === billId ? { ...b, rows: b.rows.filter((r) => r.id !== rowId) } : b
+          b.id === billId
+            ? { ...b, rows: b.rows.filter((r) => r.id !== rowId) }
+            : b
         ),
       }));
     },

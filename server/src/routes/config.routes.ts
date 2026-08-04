@@ -136,4 +136,23 @@ export async function configRoutes(fastify: FastifyInstance) {
     if (keytar) await keytar.deletePassword(SERVICE, ACCOUNT).catch(() => {});
     return reply.send({ success: true, message: "Configuration reset." });
   });
+
+  // GET /api/config/current  — returns non-sensitive fields only (host, port, user, database)
+  // Password is NEVER included in the response.
+  fastify.get("/current", async (_req, reply) => {
+    if (!fs.existsSync(CFG_FILE)) {
+      return reply.status(404).send({ success: false, error: { message: "Not configured." } });
+    }
+    try {
+      const raw = JSON.parse(fs.readFileSync(CFG_FILE, "utf8")) as {
+        host: string; port: number; user: string; database: string;
+      };
+      return reply.send({
+        success: true,
+        data: { host: raw.host, port: raw.port, user: raw.user, database: raw.database },
+      });
+    } catch {
+      return reply.status(500).send({ success: false, error: { message: "Could not read config file." } });
+    }
+  });
 }

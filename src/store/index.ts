@@ -7,3 +7,4 @@ export { usePosStore } from "./pos.store";
 export type { Bill } from "./pos.store";
 export { useBusinessStore } from "./business.store";
 export type { BusinessProfile } from "./business.store";
+export { useConfigStore } from "./config.store";

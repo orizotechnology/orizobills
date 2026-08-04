@@ -45,6 +45,12 @@ export default function SuppliersPage() {
     setDialog(null);
   };
 
+  const handleRefresh = async () => {
+    await qc.invalidateQueries({ queryKey: ["suppliers"], refetchType: "active" });
+    await qc.refetchQueries({ queryKey: ["suppliers"], type: "active" });
+    await refetch();
+  };
+
   return (
     <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
@@ -53,7 +59,7 @@ export default function SuppliersPage() {
           <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 2 }}>{suppliers.length} supplier{suppliers.length !== 1 ? "s" : ""}</div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => refetch()} style={iconBtn}>
+          <button type="button" onClick={() => { void handleRefresh(); }} style={iconBtn}>
             <RefreshCw size={15} color="#64748B" style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
           </button>
           <button onClick={() => setDialog("new")} style={primaryBtn}><Plus size={15} /> Add Supplier</button>

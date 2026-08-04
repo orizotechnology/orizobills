@@ -56,12 +56,12 @@ model Product {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  inventoryItem InventoryItem?
-  batches       ProductBatch[]
-  purchaseItems PurchaseInvoiceItem[]
-  saleItems     SaleInvoiceItem[]
-  saleOrderItems SaleOrderItem[]
-  challanItems  DeliveryChallanItem[]
+  inventoryItem   InventoryItem?
+  batches         ProductBatch[]
+  purchaseItems   PurchaseInvoiceItem[]
+  saleItems       SaleInvoiceItem[]
+  saleOrderItems  SaleOrderItem[]
+  challanItems    DeliveryChallanItem[]
   saleReturnItems SaleReturnItem[]
 
   @@index([isActive])
@@ -213,20 +213,20 @@ model PurchaseInvoiceItem {
 // =============================================================
 
 model PurchaseReturn {
-  id           String          @id @default(uuid()) @db.VarChar(36)
-  returnNumber String          @unique @db.VarChar(50)
-  invoiceId    String?         @db.VarChar(36)
+  id           String           @id @default(uuid()) @db.VarChar(36)
+  returnNumber String           @unique @db.VarChar(50)
+  invoiceId    String?          @db.VarChar(36)
   invoice      PurchaseInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  supplierId   String?         @db.VarChar(36)
-  supplier     Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  supplierName String          @db.VarChar(500)
-  returnDate   DateTime        @default(now())
-  reason       String?         @db.Text
-  subtotal     Decimal         @default(0) @db.Decimal(12, 2)
-  totalAmt     Decimal         @default(0) @db.Decimal(12, 2)
-  status       String          @default("CONFIRMED") @db.VarChar(20)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  supplierId   String?          @db.VarChar(36)
+  supplier     Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplierName String           @db.VarChar(500)
+  returnDate   DateTime         @default(now())
+  reason       String?          @db.Text
+  subtotal     Decimal          @default(0) @db.Decimal(12, 2)
+  totalAmt     Decimal          @default(0) @db.Decimal(12, 2)
+  status       String           @default("CONFIRMED") @db.VarChar(20)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   @@map("purchase_returns")
 }
@@ -292,19 +292,19 @@ model SaleInvoiceItem {
 // =============================================================
 
 model PaymentIn {
-  id            String      @id @default(uuid()) @db.VarChar(36)
-  paymentNumber String      @unique @db.VarChar(50)
-  customerId    String?     @db.VarChar(36)
-  customer      Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  customerName  String      @default("Walk-in Customer") @db.VarChar(500)
-  invoiceId     String?     @db.VarChar(36)
+  id            String       @id @default(uuid()) @db.VarChar(36)
+  paymentNumber String       @unique @db.VarChar(50)
+  customerId    String?      @db.VarChar(36)
+  customer      Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName  String       @default("Walk-in Customer") @db.VarChar(500)
+  invoiceId     String?      @db.VarChar(36)
   invoice       SaleInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  amount        Decimal     @db.Decimal(12, 2)
-  paymentMethod String      @default("Cash") @db.VarChar(50)
-  paymentDate   DateTime    @default(now())
-  reference     String?     @db.VarChar(255)
-  notes         String?     @db.Text
-  createdAt     DateTime    @default(now())
+  amount        Decimal      @db.Decimal(12, 2)
+  paymentMethod String       @default("Cash") @db.VarChar(50)
+  paymentDate   DateTime     @default(now())
+  reference     String?      @db.VarChar(255)
+  notes         String?      @db.Text
+  createdAt     DateTime     @default(now())
 
   @@map("payments_in")
 }
@@ -371,15 +371,15 @@ model DeliveryChallan {
 }
 
 model DeliveryChallanItem {
-  id          String          @id @default(uuid()) @db.VarChar(36)
-  challanId   String          @db.VarChar(36)
-  challan     DeliveryChallan @relation(fields: [challanId], references: [id], onDelete: Cascade)
-  productId   String?         @db.VarChar(36)
-  product     Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
-  itemName    String          @db.VarChar(500)
-  itemCode    String          @db.VarChar(100)
-  quantity    Decimal         @db.Decimal(12, 3)
-  unit        String          @default("Nos") @db.VarChar(50)
+  id        String          @id @default(uuid()) @db.VarChar(36)
+  challanId String          @db.VarChar(36)
+  challan   DeliveryChallan @relation(fields: [challanId], references: [id], onDelete: Cascade)
+  productId String?         @db.VarChar(36)
+  product   Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  itemName  String          @db.VarChar(500)
+  itemCode  String          @db.VarChar(100)
+  quantity  Decimal         @db.Decimal(12, 3)
+  unit      String          @default("Nos") @db.VarChar(50)
 
   @@map("delivery_challan_items")
 }
@@ -389,20 +389,20 @@ model DeliveryChallanItem {
 // =============================================================
 
 model SaleReturn {
-  id           String      @id @default(uuid()) @db.VarChar(36)
-  returnNumber String      @unique @db.VarChar(50)
-  invoiceId    String?     @db.VarChar(36)
+  id           String       @id @default(uuid()) @db.VarChar(36)
+  returnNumber String       @unique @db.VarChar(50)
+  invoiceId    String?      @db.VarChar(36)
   invoice      SaleInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  customerId   String?     @db.VarChar(36)
-  customer     Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  customerName String      @default("Walk-in Customer") @db.VarChar(500)
-  returnDate   DateTime    @default(now())
-  reason       String?     @db.Text
-  subtotal     Decimal     @default(0) @db.Decimal(12, 2)
-  totalAmt     Decimal     @default(0) @db.Decimal(12, 2)
-  status       String      @default("CONFIRMED") @db.VarChar(20)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  customerId   String?      @db.VarChar(36)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName String       @default("Walk-in Customer") @db.VarChar(500)
+  returnDate   DateTime     @default(now())
+  reason       String?      @db.Text
+  subtotal     Decimal      @default(0) @db.Decimal(12, 2)
+  totalAmt     Decimal      @default(0) @db.Decimal(12, 2)
+  status       String       @default("CONFIRMED") @db.VarChar(20)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   items SaleReturnItem[]
 

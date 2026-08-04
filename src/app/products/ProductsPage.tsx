@@ -95,6 +95,12 @@ export default function ProductsPage() {
     setDialogProduct(null);
   };
 
+  const handleRefresh = async () => {
+    await qc.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
+    await qc.refetchQueries({ queryKey: ["products"], type: "active" });
+    await refetch();
+  };
+
   return (
     <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC" }}>
 
@@ -108,7 +114,7 @@ export default function ProductsPage() {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button
-            onClick={() => refetch()}
+            onClick={() => { void handleRefresh(); }}
             title="Refresh"
             style={{ ...iconActionBtn, opacity: isFetching ? 0.5 : 1 }}
           >
@@ -228,7 +234,7 @@ export default function ProductsPage() {
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                     <AlertTriangle size={26} color="#F97316" />
                     <div style={{ fontSize: 13, color: "#64748B" }}>Could not load products. Is the backend running?</div>
-                    <button onClick={() => refetch()} style={{ ...primaryBtn, marginTop: 4 }}>Retry</button>
+                    <button type="button" onClick={() => { void handleRefresh(); }} style={{ ...primaryBtn, marginTop: 4 }}>Retry</button>
                   </div>
                 </td></tr>
               )}

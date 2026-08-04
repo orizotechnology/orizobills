@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Plus, Trash2, ToggleLeft, ToggleRight, UserCog, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import BillDesignerPage from "./BillDesignerPage";
 
 // =============================================================
 // SETTINGS PAGE
@@ -338,10 +339,10 @@ const inp2: React.CSSProperties = { border: "1.5px solid #E2E8F0", borderRadius:
 
 // ── Route → key map ──────────────────────────────────────────
 
-const ROUTE_MAP: Record<string, { key: string; label: string; content: React.ReactNode }> = {
+const ROUTE_MAP: Record<string, { key: string; label: string; content: React.ReactNode; fullPage?: boolean }> = {
   "/app/settings/general":     { key: "general",     label: "General",             content: <GeneralSettings /> },
   "/app/settings/transaction": { key: "transaction",  label: "Transaction",          content: <TransactionSettings /> },
-  "/app/settings/print":       { key: "print",        label: "Print",                content: <PrintSettings /> },
+  "/app/settings/print":       { key: "print",        label: "Bill Designer",        content: <BillDesignerPage />, fullPage: true },
   "/app/settings/taxes":       { key: "taxes",        label: "Taxes & GST",          content: <TaxSettings /> },
   "/app/settings/messages":    { key: "messages",     label: "Transaction Message",  content: <MessageSettings /> },
   "/app/settings/party":       { key: "party",        label: "Party",                content: <PartySettings /> },
@@ -358,6 +359,15 @@ export default function SettingsPage() {
 
   const match = Object.entries(ROUTE_MAP).find(([route]) => pathname.startsWith(route));
   const current = match?.[1] ?? ROUTE_MAP["/app/settings/general"];
+
+  // Bill Designer gets the full viewport — no header, no padding
+  if (current.fullPage) {
+    return (
+      <div style={{ height: "100%", overflow: "hidden" }}>
+        {current.content}
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: "100%", overflowY: "auto", background: "#F8FAFC" }}>

@@ -163,6 +163,16 @@ export default function AllPurchasesPage() {
     },
   });
 
+  const handleRefresh = async () => {
+    await qc.invalidateQueries({ queryKey: ["purchases"], refetchType: "active" });
+    await qc.invalidateQueries({ queryKey: ["dashboard-purchases"], refetchType: "active" });
+    await qc.invalidateQueries({ queryKey: ["inventory"], refetchType: "active" });
+    await qc.refetchQueries({ queryKey: ["purchases"], type: "active" });
+    await qc.refetchQueries({ queryKey: ["dashboard-purchases"], type: "active" });
+    await qc.refetchQueries({ queryKey: ["inventory"], type: "active" });
+    await refetch();
+  };
+
   return (
     <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
@@ -171,7 +181,7 @@ export default function AllPurchasesPage() {
           <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 2 }}>{total} purchase bill{total !== 1 ? "s" : ""}</div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => refetch()} style={iconBtn}>
+          <button type="button" onClick={() => { void handleRefresh(); }} style={iconBtn}>
             <RefreshCw size={15} color="#64748B" style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
           </button>
           <button onClick={() => navigate("/app/purchase/new")} style={primaryBtn}>

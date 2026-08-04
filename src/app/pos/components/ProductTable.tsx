@@ -39,13 +39,20 @@ const COL_HEADERS = [
   { label: "ACTION",     width: 60  },
 ];
 
+// Drop .00 suffix — show 12 not 12.00, but keep 12.50
+function fmtNum(n: number): string {
+  const s = n.toFixed(2);
+  return s.endsWith(".00") ? String(Math.round(n)) : s;
+}
+
 function EditableCell({
-  value, onChange, type = "text",
-}: { value: string | number; onChange: (v: string) => void; type?: string }) {
+  value, onChange, type = "text", step = "1",
+}: { value: string | number; onChange: (v: string) => void; type?: string; step?: string }) {
   return (
     <input
       type={type}
       value={value}
+      step={step}
       onChange={(e) => onChange(e.target.value)}
       style={{
         width: "100%", border: "none", background: "transparent",
@@ -122,23 +129,23 @@ export function ProductTable({ rows, onRemoveRow, onUpdateRow }: ProductTablePro
                 </td>
                 <td style={{ padding: "6px 10px", textAlign: "right", color: "#64748B" }}>{row.code}</td>
                 <td style={{ padding: "6px 10px" }}>
-                  <EditableCell value={row.qty} onChange={(v) => onUpdateRow(row.id, "qty", parseFloat(v) || 0)} type="number" />
+                  <EditableCell value={row.qty} onChange={(v) => onUpdateRow(row.id, "qty", parseFloat(v) || 0)} type="number" step="1" />
                 </td>
                 <td style={{ padding: "6px 10px" }}>
-                  <EditableCell value={row.mrp.toFixed(2)} onChange={(v) => onUpdateRow(row.id, "mrp", parseFloat(v) || 0)} type="number" />
+                  <EditableCell value={fmtNum(row.mrp)} onChange={(v) => onUpdateRow(row.id, "mrp", parseFloat(v) || 0)} type="number" step="1" />
                 </td>
                 <td style={{ padding: "6px 10px" }}>
-                  <EditableCell value={row.price.toFixed(2)} onChange={(v) => onUpdateRow(row.id, "price", parseFloat(v) || 0)} type="number" />
+                  <EditableCell value={fmtNum(row.price)} onChange={(v) => onUpdateRow(row.id, "price", parseFloat(v) || 0)} type="number" step="1" />
                 </td>
                 <td style={{ padding: "6px 10px" }}>
-                  <EditableCell value={row.discPct.toFixed(2)} onChange={(v) => onUpdateRow(row.id, "discPct", parseFloat(v) || 0)} type="number" />
+                  <EditableCell value={fmtNum(row.discPct)} onChange={(v) => onUpdateRow(row.id, "discPct", parseFloat(v) || 0)} type="number" step="1" />
                 </td>
-                <td style={{ padding: "6px 10px", textAlign: "right", color: "#64748B" }}>{row.discAmt.toFixed(2)}</td>
+                <td style={{ padding: "6px 10px", textAlign: "right", color: "#64748B" }}>{fmtNum(row.discAmt)}</td>
                 <td style={{ padding: "6px 10px" }}>
-                  <EditableCell value={row.taxPct.toFixed(2)} onChange={(v) => onUpdateRow(row.id, "taxPct", parseFloat(v) || 0)} type="number" />
+                  <EditableCell value={fmtNum(row.taxPct)} onChange={(v) => onUpdateRow(row.id, "taxPct", parseFloat(v) || 0)} type="number" step="1" />
                 </td>
-                <td style={{ padding: "6px 10px", textAlign: "right", color: "#64748B" }}>{row.taxAmt.toFixed(2)}</td>
-                <td style={{ padding: "6px 10px", textAlign: "right", fontWeight: 600, color: "#1E293B" }}>{row.total.toFixed(2)}</td>
+                <td style={{ padding: "6px 10px", textAlign: "right", color: "#64748B" }}>{fmtNum(row.taxAmt)}</td>
+                <td style={{ padding: "6px 10px", textAlign: "right", fontWeight: 600, color: "#1E293B" }}>{fmtNum(row.total)}</td>
                 <td style={{ padding: "6px 10px", textAlign: "center" }}>
                   <button
                     onClick={() => onRemoveRow(row.id)}

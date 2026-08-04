@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, AlertTriangle, RotateCcw } from "lucide-react";
 import { http } from "@/lib/axios";
@@ -15,6 +15,7 @@ interface SaleReturn {
 interface ApiResponse<T> { success: boolean; data: T; }
 
 export default function SaleReturnPage() {
+  const qc = useQueryClient();
   const [page, setPage] = useState(1);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
@@ -32,6 +33,16 @@ export default function SaleReturnPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / 20));
 
+  const handleRefresh = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["sale-returns"], refetchType: "active" }),
+      qc.invalidateQueries({ queryKey: ["inventory"], refetchType: "active" }),
+      qc.refetchQueries({ queryKey: ["sale-returns"], type: "active" }),
+      qc.refetchQueries({ queryKey: ["inventory"], type: "active" }),
+    ]);
+    await refetch();
+  };
+
   return (
     <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
@@ -39,7 +50,7 @@ export default function SaleReturnPage() {
           <div style={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>Sale Returns / Credit Notes</div>
           <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 2 }}>{total} return{total !== 1 ? "s" : ""}</div>
         </div>
-        <button onClick={() => refetch()} style={iconBtn}>
+        <button type="button" onClick={() => { void handleRefresh(); }} style={iconBtn}>
           <RefreshCw size={15} color="#64748B" style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
         </button>
       </div>
