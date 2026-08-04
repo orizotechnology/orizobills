@@ -3,7 +3,8 @@ import {
   Bell, HelpCircle, Search, ChevronDown, Plus, FileText,
   ShoppingCart, Receipt, X, CheckCircle2, ChevronRight,
   AlertTriangle, Package, FileWarning,
-} from "lucide-react";
+} 
+from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -232,18 +233,19 @@ export function TopBar() {
         background: "#fff", borderBottom: "1px solid #E2E8F0",
         flexShrink: 0, gap: 12, position: "relative", zIndex: 100,
       }}>
+
         {/* Branch Selector */}
         <BranchSelector />
 
         <div style={{ flex: 1 }} />
 
         {/* ── Search ── */}
-        <div ref={searchRef} style={{ position: "relative", width: 260 }}>
+        <div ref={searchRef} style={{ position: "relative", flex: 1,maxWidth: 700,minWidth: 450 }}>
           <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none" }} />
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search anything..."
+            placeholder="Search transactions..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
             onFocus={(e) => { setSearchOpen(true); e.currentTarget.style.borderColor = "#F97316"; e.currentTarget.style.background = "#fff"; }}
@@ -392,6 +394,7 @@ export function TopBar() {
               overflow: "hidden",
             }}
           >
+
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 12px", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -484,6 +487,7 @@ export function TopBar() {
       <AnimatePresence>
         {helpOpen && (
           <>
+
             {/* Backdrop — light, no blur */}
             <motion.div
               key="help-backdrop"
@@ -494,6 +498,7 @@ export function TopBar() {
               onClick={() => setHelpOpen(false)}
               style={{ position: "fixed", inset: 0, zIndex: 1100 }}
             />
+            
             {/* Panel anchored below ? button — same as notifications */}
             <motion.div
               key="help-dialog"

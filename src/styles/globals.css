@@ -62,3 +62,39 @@ html.auth-only {
 ::selection {
   background-color: rgba(249, 115, 22, 0.15);
 }
+
+.status-filter {
+  display: flex;
+  align-items: center;
+  justify-content: start  ;
+  gap: 10px;
+  font-family: Arial, sans-serif;
+}
+
+.status-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #555;
+}
+
+.filter-btn {
+  padding: 8px 20px;
+  border: 1px solid #d9dee7;
+  border-radius: 999px;
+  background: #f8f9fb;
+  color: #5b6472;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.filter-btn:hover {
+  background: #eef4ff;
+}
+
+.filter-btn.active {
+  background: #eaf3ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}

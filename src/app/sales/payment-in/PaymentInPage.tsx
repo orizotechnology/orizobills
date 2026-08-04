@@ -37,7 +37,9 @@ export default function PaymentInPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / 20));
   const grandTotal = payments.reduce((s, p) => s + p.amount, 0);
+  const [status, setStatus] = useState("All");
 
+  const filters = ["All", "Received", "Pending"];
   return (
     <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
@@ -45,6 +47,13 @@ export default function PaymentInPage() {
           <div style={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>Payment-In</div>
           <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 2 }}>{total} payment{total !== 1 ? "s" : ""} recorded</div>
         </div>
+ 
+   
+
+
+    
+ 
+
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => refetch()} style={iconBtn} title="Refresh">
             <RefreshCw size={15} color="#64748B" style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
@@ -52,7 +61,19 @@ export default function PaymentInPage() {
           <button onClick={() => setShowAdd(true)} style={primaryBtn}><Plus size={15} /> Add Payment</button>
         </div>
       </div>
+     <div className="status-filter">
+      <span className="status-label">Status:</span>
 
+      {filters.map((item) => (
+        <button
+          key={item}
+          className={`filter-btn ${status === item ? "active" : ""}`}
+          onClick={() => setStatus(item)}
+        >
+          {item}
+        </button>
+      ))}
+    </div>
       {/* Summary card */}
       {payments.length > 0 && (
         <div style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)", borderRadius: 10, padding: "12px 18px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
