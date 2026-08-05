@@ -3,8 +3,7 @@ import {
   Bell, HelpCircle, Search, ChevronDown, Plus, FileText,
   ShoppingCart, Receipt, X, CheckCircle2, ChevronRight,
   AlertTriangle, Package, FileWarning,
-} 
-from "lucide-react";
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -233,53 +232,24 @@ export function TopBar() {
         background: "#fff", borderBottom: "1px solid #E2E8F0",
         flexShrink: 0, gap: 12, position: "relative", zIndex: 100,
       }}>
-
         {/* Branch Selector */}
         <BranchSelector />
 
-        
+        <div style={{ flex: 1 }} />
 
         {/* ── Search ── */}
-  <div
-  ref={searchRef}
-  style={{
-    position: "relative",
-    flex: 1,
-    width: "100%",
-    maxWidth: 830,
-    margin: "0 20px",
-  }}
->
-          <Search
-  size={18}
-  style={{
-    position: "absolute",
-    left: 14,
-    top: "50%",
-    transform: "translateY(-50%)",
-    color: "#94A3B8",
-  }}
-/>
+        <div ref={searchRef} style={{ position: "relative", width: 260 }}>
+          <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none" }} />
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search transactions..."
+            placeholder="Search anything..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
             onFocus={(e) => { setSearchOpen(true); e.currentTarget.style.borderColor = "#F97316"; e.currentTarget.style.background = "#fff"; }}
             onBlur={(e) => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = "#F8FAFC"; }}
             onKeyDown={(e) => { if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); searchInputRef.current?.blur(); } }}
-            style={{
-  width: "100%",
-  height: 40,
-  border: "1px solid #E5E7EB",
-  borderRadius: 12,
-  padding: "0 16px 0 42px",
-  fontSize: 14,
-  background: "#FAFAFA",
-  outline: "none",
-  boxSizing: "border-box",
-}}
+            style={{ width: "100%", border: "1px solid #E2E8F0", borderRadius: 8, padding: "7px 12px 7px 32px", fontSize: 13, color: "#475569", background: "#F8FAFC", outline: "none", fontFamily: "inherit", transition: "border-color 0.15s", boxSizing: "border-box" }}
           />
 
           <AnimatePresence>
@@ -320,57 +290,81 @@ export function TopBar() {
           </AnimatePresence>
         </div>
 
-        
-{/* Right actions */}
-<div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    marginLeft: "auto",
-  }}
->
-  <button
-    onClick={() => navigate("/app/sales/invoices")}
-    style={{
-      background: "#E53935", // Red
-      color: "#fff",
-      border: "none",
-      borderRadius: 999,
-      padding: "0 20px",
-      height: 38,
-      fontSize: 14,
-      fontWeight: 600,
-      cursor: "pointer",
-      minWidth: 120,
-    }}
-  >
-    + Add Sale
-  </button>
+        <div style={{ flex: 1 }} />
 
-  <button
-    onClick={() => navigate("/app/purchase/new")}
-    style={{
-      background: "#1E40AF", // Blue (same style as screenshot)
-      color: "#fff",
-      border: "none",
-      borderRadius: 999,
-      padding: "0 20px",
-      height: 38,
-      fontSize: 14,
-      fontWeight: 600,
-      cursor: "pointer",
-      minWidth: 145,
-    }}
-  >
-    + Add Purchase
-  </button>
-</div>
+        {/* ── Right actions ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
 
+          {/* Bell */}
+          <div style={{ position: "relative" }}>
+            <button
+              ref={bellBtnRef}
+              onClick={() => setNotifOpen((p) => !p)}
+              title="Notifications"
+              style={{ position: "relative", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", borderRadius: 8, cursor: "pointer", color: "#64748B", outline: "none", transition: "background 0.12s" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#F8FAFC"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+              aria-label="Notifications"
+            >
+              <Bell size={18} strokeWidth={1.8} />
+              {totalNotifCount > 0 && (
+                <span style={{ position: "absolute", top: 5, right: 5, background: "#F97316", color: "#fff", fontSize: 9, fontWeight: 700, minWidth: 15, height: 15, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 2px" }}>
+                  {totalNotifCount > 99 ? "99+" : totalNotifCount}
+                </span>
+              )}
+            </button>
+          </div>
 
+          {/* Help */}
+          <button
+            onClick={() => setHelpOpen((p) => !p)}
+            title="Help"
+            style={{ width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", borderRadius: 8, cursor: "pointer", color: "#64748B", outline: "none", transition: "background 0.12s" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#F8FAFC"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+            aria-label="Help"
+          >
+            <HelpCircle size={18} strokeWidth={1.8} />
+          </button>
 
+          {/* Create dropdown */}
+          <div ref={createRef} style={{ position: "relative", marginLeft: 4 }}>
+            <button
+              onClick={() => setCreateOpen((p) => !p)}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "#F97316", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", outline: "none", transition: "background 0.12s" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#EA580C"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#F97316"; }}
+            >
+              <Plus size={15} strokeWidth={2.5} />
+              Create
+              <ChevronDown size={13} strokeWidth={2.2} style={{ transition: "transform 0.15s", transform: createOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+            </button>
 
-</div>
+            {createOpen && (
+              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", minWidth: 200, zIndex: 500, overflow: "hidden", padding: "4px 0" }}>
+                <div style={{ padding: "8px 14px 6px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #F1F5F9", marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em" }}>QUICK CREATE</span>
+                  <button onClick={() => setCreateOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#CBD5E1", display: "flex", padding: 2 }}><X size={12} /></button>
+                </div>
+                {CREATE_ITEMS.map(({ label, icon: Icon, to }) => (
+                  <button
+                    key={to}
+                    onClick={() => { navigate(to); setCreateOpen(false); }}
+                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#374151", fontFamily: "inherit", textAlign: "left", transition: "background 0.1s" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; (e.currentTarget as HTMLButtonElement).style.color = "#F97316"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = "#374151"; }}
+                  >
+                    <span style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(249,115,22,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon size={14} color="#F97316" />
+                    </span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ── Notifications Drawer ── */}
       <AnimatePresence>
@@ -398,7 +392,6 @@ export function TopBar() {
               overflow: "hidden",
             }}
           >
-
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 12px", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -491,7 +484,6 @@ export function TopBar() {
       <AnimatePresence>
         {helpOpen && (
           <>
-
             {/* Backdrop — light, no blur */}
             <motion.div
               key="help-backdrop"
@@ -502,7 +494,6 @@ export function TopBar() {
               onClick={() => setHelpOpen(false)}
               style={{ position: "fixed", inset: 0, zIndex: 1100 }}
             />
-            
             {/* Panel anchored below ? button — same as notifications */}
             <motion.div
               key="help-dialog"

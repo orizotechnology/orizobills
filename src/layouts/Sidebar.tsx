@@ -264,7 +264,6 @@ export function Sidebar() {
         flex: 1, overflowY: "auto", overflowX: "hidden",
         padding: "10px 10px 6px", scrollbarWidth: "none",
       }}>
-
         {/* No global CSS hover — handled per-item with state */}
 
         {NAV_ITEMS.map((item) => (
