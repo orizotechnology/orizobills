@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+
 import {
   Plus,
   Search,
-  FileText,
   Trash2,
-  RefreshCw,
   AlertTriangle,
   X,
   AlertCircle,
@@ -244,88 +243,147 @@ export default function SaleInvoicesPage() {
   const handleDeleteCancel  = () => { if (!deleteMutation.isPending) setDeleteTarget(null); };
 
   return (
-    <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC" }}>
+    <div style={{ padding: "20px 16px", minHeight: "100%", background: "#F8FAFC" }}>
 
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
-        <div>
-         <div
+  {/* Header */}
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 18,
+  }}
+>
+  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <h2
+      style={{
+        margin: 0,
+        fontSize: 16,
+        fontWeight: 700,
+        color: "#0F172A",
+      }}
+    >
+      Sale Invoices
+    </h2>
+
+    <ChevronDown size={18} color="#8b7564" />
+  </div>
+
+  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+    <button
+      style={{
+        background: "#2563EB",
+        color: "#fff",
+        border: "none",
+        borderRadius: 8,
+        padding: "10px 18px",
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
+      <Plus size={16} />
+      Add Sale
+    </button>
+
+    <Settings size={18} color="#64748B" style={{ cursor: "pointer" }} />
+    <X size={18} color="#64748B" style={{ cursor: "pointer" }} />
+  </div>
+</div>
+
+{/* Filter */}
+<div
   style={{
     display: "flex",
     alignItems: "center",
-    gap: 6,
-    fontSize: 20,
-    fontWeight: 700,
-    color: "#0F172A",
+    gap: 8,
+    marginBottom: 18,
+    flexWrap: "wrap",
   }}
 >
-  Sale Invoices
-  <ChevronDown size={18} color="#64748B" />
-</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-
-  <button
+  <span
     style={{
-      background: "#F97316",
-      color: "#fff",
-      border: "none",
-      borderRadius: 8,
-      padding: "8px 14px",
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      cursor: "pointer",
+      fontSize: 12,
       fontWeight: 600,
-      fontSize: 13,
+      color: "#64748B",
     }}
   >
-    <Plus size={15} />
-    Add Sale
-  </button>
+    Filter by:
+  </span>
 
-  <button style={iconBtn}>
-    <Settings size={16} color="#64748B" />
-  </button>
-
-  <button style={iconBtn}>
-    <X size={16} color="#64748B" />
-  </button>
-
+  {["This Week", "This Month", "This Year", "Custom Range", "All Time"].map((filter) => (
+    <button
+      key={filter}
+      onClick={() => setSelectedFilter(filter)}
+      style={selectedFilter === filter ? activeFilterBtn : filterBtn}
+    >
+      {filter}
+    </button>
+  ))}
 </div>
-      </div>
 
-      
+<div style={{ height: 140 }} />
 
-     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 30, flexWrap: "wrap" }}>
-  <span
+{/* Transactions */}
+<div
   style={{
-    fontSize: 13,
-    color: "#64748B",
-    fontWeight: 600,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
   }}
 >
-  Filter by:
-</span>
-
-{["This Week", "This Month", "This Year", "Custom Range", "All Time"].map((filter) => (
-  <button
-    key={filter}
-    onClick={() => setSelectedFilter(filter)}
-    style={selectedFilter === filter ? activeFilterBtn : filterBtn}
+  <h3
+    style={{
+      margin: 0,
+      fontSize: 14,
+      fontWeight: 700,
+      color: "#0F172A",
+    }}
   >
-    {filter}
-  </button>
-))}
+    Transactions
+  </h3>
+  <div style={{ display: "flex", gap: 14 }}>
+
+  <Search size={14} color="#64748B" style={{ cursor: "pointer" }} />
+
+  <BarChart3 size={14} color="#64748B" style={{ cursor: "pointer" }} />
+
+  <Printer size={14} color="#64748B" style={{ cursor: "pointer" }} />
+
 </div>
 
 
+
+</div>
+
 {/* Table */}
-      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+
+      <div style={{background: "#fff",borderRadius: 10,border: "1px solid #E2E8F0",overflow: "hidden",}}
+>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-              {["Invoice #", "Customer", "Date", "Payment", "Items", "Total", "Paid", "Balance", "Status", ""].map((h) => (
+            <tr
+ style={{
+   background:"#F3F4F6",
+   borderBottom:"1px solid #E5E7EB"
+ }}
+>
+              {[
+ "DATE",
+ "INVOICE NO",
+ "PARTY NAME",
+ "ITEM",
+ "PAYMENT",
+ "AMOUNT",
+ "RECEIVED",
+ "BALANCE",
+ "STATUS",
+ "ACTIONS"
+].map((h) => (
                 <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
@@ -340,13 +398,22 @@ export default function SaleInvoicesPage() {
               </td></tr>
             )}
             {!isLoading && !isError && invoices.length === 0 && (
-              <tr><td colSpan={10} style={emptyCell}>
-                <FileText size={40} color="#E2E8F0" />
-                <div style={{ marginTop: 8, fontWeight: 600, color: "#94A3B8" }}>
-                  {search ? `No invoices matching "${search}"` : "No invoices yet"}
-                </div>
-              </td></tr>
-            )}
+  <tr>
+    <td colSpan={10} style={emptyCell}>
+      <div
+        style={{
+          fontWeight: 600,
+          color: "#64748B",
+          fontSize: 14,
+        }}
+      >
+        {search
+          ? `No invoices matching "${search}"`
+          : 'No sales found. Click "+ Add Sale" to get started.'}
+      </div>
+    </td>
+  </tr>
+)}
             <AnimatePresence initial={false}>
               {invoices.map((inv, idx) => {
                 const sc = STATUS_COLOR[inv.status] ?? STATUS_COLOR.DRAFT;
@@ -429,32 +496,32 @@ export default function SaleInvoicesPage() {
 
 const primaryBtn:  React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "#F97316", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
 const filterBtn: React.CSSProperties = {
-  padding: "6px 12px",
-  fontSize: "12px",
+  padding: "8px 16px",
+  fontSize: "11px",
   fontWeight: 500,
   border: "1px solid #E2E8F0",
-  borderRadius: "6px",
-  background: "#fff",
+  borderRadius: "8px",
+  background: "#FFFFFF",
   color: "#475569",
   cursor: "pointer",
   fontFamily: "inherit",
 };
 
 const activeFilterBtn: React.CSSProperties = {
-  padding: "6px 12px",
-  fontSize: "12px",
+  padding: "8px 16px",
+  fontSize: "11px",
   fontWeight: 600,
-  border: "none",
-  borderRadius: "6px",
+  border: "1px solid #F97316",
+  borderRadius: "8px",
   background: "#F97316",
-  color: "#fff",
+  color: "#FFFFFF",
   cursor: "pointer",
   fontFamily: "inherit",
 };
 const iconBtn:     React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
 const searchInput: React.CSSProperties = { width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "7px 10px 7px 28px", fontSize: 13, color: "#475569", background: "#F8FAFC", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
-const thStyle:     React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.04em", whiteSpace: "nowrap" };
-const tdStyle:     React.CSSProperties = { padding: "12px 14px", fontSize: 13 };
+const thStyle: React.CSSProperties = {padding: "12px 16px",textAlign: "left",fontSize: 11,fontWeight: 700,color: "#64748B",letterSpacing: "0.05em",whiteSpace: "nowrap",};
+const tdStyle: React.CSSProperties = {padding: "14px 16px",fontSize: 13,color: "#334155",};
 const chip:        React.CSSProperties = { fontSize: 12, background: "#F1F5F9", borderRadius: 4, padding: "2px 6px", color: "#475569" };
 const badge:       React.CSSProperties = { fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px" };
 const rowIconBtn:  React.CSSProperties = { width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: "#CBD5E1", display: "flex", alignItems: "center", justifyContent: "center" };
