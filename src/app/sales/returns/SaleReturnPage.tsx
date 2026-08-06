@@ -30,6 +30,8 @@ export default function SaleReturnPage() {
   });
 
   const returns = data?.data ?? [];
+  console.log("API Data:", data);
+console.log("Returns:", returns);
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / 20));
 
@@ -45,33 +47,185 @@ export default function SaleReturnPage() {
 
   return (
     <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>Sale Returns / Credit Notes</div>
-          <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 2 }}>{total} return{total !== 1 ? "s" : ""}</div>
-        </div>
-        <button type="button" onClick={() => { void handleRefresh(); }} style={iconBtn}>
-          <RefreshCw size={15} color="#64748B" style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
-        </button>
-      </div>
+     <div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingBottom: 11,
+    borderBottom: "1px solid #E5E7EB",
+    marginBottom: 18,
+  }}
+>
+  <h2
+    style={{
+      margin: 0,
+      fontSize: 18,
+      fontWeight: 700,
+      color: "#01040f",
+    }}
+  >
+    Sale Returns
+  </h2>
 
-      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+  <div style={{ display: "flex", gap: 10 }}>
+    <button
+      style={{
+        background: "#2563EB",
+        color: "#fff",
+        border: "none",
+        borderRadius: 18,
+        padding: "8px 18px",
+        height: 36,
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: "pointer",
+      }}
+    >
+      + New Return
+    </button>
+
+    <button
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 8,
+        border: "none",
+        background: "#FEE2E2",
+        color: "#EF4444",
+        fontSize: 18,
+        cursor: "pointer",
+      }}
+    >
+      ✕
+    </button>
+  </div>
+</div> 
+
+{/* Filters */}
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingBottom: 12,
+    marginBottom: 20,
+    borderBottom: "1px solid #E5E7EB",
+  }}
+>
+  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+    <span style={{ fontSize: 13 }}>From</span>
+
+    <input
+      type="date"
+      style={{
+        width: 125,
+        height: 32,
+        border: "1px solid #D1D5DB",
+        borderRadius: 6,
+        padding: "0 10px",
+        fontSize: 13,
+      }}
+    />
+
+    <span style={{ fontSize: 13 }}>To</span>
+
+    <input
+      type="date"
+      style={{
+        width: 125,
+        height: 32,
+        border: "1px solid #D1D5DB",
+        borderRadius: 6,
+        padding: "0 10px",
+        fontSize: 13,
+      }}
+    />
+  </div>
+
+  <input
+    type="text"
+    placeholder="Search by party..."
+    style={{
+      width: 220,
+      height: 36,
+      border: "1px solid #D1D5DB",
+      borderRadius: 6,
+      padding: "0 12px",
+      fontSize: 13,
+    }}
+  />
+</div>
+
+{/* Summary Card */}
+<div
+  style={{
+    width: 280,
+    background: "#fff",
+    borderRadius: 10,
+    border: "1px solid #E2E8F0",
+    padding: 20,
+    marginBottom: 20,
+  }}
+>
+  <div style={{ color: "#64748B", fontSize: 14 }}>
+    Total Returns
+  </div>
+
+  <div
+    style={{
+      fontSize: 22,
+      fontWeight: 700,
+      color: "#1E3A8A",
+      marginTop: 8,
+    }}
+  >
+    ₹0
+  </div>
+
+  <div style={{ marginTop: 10, fontSize: 15 }}>
+    Count: <b>{total}</b>
+  </div>
+</div>
+
+<div
+  style={{
+    background: "#fff",
+    borderRadius: 12,
+    border: "1px solid #E2E8F0",
+    overflow: "hidden",
+    minHeight:220,
+  }}
+>
+
+
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-              {["Return #", "Customer", "Date", "Total", "Status"].map((h) => (
+             {["Date", "Return No", "Party", "Items", "Amount", "Status"].map((h) => ( 
                 <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#94A3B8" }}>Loading…</td></tr>}
-            {isError && <tr><td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#EF4444" }}><AlertTriangle size={18} /> Backend not connected</td></tr>}
+            {isLoading && <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#94A3B8" }}>Loading…</td></tr>}
+            {isError && <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#EF4444" }}><AlertTriangle size={18} /> Backend not connected</td></tr>}
             {!isLoading && !isError && returns.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: "64px", textAlign: "center" }}>
-                <RotateCcw size={40} color="#E2E8F0" />
-                <div style={{ marginTop: 8, fontWeight: 600, color: "#94A3B8" }}>No sale returns yet</div>
-              </td></tr>
+             <tr>
+  <td
+    colSpan={6}
+    style={{
+      height: "180px",
+      textAlign: "center",
+      verticalAlign: "middle",
+      color: "#64748B",
+      fontSize: 15,
+      fontWeight: 500,
+    }}
+  >
+    No returns found. Click <b>"+ New Return"</b> to add one.
+  </td>
+</tr> 
             )}
             <AnimatePresence initial={false}>
               {returns.map((r, idx) => (
@@ -80,12 +234,31 @@ export default function SaleReturnPage() {
                   onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}
                 >
-                  <td style={tdStyle}><code style={chip}>{r.returnNumber}</code></td>
-                  <td style={{ ...tdStyle, fontWeight: 500 }}>{r.customerName}</td>
-                  <td style={{ ...tdStyle, color: "#64748B" }}>{new Date(r.returnDate).toLocaleDateString("en-IN")}</td>
-                  <td style={{ ...tdStyle, fontWeight: 700, color: "#EF4444" }}>₹{r.totalAmt.toFixed(2)}</td>
-                  <td style={tdStyle}><span style={{ fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px", background: "rgba(34,197,94,0.1)", color: "#16A34A" }}>{r.status}</span></td>
+                  <td style={tdStyle}>
+  {new Date(r.returnDate).toLocaleDateString("en-IN")}
+</td>
+
+<td style={tdStyle}>
+  <code style={chip}>{r.returnNumber}</code>
+</td>
+
+<td style={tdStyle}>
+  {r.customerName}
+</td>
+
+<td style={tdStyle}>
+  1
+</td>
+
+<td style={tdStyle}>
+  ₹{r.totalAmt.toFixed(2)}
+</td>
+
+<td style={tdStyle}>
+  <span>Completed</span>
+</td>
                 </motion.tr>
+
               ))}
             </AnimatePresence>
           </tbody>

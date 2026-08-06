@@ -225,9 +225,9 @@ export default function DeliveryChallanPage() {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "18px 0",
+    padding: "10px ",
     borderBottom: "1px solid #E5E7EB",
-    marginBottom: 14,
+    marginBottom: 1,
   }}
 >
     <div
