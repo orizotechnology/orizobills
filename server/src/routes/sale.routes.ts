@@ -214,6 +214,25 @@ export async function saleRoutes(fastify: FastifyInstance) {
         if (rest.customerId && balanceDue > 0) {
           await tx.customer.update({ where: { id: rest.customerId }, data: { balance: { increment: balanceDue } } });
         }
+
+        // ── Auto-create paymentIn record so POS sales appear in Payment-In page ──
+        if (paidAmt > 0) {
+          const payCount = await tx.paymentIn.count();
+          await tx.paymentIn.create({
+            data: {
+              paymentNumber: `PAY${String(payCount + 1).padStart(4, "0")}`,
+              customerName:  rest.customerName ?? "Walk-in Customer",
+              customerId:    rest.customerId   ?? null,
+              invoiceId:     s.id,
+              amount:        paidAmt,
+              paymentMethod: rest.paymentMethod,
+              paymentDate:   new Date(rest.invoiceDate),
+              reference:     `Invoice ${invoiceNumber}`,
+              notes:         null,
+            },
+          });
+        }
+
         return s;
       });
 

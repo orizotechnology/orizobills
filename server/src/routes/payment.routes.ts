@@ -17,16 +17,69 @@ function toResult(p: any) {
 
 export async function paymentRoutes(fastify: FastifyInstance) {
 
-  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string } }>, reply) => {
+  // ── GET /api/payments/stats — today's summary ─────────────
+  fastify.get("/stats", async (req: FastifyRequest<{ Querystring: { date?: string } }>, reply) => {
+    try {
+      const targetDate = req.query.date ? new Date(req.query.date) : new Date();
+      const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const dayEnd   = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1);
+
+      const [todayAgg, todayCount, monthAgg] = await Promise.all([
+        req.prisma.paymentIn.aggregate({
+          _sum: { amount: true },
+          where: { paymentDate: { gte: dayStart, lt: dayEnd } },
+        }),
+        req.prisma.paymentIn.count({
+          where: { paymentDate: { gte: dayStart, lt: dayEnd } },
+        }),
+        req.prisma.paymentIn.aggregate({
+          _sum: { amount: true },
+          where: {
+            paymentDate: {
+              gte: new Date(targetDate.getFullYear(), targetDate.getMonth(), 1),
+              lt:  new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 1),
+            },
+          },
+        }),
+      ]);
+
+      return reply.send(successResponse({
+        todayAmount: parseFloat(String(todayAgg._sum.amount ?? 0)),
+        todayCount,
+        monthAmount: parseFloat(String(monthAgg._sum.amount ?? 0)),
+      }));
+    } catch (err) {
+      return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR));
+    }
+  });
+
+  // ── GET /api/payments — list with optional date filter ────
+  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; startDate?: string; endDate?: string } }>, reply) => {
     try {
       const page = Number(req.query.page ?? 1);
-      const size = Number(req.query.pageSize ?? 20);
+      const size = Number(req.query.pageSize ?? 100);
+
+      const dateWhere: Record<string, unknown> = {};
+      if (req.query.startDate && req.query.endDate) {
+        dateWhere.paymentDate = {
+          gte: new Date(req.query.startDate),
+          lte: new Date(req.query.endDate + "T23:59:59.999Z"),
+        };
+      }
+
       const [rows, total] = await Promise.all([
-        req.prisma.paymentIn.findMany({ orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
-        req.prisma.paymentIn.count(),
+        req.prisma.paymentIn.findMany({
+          where: dateWhere,
+          orderBy: { paymentDate: "desc" },
+          skip: (page - 1) * size,
+          take: size,
+        }),
+        req.prisma.paymentIn.count({ where: dateWhere }),
       ]);
       return reply.send(successResponse({ data: rows.map(toResult), total }));
-    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+    } catch (err) {
+      return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR));
+    }
   });
 
   fastify.post("/", async (req, reply) => {
