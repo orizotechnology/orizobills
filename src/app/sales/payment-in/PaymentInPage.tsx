@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, AlertTriangle, RefreshCw, X, Loader2, CheckCircle2,
-  Banknote, Layers, CreditCard, TrendingUp, Hash,
+  Banknote, Layers, CreditCard, TrendingUp,
 } from "lucide-react";
 import { http } from "@/lib/axios";
 
@@ -44,21 +44,6 @@ interface ApiResponse<T> { success: boolean; data: T; }
 
 // ── Date helpers ──────────────────────────────────────────────
 function toDateStr(d: Date) { return d.toISOString().slice(0, 10); }
-
-function getRange(filter: string): { start: string; end: string } {
-  const now = new Date();
-  const today = toDateStr(now);
-  if (filter === "Today") return { start: today, end: today };
-  if (filter === "This Week") {
-    const mon = new Date(now);
-    mon.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
-    return { start: toDateStr(mon), end: today };
-  }
-  if (filter === "This Month") {
-    return { start: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`, end: today };
-  }
-  return { start: "", end: "" }; // Custom — caller provides own dates
-}
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
@@ -394,10 +379,10 @@ function AddPaymentDialog({ onClose, onSaved }: { onClose: () => void; onSaved: 
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
           {([
-            { label: "Customer Name", key: "customerName", placeholder: "Customer name" },
-            { label: "Amount (₹)",    key: "amount",       placeholder: "0", type: "number" },
-            { label: "Reference",     key: "reference",    placeholder: "Invoice # / UTR No." },
-          ] as const).map(({ label, key, placeholder, type }) => (
+            { label: "Customer Name", key: "customerName", placeholder: "Customer name",        type: "text"   },
+            { label: "Amount (₹)",    key: "amount",       placeholder: "0",                    type: "number" },
+            { label: "Reference",     key: "reference",    placeholder: "Invoice # / UTR No.",  type: "text"   },
+          ] as { label: string; key: string; placeholder: string; type: string }[]).map(({ label, key, placeholder, type }) => (
             <div key={key}>
               <label style={lbl}>{label}</label>
               <input type={type ?? "text"} value={(form as Record<string, string>)[key]}
