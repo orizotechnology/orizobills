@@ -49,12 +49,19 @@ export async function saleRoutes(fastify: FastifyInstance) {
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
-  fastify.get("/orders", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string } }>, reply) => {
+  fastify.get("/orders", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; startDate?: string; endDate?: string; status?: string } }>, reply) => {
     try {
       const page = Number(req.query.page ?? 1), size = Number(req.query.pageSize ?? 20);
+      const where: Record<string, unknown> = {};
+      if (req.query.startDate && req.query.endDate) {
+        where.orderDate = { gte: new Date(req.query.startDate), lte: new Date(req.query.endDate + "T23:59:59.999Z") };
+      }
+      if (req.query.status && req.query.status !== "ALL") {
+        where.status = req.query.status;
+      }
       const [rows, total] = await Promise.all([
-        req.prisma.saleOrder.findMany({ include: { _count: { select: { items: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
-        req.prisma.saleOrder.count(),
+        req.prisma.saleOrder.findMany({ where, include: { _count: { select: { items: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
+        req.prisma.saleOrder.count({ where }),
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return reply.send(successResponse({ data: rows.map((o: any) => ({ id: o.id, orderNumber: o.orderNumber, customerName: o.customerName, orderDate: o.orderDate?.toISOString?.() ?? "", dueDate: o.dueDate?.toISOString?.() ?? null, totalAmt: parseFloat(o.totalAmt), status: o.status, itemCount: o._count?.items ?? 0, createdAt: o.createdAt?.toISOString?.() ?? "" })), total }));
