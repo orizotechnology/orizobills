@@ -120,72 +120,80 @@ export default function SaleOrderPage() {
       {/* ── Toolbar ─────────────────────────────────────────── */}
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10,
         padding: "12px 14px", marginBottom: 14,
-        display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        display: "flex", flexDirection: "column", gap: 10 }}>
 
-        {/* Search */}
-        <div style={{ position: "relative", flex: "1 1 200px", minWidth: 160 }}>
-          <Search size={13} style={{ position: "absolute", left: 9, top: "50%",
-            transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none" }} />
-          <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search order or customer…"
-            style={{ width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 7,
-              padding: "7px 10px 7px 28px", fontSize: 13, color: "#475569",
-              background: "#F8FAFC", outline: "none", fontFamily: "inherit", boxSizing: "border-box" as const }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#F97316"; }}
-            onBlur={(e)  => { e.currentTarget.style.borderColor = "#E2E8F0"; }} />
+        {/* Row 1: Search + Period filter */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          {/* Search */}
+          <div style={{ position: "relative", flex: "1 1 200px", minWidth: 160 }}>
+            <Search size={13} style={{ position: "absolute", left: 9, top: "50%",
+              transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none" }} />
+            <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search order or customer…"
+              style={{ width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 7,
+                padding: "7px 10px 7px 28px", fontSize: 13, color: "#475569",
+                background: "#F8FAFC", outline: "none", fontFamily: "inherit", boxSizing: "border-box" as const }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#F97316"; }}
+              onBlur={(e)  => { e.currentTarget.style.borderColor = "#E2E8F0"; }} />
+          </div>
+
+          <div style={{ width: 1, height: 24, background: "#E2E8F0", flexShrink: 0 }} />
+
+          {/* Period chips */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", whiteSpace: "nowrap" }}>PERIOD</span>
+            {PERIODS.map((p) => (
+              <button key={p} onClick={() => handlePeriod(p)}
+                style={{
+                  padding: "5px 13px", borderRadius: 6,
+                  border: period === p ? "none" : "1px solid #E2E8F0",
+                  background: period === p ? "#F97316" : "#fff",
+                  color:      period === p ? "#fff"    : "#64748B",
+                  fontWeight: period === p ? 700       : 500,
+                  fontSize: 12, cursor: "pointer", fontFamily: "inherit", outline: "none",
+                }}>
+                {p}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom date pickers */}
+          {period === "Custom" && (
+            <>
+              <div style={{ width: 1, height: 24, background: "#E2E8F0", flexShrink: 0 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>From</span>
+                <input type="date" value={fromDate}
+                  onChange={(e) => { setFromDate(e.target.value); setPage(1); }} style={dateInp} />
+                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>To</span>
+                <input type="date" value={toDate}
+                  onChange={(e) => { setToDate(e.target.value); setPage(1); }} style={dateInp} />
+              </div>
+            </>
+          )}
         </div>
 
-        <div style={{ width: 1, height: 24, background: "#E2E8F0", flexShrink: 0 }} />
-
-        {/* Period chips */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          {PERIODS.map((p) => (
-            <button key={p} onClick={() => handlePeriod(p)}
-              style={{
-                padding: "5px 13px", borderRadius: 6,
-                border: period === p ? "none" : "1px solid #E2E8F0",
-                background: period === p ? "#F97316" : "#fff",
-                color:      period === p ? "#fff"    : "#64748B",
-                fontWeight: period === p ? 700       : 500,
-                fontSize: 12, cursor: "pointer", fontFamily: "inherit", outline: "none",
-              }}>
-              {p}
-            </button>
-          ))}
-        </div>
-
-        {/* Custom date pickers */}
-        {period === "Custom" && (
-          <>
-            <div style={{ width: 1, height: 24, background: "#E2E8F0", flexShrink: 0 }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>From</span>
-              <input type="date" value={fromDate}
-                onChange={(e) => { setFromDate(e.target.value); setPage(1); }} style={dateInp} />
-              <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>To</span>
-              <input type="date" value={toDate}
-                onChange={(e) => { setToDate(e.target.value); setPage(1); }} style={dateInp} />
-            </div>
-          </>
-        )}
-
-        <div style={{ width: 1, height: 24, background: "#E2E8F0", flexShrink: 0 }} />
-
-        {/* Status filter */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          {STATUS_FILTERS.map((s) => (
-            <button key={s} onClick={() => { setStatusF(s); setPage(1); }}
-              style={{
-                padding: "4px 10px", borderRadius: 6,
-                border: statusF === s ? "none" : "1px solid #E2E8F0",
-                background: statusF === s ? STATUS_COLOR[s]?.bg ?? "#F1F5F9" : "#fff",
-                color:      statusF === s ? STATUS_COLOR[s]?.color ?? "#0F172A" : "#64748B",
-                fontWeight: statusF === s ? 700 : 500,
-                fontSize: 11, cursor: "pointer", fontFamily: "inherit", outline: "none",
-              }}>
-              {s === "ALL" ? "All Status" : s}
-            </button>
-          ))}
+        {/* Row 2: Status filter */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
+          paddingTop: 8, borderTop: "1px solid #F1F5F9" }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", whiteSpace: "nowrap" }}>STATUS</span>
+          {STATUS_FILTERS.map((s) => {
+            const isActive = statusF === s;
+            const sc = STATUS_COLOR[s];
+            return (
+              <button key={s} onClick={() => { setStatusF(s); setPage(1); }}
+                style={{
+                  padding: "4px 12px", borderRadius: 6,
+                  border: isActive ? "none" : "1px solid #E2E8F0",
+                  background: isActive ? (sc?.bg ?? "#F97316") : "#fff",
+                  color:      isActive ? (sc?.color ?? "#0F172A") : "#64748B",
+                  fontWeight: isActive ? 700 : 500,
+                  fontSize: 12, cursor: "pointer", fontFamily: "inherit", outline: "none",
+                }}>
+                {s === "ALL" ? "All" : s}
+              </button>
+            );
+          })}
         </div>
       </div>
 
