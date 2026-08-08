@@ -1,4 +1,3 @@
-import { execSync }   from "child_process";
 import * as path      from "path";
 import * as mysql     from "mysql2/promise";
 import { getDefaultPrisma } from "../database/prisma/manager";
@@ -195,6 +194,9 @@ export async function deleteBranch(id: string): Promise<Branch> {
 }
 
 export async function setDefaultBranch(id: string): Promise<Branch> {
-  await prisma.branch.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
-  return prisma.branch.update({ where: { id }, data: { isDefault: true } });
+  // Wrap in a transaction so we never end up with 0 or 2 default branches
+  return prisma.$transaction(async (tx: typeof prisma) => {
+    await tx.branch.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
+    return tx.branch.update({ where: { id }, data: { isDefault: true } });
+  });
 }
