@@ -1,6 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { PrismaClient } = require("@prisma/client");
-const prismaDefault = new PrismaClient();
+import { getDefaultPrisma } from "../database/prisma/manager";
 
 // =============================================================
 // COUNTER SERVICE
@@ -30,8 +28,8 @@ async function nextNumber(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   maxFn: (p: any) => Promise<string | null>
 ): Promise<string> {
-  // Use the module-level prisma for counter queries (branch-agnostic numbering)
-  const maxVal = await maxFn(prismaDefault);
+  // Use the lazy default prisma for counter queries (branch-agnostic numbering)
+  const maxVal = await maxFn(getDefaultPrisma());
   const next   = extractMax(prefix, maxVal) + 1;
   return `${prefix}${String(next).padStart(4, "0")}`;
 }

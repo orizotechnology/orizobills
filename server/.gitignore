@@ -1,10 +1,15 @@
-node_modules
-# Keep environment variables out of version control
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment — .env is ignored, .env.example is tracked (safe to commit)
 .env
+.env.local
 
-/src/generated/prisma
+# Generated Prisma client
+src/generated/prisma/
 
-# Secure config data — NEVER commit
+# Runtime data — auto-created on startup, never commit
 data/
-data/db-config.json
-data/.mysql-pass

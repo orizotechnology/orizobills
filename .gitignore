@@ -13,12 +13,18 @@ tsconfig.*.tsbuildinfo
 src-tauri/target/
 src-tauri/gen/
 
-# ── Environment variables (NEVER commit real credentials) ────
+# ── Environment variables ────────────────────────────────────
+# .env files contain real credentials — NEVER commit them.
+# .env.example files contain only placeholders — they ARE committed
+# so new developers know exactly what to fill in.
 .env
 .env.local
 .env.*.local
 server/.env
 server/.env.local
+# Explicitly keep .env.example files tracked:
+!.env.example
+!server/.env.example
 
 # ── Logs ─────────────────────────────────────────────────────
 *.log

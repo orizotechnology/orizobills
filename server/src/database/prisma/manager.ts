@@ -80,7 +80,12 @@ let _defaultClient: PrismaClientType | undefined;
 export function getDefaultPrisma(): PrismaClientType {
   if (_defaultClient) return _defaultClient;
   const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set.");
+  if (!url) throw new Error(
+    "DATABASE_URL is not set. Open server/.env and replace YOUR_MYSQL_PASSWORD_HERE with your MySQL password."
+  );
+  if (url.includes("YOUR_MYSQL_PASSWORD_HERE")) throw new Error(
+    "DATABASE_URL still has the placeholder password. Open server/.env and replace YOUR_MYSQL_PASSWORD_HERE with your actual MySQL root password."
+  );
   _defaultClient = createPrismaClient(url);
   return _defaultClient;
 }

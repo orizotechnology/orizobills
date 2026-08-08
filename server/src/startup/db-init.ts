@@ -58,7 +58,15 @@ function parseMysqlUrl(rawUrl: string) {
 
 async function ensureDatabaseExists(): Promise<void> {
   const rawUrl = process.env.DATABASE_URL;
-  if (!rawUrl) throw new Error("DATABASE_URL is not set.");
+  if (!rawUrl) throw new Error(
+    "DATABASE_URL is not set. Open server/.env and replace YOUR_MYSQL_PASSWORD_HERE with your MySQL password."
+  );
+  if (rawUrl.includes("YOUR_MYSQL_PASSWORD_HERE")) throw new Error(
+    "DATABASE_URL still has the placeholder password.\n" +
+    "  → Open server/.env\n" +
+    "  → Replace YOUR_MYSQL_PASSWORD_HERE with your actual MySQL root password\n" +
+    "  → Save the file and restart the server"
+  );
 
   const { host, port, user, password, database } = parseMysqlUrl(rawUrl);
 
