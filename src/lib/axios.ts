@@ -46,8 +46,15 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   });
 
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error((err as { message?: string }).message ?? `HTTP ${response.status}`);
+    // Server returns { success: false, error: { message: "..." } }
+    // Fall back to statusText if JSON parse fails or message is missing.
+    const body = await response.json().catch(() => null);
+    const message =
+      body?.error?.message ||   // standard ApiErrorResponse shape
+      body?.message        ||   // flat shape
+      response.statusText  ||
+      `HTTP ${response.status}`;
+    throw new Error(message);
   }
 
   const text = await response.text();
