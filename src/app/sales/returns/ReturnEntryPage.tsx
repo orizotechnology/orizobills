@@ -9,6 +9,7 @@ import { nanoid } from "nanoid";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { http } from "@/lib/axios";
+import { useDialogKeyboard } from "@/hooks";
 
 // =============================================================
 // SALE RETURN ENTRY PAGE
@@ -265,6 +266,14 @@ export default function ReturnEntryPage() {
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [handleSave, showConfirm]);
+
+  // Enter = confirm close (Yes, Close), Escape = cancel (Stay)
+  useDialogKeyboard({
+    isOpen:    showConfirm,
+    onConfirm: () => navigate("/app/sales/returns"),
+    onCancel:  () => setShowConfirm(false),
+    disabled:  saving,
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#fff", overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
