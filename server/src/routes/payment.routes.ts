@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { successResponse, errorResponse } from "../utils/response.util";
 import { HTTP_STATUS, ERROR_CODES } from "../constants/http.constants";
+import { getNextPaymentInNumber } from "../services/counter.service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toResult(p: any) {
@@ -92,8 +93,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const count = await req.prisma.paymentIn.count();
-      const paymentNumber = `PAY${String(count + 1).padStart(4, "0")}`;
+      const paymentNumber = await getNextPaymentInNumber(req.prisma);
       const payment = await req.prisma.paymentIn.create({
         data: { paymentNumber, customerName: parse.data.customerName, customerId: parse.data.customerId ?? null, invoiceId: parse.data.invoiceId ?? null, amount: parse.data.amount, paymentMethod: parse.data.paymentMethod, paymentDate: new Date(parse.data.paymentDate), reference: parse.data.reference ?? null, notes: parse.data.notes ?? null },
       });
