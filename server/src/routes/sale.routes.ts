@@ -284,7 +284,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const returnNumber = await getNextReturnNumber();
+      const returnNumber = await getNextReturnNumber(req.prisma);
       const totalAmt = parse.data.items.reduce((s: number, i: any) => s + i.totalAmount, 0);
       const ret = await req.prisma.$transaction(async (tx: typeof req.prisma) => {
         const r = await tx.saleReturn.create({
@@ -312,7 +312,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const orderNumber = await getNextOrderNumber();
+      const orderNumber = await getNextOrderNumber(req.prisma);
       const totalAmt = parse.data.items.reduce((s: number, i: any) => s + i.totalAmount, 0);
       const order = await req.prisma.saleOrder.create({
         data: { orderNumber, customerId: parse.data.customerId ?? null, customerName: parse.data.customerName, orderDate: new Date(parse.data.orderDate), dueDate: parse.data.dueDate ? new Date(parse.data.dueDate) : null, notes: parse.data.notes ?? null, totalAmt, subtotal: totalAmt, items: { create: parse.data.items } },
