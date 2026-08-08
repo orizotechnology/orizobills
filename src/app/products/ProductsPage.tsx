@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,27 +13,31 @@ export type { Product };
 
 interface ApiResponse<T> { success: boolean; data: T; message?: string; }
 
-// ── Status filter options — All first ────────────────────────
-const STATUS_FILTERS: { value: "all" | "active" | "inactive"; label: string }[] = [
-  { value: "all",      label: "All"      },
-  { value: "active",   label: "Active"   },
-  { value: "inactive", label: "Inactive" },
+interface InventoryItem {
+  productId: string;
+  currentStock: number;
+  status: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK";
+}
+
+// ── Stock-status filter options — All first ──────────────────
+const STOCK_FILTERS: { value: string; label: string; color: string; bg: string }[] = [
+  { value: "all",          label: "All",          color: "#475569",  bg: "#F1F5F9" },
+  { value: "IN_STOCK",     label: "Available",    color: "#16A34A",  bg: "rgba(34,197,94,0.1)" },
+  { value: "OUT_OF_STOCK", label: "Out of Stock", color: "#DC2626",  bg: "rgba(239,68,68,0.1)" },
+  { value: "LOW_STOCK",    label: "In Transit",   color: "#A16207",  bg: "rgba(234,179,8,0.1)" },
 ];
 
 const PAGE_SIZE = 25;
 
-function useProducts(
-  search: string, page: number, pageSize: number,
-  filter: "all" | "active" | "inactive"
-) {
+function useProducts(search: string, page: number, pageSize: number) {
   return useQuery({
-    queryKey: ["products", search, page, pageSize, filter],
+    queryKey: ["products", search, page, pageSize],
     queryFn: async () => {
       let url: string;
       if (search) {
         url = `/products?search=${encodeURIComponent(search)}`;
       } else {
-        url = `/products?page=${page}&pageSize=${pageSize}&filter=${filter}`;
+        url = `/products?page=${page}&pageSize=${pageSize}&filter=active`;
       }
       const res = await http.get<ApiResponse<{ data: Product[]; total: number } | Product[]>>(url);
       if (!res.success) throw new Error("Failed to load products");
@@ -49,18 +53,42 @@ function useProducts(
 export default function ProductsPage() {
   const qc = useQueryClient();
 
-  const [search,        setSearch]        = useState("");
-  const [debouncedSearch, setDebounced]   = useState("");
-  const [page,          setPage]          = useState(1);
-  const [filter,        setFilter]        = useState<"all" | "active" | "inactive">("all");
-  const [dialogProduct, setDialogProduct] = useState<Product | null | "new">(null);
+  const [search,          setSearch]        = useState("");
+  const [debouncedSearch, setDebounced]     = useState("");
+  const [page,            setPage]          = useState(1);
+  const [stockFilter,     setStockFilter]   = useState("all");
+  const [dialogProduct,   setDialogProduct] = useState<Product | null | "new">(null);
 
   const { data, isLoading, isError, isFetching, refetch } =
-    useProducts(debouncedSearch, page, PAGE_SIZE, filter);
+    useProducts(debouncedSearch, page, PAGE_SIZE);
+
+  // Also fetch inventory to get stock status per product
+  const { data: invData } = useQuery({
+    queryKey: ["inventory-map"],
+    queryFn: async () => {
+      const res = await http.get<ApiResponse<{ items: InventoryItem[] }>>("/inventory");
+      if (!res.success) return {};
+      const map: Record<string, InventoryItem> = {};
+      res.data.items.forEach((i) => { map[i.productId] = i; });
+      return map;
+    },
+    staleTime: 60_000,
+  });
+  const invMap = invData ?? {};
 
   const allProducts = data?.data ?? [];
   const total       = data?.total ?? 0;
   const totalPages  = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Apply stock-status filter client-side
+  const products = useMemo(() => {
+    if (stockFilter === "all") return allProducts;
+    return allProducts.filter((p) => {
+      const inv = invMap[p.id];
+      if (!inv) return stockFilter === "OUT_OF_STOCK"; // no inventory row = out of stock
+      return inv.status === stockFilter;
+    });
+  }, [allProducts, invMap, stockFilter]);
 
   // Debounce search
   const handleSearch = (val: string) => {
@@ -72,29 +100,30 @@ export default function ProductsPage() {
     }, 320);
   };
 
-  const handleFilterChange = (f: "all" | "active" | "inactive") => {
-    setFilter(f);
+  const handleFilterChange = (f: string) => {
+    setStockFilter(f);
     setPage(1);
   };
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => http.delete(`/products/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["inventory-map"] });
+    },
   });
 
   const onSaved = () => {
     qc.invalidateQueries({ queryKey: ["products"] });
+    qc.invalidateQueries({ queryKey: ["inventory-map"] });
     setDialogProduct(null);
   };
 
   const handleRefresh = useCallback(async () => {
     await qc.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
+    await qc.invalidateQueries({ queryKey: ["inventory-map"], refetchType: "active" });
     await refetch();
   }, [qc, refetch]);
-
-  // Active count for badge
-  const activeCount   = allProducts.filter((p) => p.isActive).length;
-  const inactiveCount = allProducts.filter((p) => !p.isActive).length;
 
   return (
     <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC" }}>
@@ -152,28 +181,31 @@ export default function ProductsPage() {
         {/* Status filter chips — All first */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Filter size={13} color="#94A3B8" />
-          {STATUS_FILTERS.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => handleFilterChange(value)}
-              style={{
-                padding: "5px 13px", borderRadius: 6,
-                border: filter === value ? "none" : "1px solid #E2E8F0",
-                background: filter === value ? "#F97316" : "#fff",
-                color:      filter === value ? "#fff"    : "#64748B",
-                fontWeight: filter === value ? 700       : 500,
-                fontSize: 12, cursor: "pointer", fontFamily: "inherit", outline: "none",
-                transition: "all 0.12s",
-              }}>
-              {label}
-            </button>
-          ))}
+          {STOCK_FILTERS.map(({ value, label, color, bg }) => {
+            const active = stockFilter === value;
+            return (
+              <button
+                key={value}
+                onClick={() => handleFilterChange(value)}
+                style={{
+                  padding: "5px 13px", borderRadius: 6,
+                  border: active ? "none" : "1px solid #E2E8F0",
+                  background: active ? bg   : "#fff",
+                  color:      active ? color : "#64748B",
+                  fontWeight: active ? 700   : 500,
+                  fontSize: 12, cursor: "pointer", fontFamily: "inherit", outline: "none",
+                  transition: "all 0.12s",
+                }}>
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Showing count */}
         <div style={{ marginLeft: "auto", fontSize: 12, color: "#94A3B8", whiteSpace: "nowrap" }}>
-          Showing <strong style={{ color: "#0F172A" }}>{allProducts.length}</strong>
-          {!search && total > PAGE_SIZE && ` of ${total}`}
+          Showing <strong style={{ color: "#0F172A" }}>{products.length}</strong>
+          {!search && stockFilter === "all" && total > PAGE_SIZE && ` of ${total}`}
         </div>
       </div>
 
@@ -228,12 +260,12 @@ export default function ProductsPage() {
               )}
 
               {/* Empty */}
-              {!isLoading && !isError && allProducts.length === 0 && (
+              {!isLoading && !isError && products.length === 0 && (
                 <tr><td colSpan={9} style={{ padding: "64px", textAlign: "center" }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
                     <Package size={44} color="#E2E8F0" />
                     <div style={{ fontSize: 14, fontWeight: 600, color: "#94A3B8" }}>
-                      {search ? `No products matching "${search}"` : "No products yet"}
+                      {search ? `No products matching "${search}"` : `No products with status "${STOCK_FILTERS.find(f => f.value === stockFilter)?.label ?? stockFilter}"`}
                     </div>
                     {!search && (
                       <button onClick={() => setDialogProduct("new")} style={primaryBtn}>
@@ -252,13 +284,17 @@ export default function ProductsPage() {
 
               {/* Rows */}
               <AnimatePresence initial={false}>
-                {allProducts.map((p, idx) => (
+                {products.map((p, idx) => {
+                  const inv = invMap[p.id];
+                  const stockStatus = inv?.status ?? "OUT_OF_STOCK";
+                  const stockLabel  = STOCK_FILTERS.find(f => f.value === stockStatus);
+                  return (
                   <motion.tr
                     key={p.id}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.12 }}
                     style={{
-                      borderBottom: idx < allProducts.length - 1 ? "1px solid #F1F5F9" : "none",
+                      borderBottom: idx < products.length - 1 ? "1px solid #F1F5F9" : "none",
                       opacity: p.isActive ? 1 : 0.55,
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
@@ -318,14 +354,14 @@ export default function ProductsPage() {
                       </span>
                     </td>
 
-                    {/* Status */}
+                    {/* Stock Status */}
                     <td style={{ padding: "12px 14px" }}>
                       <span style={{
                         fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px",
-                        background: p.isActive ? "rgba(34,197,94,0.1)" : "rgba(148,163,184,0.15)",
-                        color:      p.isActive ? "#16A34A"              : "#94A3B8",
+                        background: stockLabel?.bg  ?? "#F1F5F9",
+                        color:      stockLabel?.color ?? "#64748B",
                       }}>
-                        {p.isActive ? "Active" : "Inactive"}
+                        {stockLabel?.label ?? "Unknown"}
                       </span>
                     </td>
 
@@ -345,7 +381,8 @@ export default function ProductsPage() {
                       </div>
                     </td>
                   </motion.tr>
-                ))}
+                  );
+                })}
               </AnimatePresence>
             </tbody>
           </table>
