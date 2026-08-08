@@ -27,6 +27,7 @@ import type { LucideIcon } from "lucide-react";
 interface SubItem {
   label: string;
   to: string;
+  isSubChild?: boolean;
 }
 
 interface NavItem {
@@ -58,9 +59,9 @@ const NAV_ITEMS: NavItem[] = [
       { label: "All Products",        to: "/app/products/all"               },
       { label: "Categories",          to: "/app/products/categories"        },
       { label: "Low Stock",           to: "/app/products/low-stock"         },
-      { label: "Product Transfer",    to: "/app/products/transfer"          },
-      { label: "Products Transferred",to: "/app/products/transfer/sent"     },
-      { label: "Products Received",   to: "/app/products/transfer/received" },
+      { label: "Product Transfer",    to: "/app/products/transfer"                          },
+      { label: "Products Transferred",to: "/app/products/transfer/sent",     isSubChild: true },
+      { label: "Products Received",   to: "/app/products/transfer/received", isSubChild: true },
     ],
   },
   { label: "Purchase",  icon: ShoppingCart, to: "/app/purchase",
@@ -142,7 +143,9 @@ function NavEntry({ item, expanded, sidebarCollapsed, location, onToggle }: NavE
             style={{ overflow: "hidden", marginBottom: 2 }}
           >
             {item.children!.map((child) => {
-              const isActive = location.pathname === child.to;
+              const isActive = location.pathname === child.to ||
+                (child.isSubChild && location.pathname.startsWith(child.to));
+              const indent = child.isSubChild ? 50 : 36;
               return (
                 <NavLink
                   key={child.to}
@@ -153,7 +156,7 @@ function NavEntry({ item, expanded, sidebarCollapsed, location, onToggle }: NavE
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      padding: "7px 10px 7px 36px",
+                      padding: `7px 10px 7px ${indent}px`,
                       borderRadius: 7,
                       background: isActive ? "rgba(249,115,22,0.10)" : "transparent",
                       cursor: "pointer",
@@ -167,10 +170,17 @@ function NavEntry({ item, expanded, sidebarCollapsed, location, onToggle }: NavE
                       if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent";
                     }}
                   >
+                    {child.isSubChild && (
+                      <span style={{
+                        width: 4, height: 4, borderRadius: "50%",
+                        background: isActive ? "#F97316" : "#CBD5E1",
+                        display: "inline-block", marginRight: 7, flexShrink: 0,
+                      }} />
+                    )}
                     <span style={{
                       fontSize: 12,
                       fontWeight: isActive ? 600 : 400,
-                      color: isActive ? "#F97316" : "#64748B",
+                      color: isActive ? "#F97316" : child.isSubChild ? "#94A3B8" : "#64748B",
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
