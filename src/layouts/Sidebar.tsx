@@ -226,7 +226,9 @@ export function Sidebar() {
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
-        overflow: "hidden",
+        /* overflow-x hidden to clip text, overflow-y visible so profile isn't cut */
+        overflowX: "hidden",
+        overflowY: "visible",
         borderRight: "1px solid #F1F5F9",
         boxShadow: "1px 0 4px rgba(0,0,0,0.04)",
       }}
@@ -336,9 +338,11 @@ export function Sidebar() {
         onClick={() => setProfileOpen(true)}
         style={{
           display: "flex", alignItems: "center", gap: 10,
-          padding: "12px 14px",
+          padding: "14px 14px 16px",
           borderTop: "1px solid #F1F5F9",
-          flexShrink: 0, overflow: "hidden",
+          flexShrink: 0,
+          minHeight: 60,
+          overflow: "visible",
           width: "100%", background: "none", border: "none",
           cursor: "pointer", textAlign: "left",
           transition: "background 0.15s",
