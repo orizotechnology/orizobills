@@ -76,20 +76,38 @@ async function createBranchDatabase(dbName: string): Promise<void> {
   }
 }
 
-function pushSchemaToBranchDb(dbUrl: string): void {
-  const serverRoot = path.resolve(__dirname, "../..");
-  process.stdout.write("[BRANCH] Pushing schema to new branch DB…\n");
-  const out = execSync("npx prisma db push --accept-data-loss --skip-generate", {
-    cwd:      serverRoot,
-    env:      { ...process.env, DATABASE_URL: dbUrl },
-    stdio:    "pipe",
-    encoding: "utf8",
-    timeout:  90_000,
+function pushSchemaToBranchDb(dbUrl: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const serverRoot = path.resolve(__dirname, "../..");
+    process.stdout.write("[BRANCH] Pushing schema to new branch DB…\n");
+    const child = require("child_process").spawn(
+      "npx",
+      ["prisma", "db", "push", "--accept-data-loss", "--skip-generate"],
+      {
+        cwd: serverRoot,
+        env: { ...process.env, DATABASE_URL: dbUrl },
+        stdio: "pipe",
+        shell: true,
+      }
+    );
+    let out = "";
+    child.stdout?.on("data", (d: Buffer) => { out += d.toString(); });
+    child.stderr?.on("data", (d: Buffer) => { out += d.toString(); });
+    child.on("close", (code: number) => {
+      out.split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l && !l.includes("\x1b["))
+        .forEach((l) => process.stdout.write(`[BRANCH] ${l}\n`));
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Schema push exited with code ${code}`));
+      }
+    });
+    child.on("error", reject);
+    // Safety timeout — 120 seconds
+    setTimeout(() => reject(new Error("Schema push timed out after 120s")), 120_000);
   });
-  out.split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l && !l.includes("\x1b["))
-    .forEach((l) => process.stdout.write(`[BRANCH] ${l}\n`));
 }
 
 // ── Service methods ───────────────────────────────────────────
@@ -123,7 +141,7 @@ export async function createBranch(input: CreateBranchInput): Promise<CreateBran
   const isDefault = count === 0;
 
   await createBranchDatabase(dbName);
-  pushSchemaToBranchDb(dbUrl);
+  await pushSchemaToBranchDb(dbUrl);
 
   const branch: Branch = await prisma.branch.create({
     data: { name: trimmedName, slug, address: address?.trim() || null, isDefault, isActive: true },
