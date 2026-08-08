@@ -51,7 +51,7 @@ export async function purchaseRoutes(fastify: FastifyInstance) {
 
   // ── Static routes FIRST (before /:id) ────────────────────
 
-  fastify.get("/next-number", async (_req, reply) => {
+  fastify.get("/next-number", async (req, reply) => {
     try {
       const number = await getNextPurchaseNumber(req.prisma);
       return reply.send(successResponse({ number }));
@@ -155,7 +155,7 @@ export async function purchaseRoutes(fastify: FastifyInstance) {
     );
 
     try {
-      const invoiceNumber = await getNextPurchaseNumber();
+      const invoiceNumber = await getNextPurchaseNumber(req.prisma);
       const { items, ...rest } = parse.data;
 
       const subtotal    = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
@@ -301,7 +301,7 @@ export async function purchaseRoutes(fastify: FastifyInstance) {
     );
 
     try {
-      const returnNumber = await getNextPurReturnNumber();
+      const returnNumber = await getNextPurReturnNumber(req.prisma);
       const totalAmt = parse.data.items.reduce((s, i) => s + i.totalAmount, 0);
 
       const ret = await req.prisma.$transaction(async (tx: typeof req.prisma) => {

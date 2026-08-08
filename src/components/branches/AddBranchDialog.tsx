@@ -96,7 +96,7 @@ export function AddBranchDialog({ onClose }: AddBranchDialogProps) {
                 Add New Branch
               </div>
               <div style={{ fontSize: 12, color: "#94A3B8" }}>
-                Creates an isolated database schema
+                Creates an isolated MySQL database
               </div>
             </div>
           </div>
@@ -135,8 +135,8 @@ export function AddBranchDialog({ onClose }: AddBranchDialogProps) {
               />
             </div>
             <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>
-              A unique schema will be created: <code style={{ background: "#F1F5F9", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>
-                branch_{name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").substring(0, 40) || "..."}
+              A dedicated MySQL database will be created: <code style={{ background: "#F1F5F9", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>
+                erp_{name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").substring(0, 40) || "..."}
               </code>
             </div>
           </div>

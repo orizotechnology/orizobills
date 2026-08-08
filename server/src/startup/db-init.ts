@@ -153,15 +153,29 @@ function pushSchema(): void {
 // =============================================================
 // Step 4: Keep the database empty after reset
 // =============================================================
+// Step 4: Auto-create Main Branch if database is empty
+// The first branch ever created becomes the default "Main Branch".
+// This means single-branch users never have to manually create one.
+// =============================================================
 
-async function ensureEmptyState(prisma: PrismaLike): Promise<void> {
+async function ensureMainBranch(prisma: PrismaLike): Promise<void> {
   const branchCount = await prisma.branch.count();
   if (branchCount > 0) {
     log(`Existing branches present (${branchCount}); leaving database unchanged.`);
     return;
   }
 
-  log("Database is empty; no seed rows created.");
+  log("No branches found — creating default Main Branch…");
+
+  // Import branch service helpers inline to avoid circular imports
+  const { createBranch } = await import("../services/branch.service");
+  try {
+    const result = await createBranch({ name: "Main Branch" });
+    log(`Main Branch created — DB: "${result.schemaName}", ID: ${result.branch.id}`);
+  } catch (err) {
+    // Non-fatal — user can create their first branch manually from the UI
+    warn(`Could not auto-create Main Branch: ${(err as Error).message}`);
+  }
 }
 
 // =============================================================
@@ -193,8 +207,8 @@ export async function initDatabase(prisma: PrismaLike): Promise<void> {
     throw new Error(`Prisma connect failed: ${(err as Error).message}`);
   }
 
-  // 4. Keep database empty
-  await ensureEmptyState(prisma);
+  // 4. Auto-create Main Branch if first run
+  await ensureMainBranch(prisma);
 
   log("=== DB init complete — erp_system is ready ===");
 }

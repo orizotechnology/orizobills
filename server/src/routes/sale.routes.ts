@@ -30,7 +30,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
   // ── Static routes FIRST ───────────────────────────────────
 
-  fastify.get("/next-number", async (_req, reply) => {
+  fastify.get("/next-number", async (req, reply) => {
     try {
       const number = await getNextSaleNumber(req.prisma);
       return reply.send(successResponse({ number }));

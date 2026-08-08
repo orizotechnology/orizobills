@@ -314,7 +314,7 @@ export async function importRoutes(fastify: FastifyInstance) {
                 skipped++; continue;
               }
               try {
-                const expenseNumber = await getNextExpenseNumber();
+                const expenseNumber = await getNextExpenseNumber(prisma);
                 const expenseDate   = parseDate(p.data.expenseDate ?? null);
                 await prisma.expense.create({
                   data: {
@@ -379,7 +379,7 @@ export async function importRoutes(fastify: FastifyInstance) {
             // Phase 2: create invoices (one counter call per invoice, not per row)
             for (const grp of groups) {
               try {
-                const invoiceNumber = await getNextSaleNumber();
+                const invoiceNumber = await getNextSaleNumber(prisma);
                 const items = grp.items;
 
                 const subtotal    = items.reduce((s, it) => s + it.unitPrice * it.quantity, 0);
@@ -490,7 +490,7 @@ export async function importRoutes(fastify: FastifyInstance) {
             // Phase 2: create invoices
             for (const grp of groups) {
               try {
-                const invoiceNumber = await getNextPurchaseNumber();
+                const invoiceNumber = await getNextPurchaseNumber(prisma);
                 const items = grp.items;
 
                 const subtotal    = items.reduce((s, it) => s + it.unitPrice * it.quantity, 0);

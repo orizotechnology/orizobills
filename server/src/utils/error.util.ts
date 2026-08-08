@@ -13,6 +13,19 @@ export function globalErrorHandler(
   _request: FastifyRequest,
   reply: FastifyReply
 ) {
+  // Fastify JSON body parse errors (malformed JSON, wrong content-type, etc.)
+  if (error.statusCode === 400 && !error.validation) {
+    return reply
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .send(
+        errorResponse(
+          error.message || "Bad request — could not parse request body",
+          HTTP_STATUS.BAD_REQUEST,
+          ERROR_CODES.VALIDATION_ERROR
+        )
+      );
+  }
+
   // Fastify validation errors (from JSON schema)
   if (error.validation) {
     return reply

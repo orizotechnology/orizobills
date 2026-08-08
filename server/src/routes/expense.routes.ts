@@ -39,7 +39,7 @@ export async function expenseRoutes(fastify: FastifyInstance) {
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
       // Use counter.service — safe after deletes (MAX-based, not COUNT-based)
-      const expenseNumber = await getNextExpenseNumber();
+      const expenseNumber = await getNextExpenseNumber(req.prisma);
       const e = await req.prisma.expense.create({
         data: { expenseNumber, ...parse.data, expenseDate: new Date(parse.data.expenseDate), description: parse.data.description ?? null, reference: parse.data.reference ?? null, notes: parse.data.notes ?? null },
       });

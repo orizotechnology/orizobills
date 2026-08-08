@@ -58,7 +58,10 @@ export const http = {
   get:    <T>(ep: string, opts?: RequestOptions) =>
     request<T>(ep, { ...opts, method: "GET" }),
   post:   <T>(ep: string, data?: unknown, opts?: RequestOptions) =>
-    request<T>(ep, { ...opts, method: "POST",  body: JSON.stringify(data) }),
+    request<T>(ep, { ...opts, method: "POST",  body: JSON.stringify(data, (_key, val) =>
+      // Replace NaN and Infinity with 0 — they serialize to null and break Zod on the server
+      typeof val === "number" && !isFinite(val) ? 0 : val
+    ) }),
   put:    <T>(ep: string, data?: unknown, opts?: RequestOptions) =>
     request<T>(ep, { ...opts, method: "PUT",   body: JSON.stringify(data) }),
   patch:  <T>(ep: string, data?: unknown, opts?: RequestOptions) =>

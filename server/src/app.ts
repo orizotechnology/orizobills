@@ -24,6 +24,8 @@ import { transferRoutes }  from "./routes/transfer.routes";
 export async function buildServer() {
   const server = Fastify({
     logger: serverConfig.logger,
+    // Raise body limit to 50 MB so large Excel imports (5000 rows) never get rejected
+    bodyLimit: 50 * 1024 * 1024,
   });
 
   // ── Security ─────────────────────────────────────────────
