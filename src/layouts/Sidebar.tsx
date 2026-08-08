@@ -476,6 +476,7 @@ function ExpandableNavItem({ item, isActive, isExpanded, collapsed, onToggle }: 
       onClick={onToggle}
       onMouseEnter={() => { if (!isActive) setHovered(true); }}
       onMouseLeave={() => setHovered(false)}
+      title={collapsed ? item.label : undefined}
       style={{
         width: "100%",
         display: "flex", alignItems: "center", gap: 10,
