@@ -27,7 +27,11 @@ export function slugifyBranchName(name: string): string {
   );
 }
 
+// DB name is derived directly from the branch name the user typed.
+// e.g.  "Chennai Main"  →  erp_chennai_main
+//        "Branch #1"    →  erp_branch_1
 function dbNameFromSlug(slug: string): string {
+  // slug is already "branch_<sanitised>" — strip the leading "branch_" prefix
   return `erp_${slug.replace(/^branch_/, "")}`;
 }
 
