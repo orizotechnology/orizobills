@@ -3,6 +3,7 @@ import { Settings, Maximize2, X, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePosStore } from "@/store/pos.store";
+import { useDialogKeyboard } from "@/hooks";
 
 interface PosTopBarProps { invoiceNo: string }
 
@@ -16,6 +17,13 @@ export function PosTopBar({ invoiceNo }: PosTopBarProps) {
   const date = now.toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" });
   const time = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }).toUpperCase();
   const hasItems = bills.some((b) => b.rows.length > 0);
+
+  // Enter = confirm close, Escape = stay in POS
+  useDialogKeyboard({
+    isOpen:    showConfirm,
+    onConfirm: () => { setShowConfirm(false); navigate("/app/dashboard"); },
+    onCancel:  () => setShowConfirm(false),
+  });
 
   // Track fullscreen state changes
   useEffect(() => {

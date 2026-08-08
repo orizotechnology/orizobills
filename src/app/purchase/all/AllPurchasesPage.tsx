@@ -5,6 +5,7 @@ import {Plus,Search,RefreshCw,AlertTriangle,ShoppingCart,Trash2,X,} from "lucide
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { http } from "@/lib/axios";
+import { useDialogKeyboard } from "@/hooks";
 
 interface PurchaseInvoice {
   id: string;
@@ -58,6 +59,9 @@ function DeleteConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  // Enter = confirm delete, Escape = cancel
+  useDialogKeyboard({ isOpen: true, onConfirm, onCancel, disabled: isDeleting });
+
   return (
     <div
       style={{

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { http } from "@/lib/axios";
+import { useDialogKeyboard } from "@/hooks";
 
 // =============================================================
 // TYPES
@@ -70,6 +71,9 @@ function DeleteConfirmDialog({ invoice, isDeleting, onConfirm, onCancel }: {
   invoice: SaleInvoice; isDeleting: boolean;
   onConfirm: () => void; onCancel: () => void;
 }) {
+  // Enter = confirm delete, Escape = cancel
+  useDialogKeyboard({ isOpen: true, onConfirm, onCancel, disabled: isDeleting });
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15,23,42,0.55)",
       backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
