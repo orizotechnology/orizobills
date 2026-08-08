@@ -425,6 +425,40 @@ model SaleReturnItem {
 }
 
 // =============================================================
+// STOCK TRANSFERS (inter-branch)
+// Each transfer creates ONE record in EACH branch's DB:
+//   Sending branch   → direction: "OUT"
+//   Receiving branch → direction: "IN"
+// Both records share the same transferRef UUID for correlation.
+// =============================================================
+
+model StockTransfer {
+  id               String   @id @default(uuid()) @db.VarChar(36)
+  transferRef      String   @db.VarChar(36)    // shared UUID between OUT and IN records
+  direction        String   @db.VarChar(3)     // "OUT" | "IN"
+  fromBranchId     String   @db.VarChar(36)
+  fromBranchName   String   @db.VarChar(255)
+  toBranchId       String   @db.VarChar(36)
+  toBranchName     String   @db.VarChar(255)
+  productId        String?  @db.VarChar(36)
+  productName      String   @db.VarChar(500)
+  productCode      String   @db.VarChar(100)
+  quantity         Decimal  @db.Decimal(12, 3)
+  unit             String   @default("Nos") @db.VarChar(50)
+  notes            String?  @db.Text
+  status           String   @default("COMPLETED") @db.VarChar(20)
+  transferDate     DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  @@index([transferRef])
+  @@index([direction])
+  @@index([fromBranchId])
+  @@index([toBranchId])
+  @@index([transferDate])
+  @@map("stock_transfers")
+}
+
+// =============================================================
 // EXPENSES
 // =============================================================
 

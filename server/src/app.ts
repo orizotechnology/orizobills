@@ -15,6 +15,7 @@ import { expenseRoutes }   from "./routes/expense.routes";
 import { inventoryRoutes } from "./routes/inventory.routes";
 import { importRoutes }    from "./routes/import.routes";
 import { configRoutes }    from "./routes/config.routes";
+import { transferRoutes }  from "./routes/transfer.routes";
 
 // =============================================================
 // FASTIFY APPLICATION FACTORY
@@ -88,6 +89,7 @@ export async function buildServer() {
   await server.register(expenseRoutes,   { prefix: "/api/expenses"   });
   await server.register(inventoryRoutes, { prefix: "/api/inventory"  });
   await server.register(importRoutes,    { prefix: "/api/import"     });
+  await server.register(transferRoutes,  { prefix: "/api/transfers"   });
 
   return server;
 }
