@@ -189,17 +189,19 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
 
               {/* ─ Account section ─────────────────────── */}
               <Section icon={<User size={14} />} title="Account">
-                <Field label="Display Name">
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Your name"
-                      style={inputStyle}
-                    />
-                    <SaveBtn onClick={saveAccount} disabled={!name.trim() || name.trim() === userName} />
-                  </div>
-                </Field>
+                <form onSubmit={(e) => { e.preventDefault(); saveAccount(); }}>
+                  <Field label="Display Name">
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Your name"
+                        style={inputStyle}
+                      />
+                      <SaveBtn onClick={saveAccount} disabled={!name.trim() || name.trim() === userName} />
+                    </div>
+                  </Field>
+                </form>
                 <Field label="Mobile">
                   <input
                     value={userMobile}
@@ -211,6 +213,7 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
 
               {/* ─ Change password ─────────────────────── */}
               <Section icon={<Lock size={14} />} title="Change Password">
+                <form onSubmit={(e) => { e.preventDefault(); void savePassword(); }}>
                 <Field label="Current Password">
                   <PasswordInput
                     value={currentPw} onChange={setCurrentPw}
@@ -244,7 +247,7 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
                   </div>
                 )}
                 <button
-                  onClick={savePassword}
+                  type="submit"
                   style={{
                     width: "100%", padding: "10px 0",
                     background: "#F97316", border: "none", borderRadius: 8,
@@ -256,10 +259,12 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
                 >
                   Update Password
                 </button>
+                </form>
               </Section>
 
               {/* ─ Business details ────────────────────── */}
               <Section icon={<Store size={14} />} title="Business Details">
+                <form onSubmit={(e) => { e.preventDefault(); saveBusiness(); }}>
                 <Field label="Store Name">
                   <input value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="e.g. Orizo Mart" style={inputStyle} />
                 </Field>
@@ -293,7 +298,7 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
                   </InputWithIcon>
                 </Field>
                 <button
-                  onClick={saveBusiness}
+                  type="submit"
                   style={{
                     width: "100%", padding: "10px 0",
                     background: "#F97316", border: "none", borderRadius: 8,
@@ -305,6 +310,7 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
                 >
                   Save Business Details
                 </button>
+                </form>
               </Section>
 
               {/* ─ Address ─────────────────────────────── */}
