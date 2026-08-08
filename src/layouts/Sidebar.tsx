@@ -480,17 +480,37 @@ function ExpandableNavItem({ item, isActive, isExpanded, collapsed, onToggle }: 
         width: "100%",
         display: "flex", alignItems: "center", gap: 10,
         padding: "9px 10px", borderRadius: 8,
-        border: `1.5px solid ${!isActive && hovered ? "#F97316" : "transparent"}`,
-        background: isActive ? "#F97316" : "transparent",
+        border: !isActive && hovered ? "1.5px solid #F97316" : "1.5px solid transparent",
+        // Expanded: full orange fill when active (original behaviour)
+        // Collapsed: transparent — the icon box below handles the highlight
+        background: isActive && !collapsed ? "#F97316" : "transparent",
         cursor: "pointer",
         fontFamily: "inherit", outline: "none",
         marginBottom: 1,
         transition: "border-color 0.15s, background 0.15s",
       }}
     >
-      <span style={{ display: "flex", flexShrink: 0, color: isActive ? "#fff" : "#64748B" }}>
-        <item.icon size={17} strokeWidth={1.8} />
-      </span>
+      {/* Collapsed + active: icon gets orange border box */}
+      {collapsed && isActive ? (
+        <span style={{
+          display: "flex", flexShrink: 0,
+          width: 30, height: 30,
+          alignItems: "center", justifyContent: "center",
+          borderRadius: 7,
+          border: "2px solid #F97316",
+          background: "rgba(249,115,22,0.10)",
+          color: "#F97316",
+        }}>
+          <item.icon size={16} strokeWidth={2.2} />
+        </span>
+      ) : (
+        <span style={{
+          display: "flex", flexShrink: 0,
+          color: isActive && !collapsed ? "#fff" : "#64748B",
+        }}>
+          <item.icon size={17} strokeWidth={1.8} />
+        </span>
+      )}
       <AnimatePresence initial={false}>
         {!collapsed && (
           <motion.span key="lbl"
@@ -550,15 +570,34 @@ function SidebarItem({ item, collapsed }: SidebarItemProps) {
             position: "relative",
             display: "flex", alignItems: "center", gap: 10,
             padding: "9px 10px", borderRadius: 8,
-            border: `1.5px solid ${!isActive && hovered ? "#F97316" : "transparent"}`,
-            background: isActive ? "#F97316" : "transparent",
+            border: !isActive && hovered ? "1.5px solid #F97316" : "1.5px solid transparent",
+            // Expanded: full orange fill; Collapsed: transparent (icon box handles it)
+            background: isActive && !collapsed ? "#F97316" : "transparent",
             cursor: "pointer",
             transition: "border-color 0.15s, background 0.15s",
           }}
         >
-          <span style={{ display: "flex", flexShrink: 0, color: isActive ? "#fff" : "#64748B" }}>
-            <Icon size={17} strokeWidth={1.8} />
-          </span>
+          {/* Collapsed + active: orange bordered icon box */}
+          {collapsed && isActive ? (
+            <span style={{
+              display: "flex", flexShrink: 0,
+              width: 30, height: 30,
+              alignItems: "center", justifyContent: "center",
+              borderRadius: 7,
+              border: "2px solid #F97316",
+              background: "rgba(249,115,22,0.10)",
+              color: "#F97316",
+            }}>
+              <Icon size={16} strokeWidth={2.2} />
+            </span>
+          ) : (
+            <span style={{
+              display: "flex", flexShrink: 0,
+              color: isActive && !collapsed ? "#fff" : "#64748B",
+            }}>
+              <Icon size={17} strokeWidth={1.8} />
+            </span>
+          )}
           <AnimatePresence initial={false}>
             {!collapsed && (
               <motion.span key="lbl"
