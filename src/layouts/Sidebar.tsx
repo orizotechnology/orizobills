@@ -14,6 +14,30 @@ import {
   ChevronsLeft,
   ChevronDown,
   Wrench,
+  FileText,
+  CreditCard,
+  ClipboardList,
+  PackageCheck,
+  RotateCcw,
+  List,
+  Tag,
+  AlertTriangle,
+  ArrowRightLeft,
+  Upload,
+  Download,
+  ScanLine,
+  Calculator,
+  Wallet,
+  PiggyBank,
+  Sliders,
+  Printer,
+  Percent,
+  MessageSquare,
+  Users2,
+  Box,
+  Bell,
+  BookOpen,
+  UserCog,
 } from "lucide-react";
 import { useUIStore } from "@/store";
 import { useAuthStore } from "@/store/auth.store";
@@ -27,6 +51,7 @@ import type { LucideIcon } from "lucide-react";
 interface SubItem {
   label: string;
   to: string;
+  icon: LucideIcon;
   isSubChild?: boolean;
 }
 
@@ -40,61 +65,57 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/app/dashboard" },
   {
-    label: "Sales",
-    icon: TrendingUp,
-    to: "/app/sales",
+    label: "Sales", icon: TrendingUp, to: "/app/sales",
     children: [
-      { label: "Sale Invoices",             to: "/app/sales/invoices"   },
-      { label: "Payment-In",                to: "/app/sales/payment-in" },
-      { label: "Sale Order",                to: "/app/sales/orders"     },
-      { label: "Delivery Challan",          to: "/app/sales/challan"    },
-      { label: "Sale Return / Credit Note", to: "/app/sales/returns"    },
+      { label: "Sale Invoices",             icon: FileText,      to: "/app/sales/invoices"   },
+      { label: "Payment-In",                icon: CreditCard,    to: "/app/sales/payment-in" },
+      { label: "Sale Order",                icon: ClipboardList, to: "/app/sales/orders"     },
+      { label: "Delivery Challan",          icon: PackageCheck,  to: "/app/sales/challan"    },
+      { label: "Sale Return / Credit Note", icon: RotateCcw,     to: "/app/sales/returns"    },
     ],
   },
   {
-    label: "Products",
-    icon: Package,
-    to: "/app/products",
+    label: "Products", icon: Package, to: "/app/products",
     children: [
-      { label: "All Products",     to: "/app/products/all"        },
-      { label: "Categories",       to: "/app/products/categories" },
-      { label: "Low Stock",        to: "/app/products/low-stock"  },
-      { label: "Product Transfer", to: "/app/products/transfer"   },
+      { label: "All Products",     icon: List,           to: "/app/products/all"        },
+      { label: "Categories",       icon: Tag,            to: "/app/products/categories" },
+      { label: "Low Stock",        icon: AlertTriangle,  to: "/app/products/low-stock"  },
+      { label: "Product Transfer", icon: ArrowRightLeft, to: "/app/products/transfer"   },
     ],
   },
-  { label: "Purchase",  icon: ShoppingCart, to: "/app/purchase",
+  { label: "Purchase", icon: ShoppingCart, to: "/app/purchase",
     children: [
-      { label: "All Purchases",   to: "/app/purchase/all"    },
-      { label: "Purchase Return", to: "/app/purchase/return" },
+      { label: "All Purchases",   icon: ShoppingCart, to: "/app/purchase/all"    },
+      { label: "Purchase Return", icon: RotateCcw,    to: "/app/purchase/return" },
     ],
   },
-  { label: "Inventory", icon: Package,      to: "/app/inventory" },
-  { label: "Customers", icon: Users,        to: "/app/customers" },
-  { label: "Suppliers", icon: Truck,        to: "/app/suppliers" },
-  { label: "Expenses",  icon: Receipt,      to: "/app/expenses"  },
-  { label: "Utilities", icon: Wrench,       to: "/app/utilities",
+  { label: "Inventory", icon: Package,   to: "/app/inventory" },
+  { label: "Customers", icon: Users,     to: "/app/customers" },
+  { label: "Suppliers", icon: Truck,     to: "/app/suppliers" },
+  { label: "Expenses",  icon: Receipt,   to: "/app/expenses"  },
+  { label: "Utilities", icon: Wrench,    to: "/app/utilities",
     children: [
-      { label: "Import Data",       to: "/app/utilities/import"   },
-      { label: "Export Data",       to: "/app/utilities/export"   },
-      { label: "Barcode Generator", to: "/app/utilities/barcode"  },
-      { label: "Calculator",        to: "/app/utilities/calculator" },
-      { label: "Cash Register",     to: "/app/utilities/cash-register" },
-      { label: "Expenses Tracker",  to: "/app/utilities/expenses" },
+      { label: "Import Data",       icon: Upload,    to: "/app/utilities/import"        },
+      { label: "Export Data",       icon: Download,  to: "/app/utilities/export"        },
+      { label: "Barcode Generator", icon: ScanLine,  to: "/app/utilities/barcode"       },
+      { label: "Calculator",        icon: Calculator,to: "/app/utilities/calculator"    },
+      { label: "Cash Register",     icon: Wallet,    to: "/app/utilities/cash-register" },
+      { label: "Expenses Tracker",  icon: PiggyBank, to: "/app/utilities/expenses"      },
     ],
   },
-  { label: "Reports",   icon: BarChart2,    to: "/app/reports"   },
-  { label: "Settings",  icon: Settings, to: "/app/settings",
+  { label: "Reports",  icon: BarChart2,  to: "/app/reports"   },
+  { label: "Settings", icon: Settings,  to: "/app/settings",
     children: [
-      { label: "General",             to: "/app/settings/general"     },
-      { label: "Transaction",         to: "/app/settings/transaction"  },
-      { label: "Print",               to: "/app/settings/print"        },
-      { label: "Taxes & GST",         to: "/app/settings/taxes"        },
-      { label: "Transaction Message", to: "/app/settings/messages"     },
-      { label: "Party",               to: "/app/settings/party"        },
-      { label: "Product",             to: "/app/settings/product"      },
-      { label: "Service Reminders",   to: "/app/settings/reminders"    },
-      { label: "Accounting",          to: "/app/settings/accounting"   },
-      { label: "Officer Management",  to: "/app/settings/officers"     },
+      { label: "General",             icon: Sliders,    to: "/app/settings/general"     },
+      { label: "Transaction",         icon: Receipt,    to: "/app/settings/transaction"  },
+      { label: "Print",               icon: Printer,    to: "/app/settings/print"        },
+      { label: "Taxes & GST",         icon: Percent,    to: "/app/settings/taxes"        },
+      { label: "Transaction Message", icon: MessageSquare, to: "/app/settings/messages"  },
+      { label: "Party",               icon: Users2,     to: "/app/settings/party"        },
+      { label: "Product",             icon: Box,        to: "/app/settings/product"      },
+      { label: "Service Reminders",   icon: Bell,       to: "/app/settings/reminders"    },
+      { label: "Accounting",          icon: BookOpen,   to: "/app/settings/accounting"   },
+      { label: "Officer Management",  icon: UserCog,    to: "/app/settings/officers"     },
     ],
   },
 ];
@@ -144,21 +165,17 @@ function NavEntry({ item, expanded, sidebarCollapsed, location, onToggle }: NavE
               const isActive = location.pathname === child.to ||
                 (child.isSubChild && location.pathname.startsWith(child.to));
               const indent = child.isSubChild ? 50 : 36;
+              const Icon = child.icon;
               return (
-                <NavLink
-                  key={child.to}
-                  to={child.to}
-                  style={{ textDecoration: "none", display: "block" }}
-                >
+                <NavLink key={child.to} to={child.to}
+                  style={{ textDecoration: "none", display: "block" }}>
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
+                      display: "flex", alignItems: "center",
                       padding: `7px 10px 7px ${indent}px`,
                       borderRadius: 7,
                       background: isActive ? "rgba(249,115,22,0.10)" : "transparent",
-                      cursor: "pointer",
-                      marginBottom: 1,
+                      cursor: "pointer", marginBottom: 1,
                       transition: "background 0.12s",
                     }}
                     onMouseEnter={(e) => {
@@ -168,21 +185,24 @@ function NavEntry({ item, expanded, sidebarCollapsed, location, onToggle }: NavE
                       if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent";
                     }}
                   >
+                    {/* Icon */}
+                    <span style={{ display: "flex", flexShrink: 0, marginRight: 7,
+                      color: isActive ? "#F97316" : "#94A3B8" }}>
+                      <Icon size={13} strokeWidth={1.8} />
+                    </span>
                     {child.isSubChild && (
                       <span style={{
                         width: 4, height: 4, borderRadius: "50%",
                         background: isActive ? "#F97316" : "#CBD5E1",
-                        display: "inline-block", marginRight: 7, flexShrink: 0,
+                        display: "inline-block", marginRight: 5, flexShrink: 0,
                       }} />
                     )}
                     <span style={{
                       fontSize: 12,
                       fontWeight: isActive ? 600 : 400,
                       color: isActive ? "#F97316" : child.isSubChild ? "#94A3B8" : "#64748B",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      flex: 1,
+                      whiteSpace: "nowrap", overflow: "hidden",
+                      textOverflow: "ellipsis", flex: 1,
                     }}>
                       {child.label}
                     </span>
@@ -193,6 +213,38 @@ function NavEntry({ item, expanded, sidebarCollapsed, location, onToggle }: NavE
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Collapsed: show sub-item icons as icon-only links ── */}
+      {hasChildren && sidebarCollapsed && (
+        <div style={{ marginBottom: 2 }}>
+          {item.children!.map((child) => {
+            const isActive = location.pathname === child.to ||
+              (child.isSubChild && location.pathname.startsWith(child.to));
+            const Icon = child.icon;
+            return (
+              <NavLink key={child.to} to={child.to}
+                title={child.label}
+                style={{ textDecoration: "none", display: "block" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  height: 30, borderRadius: 7, marginBottom: 1,
+                  background: isActive ? "rgba(249,115,22,0.10)" : "transparent",
+                  cursor: "pointer", transition: "background 0.12s",
+                }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "#FFF7ED";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                  }}>
+                  <Icon size={14} strokeWidth={1.8}
+                    color={isActive ? "#F97316" : "#94A3B8"} />
+                </div>
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -234,79 +286,91 @@ export function Sidebar() {
     >
       {/* ── Logo + collapse arrow ──────────────────────── */}
       <div style={{
-        display: "flex", alignItems: "center",
-        padding: "0 12px 0 16px", height: 64, flexShrink: 0,
-        overflow: "hidden", borderBottom: "1px solid #F8FAFC",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: sidebarCollapsed ? "center" : "flex-start",
+        padding: sidebarCollapsed ? "0" : "0 12px 0 14px",
+        height: 52,
+        flexShrink: 0,
+        overflow: "hidden",
+        borderBottom: "1px solid #F1F5F9",
       }}>
-        {/* Logo icon */}
-        <div style={{
-          width: 36, height: 36, borderRadius: "50%",
-          background: "#F97316",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0, overflow: "hidden",
-        }}>
-          <img
-            src="/logo.png"
-            alt="Orizo Bills"
-            style={{ width: 36, height: 36, objectFit: "contain" }}
-            onError={(e) => {
-              const el = e.currentTarget as HTMLImageElement;
-              el.style.display = "none";
-              if (el.parentElement) {
-                el.parentElement.innerHTML = `<span style="color:#fff;font-weight:800;font-size:16px">O</span>`;
-              }
-            }}
-          />
-        </div>
 
-        {/* Brand name — hidden when collapsed */}
-        <AnimatePresence initial={false}>
-          {!sidebarCollapsed && (
-            <motion.span key="brand"
-              initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }}
-              exit={{ opacity: 0, width: 0 }}
-              transition={{ duration: 0.15 }}
-              style={{
-                color: "#0F172A", fontWeight: 700, fontSize: 15,
-                whiteSpace: "nowrap", overflow: "hidden",
-                marginLeft: 10, flex: 1,
-              }}
-            >
+        {/* When expanded: logo + name + arrow */}
+        {!sidebarCollapsed && (
+          <>
+            {/* Logo */}
+            <div style={{
+              width: 32, height: 32, borderRadius: "50%",
+              background: "#F97316", flexShrink: 0, overflow: "hidden",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <img src="/logo.png" alt="Orizo Bills"
+                style={{ width: 32, height: 32, objectFit: "contain" }}
+                onError={(e) => {
+                  const el = e.currentTarget as HTMLImageElement;
+                  el.style.display = "none";
+                  if (el.parentElement)
+                    el.parentElement.innerHTML = `<span style="color:#fff;font-weight:800;font-size:14px">O</span>`;
+                }} />
+            </div>
+
+            {/* Brand name */}
+            <span style={{
+              color: "#0F172A", fontWeight: 700, fontSize: 14,
+              whiteSpace: "nowrap", overflow: "hidden",
+              marginLeft: 9, flex: 1,
+            }}>
               Orizo Bills
-            </motion.span>
-          )}
-        </AnimatePresence>
+            </span>
 
-        {/* Collapse / expand arrow — always visible */}
-        <button
-          onClick={toggleSidebarCollapsed}
-          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          style={{
-            width: 28, height: 28,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "none", border: "1px solid #F1F5F9",
-            borderRadius: 7, cursor: "pointer", outline: "none",
-            flexShrink: 0,
-            marginLeft: sidebarCollapsed ? "auto" : 4,
-            transition: "background 0.15s, border-color 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED";
-            (e.currentTarget as HTMLButtonElement).style.borderColor = "#F97316";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "none";
-            (e.currentTarget as HTMLButtonElement).style.borderColor = "#F1F5F9";
-          }}
-        >
-          <motion.div
-            animate={{ rotate: sidebarCollapsed ? 180 : 0 }}
-            transition={{ duration: 0.22 }}
-            style={{ display: "flex", alignItems: "center" }}
-          >
-            <ChevronsLeft size={15} color="#94A3B8" />
-          </motion.div>
-        </button>
+            {/* Collapse arrow — right side */}
+            <button onClick={toggleSidebarCollapsed}
+              title="Collapse sidebar"
+              style={{
+                width: 26, height: 26, flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "none", border: "1px solid #E2E8F0",
+                borderRadius: 6, cursor: "pointer", outline: "none",
+                marginLeft: 6, transition: "background 0.15s, border-color 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#F97316";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "none";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#E2E8F0";
+              }}>
+              <ChevronsLeft size={14} color="#94A3B8" />
+            </button>
+          </>
+        )}
+
+        {/* When collapsed: just the expand arrow, perfectly centered */}
+        {sidebarCollapsed && (
+          <button onClick={toggleSidebarCollapsed}
+            title="Expand sidebar"
+            style={{
+              width: 36, height: 36,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "none", border: "1px solid #E2E8F0",
+              borderRadius: 8, cursor: "pointer", outline: "none",
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "#F97316";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "none";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "#E2E8F0";
+            }}>
+            {/* Arrow points right when collapsed = expand */}
+            <ChevronsLeft size={16} color="#94A3B8"
+              style={{ transform: "rotate(180deg)" }} />
+          </button>
+        )}
       </div>
 
       {/* ── Nav — scrollable, takes all remaining space ─── */}
