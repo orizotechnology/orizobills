@@ -56,12 +56,10 @@ const NAV_ITEMS: NavItem[] = [
     icon: Package,
     to: "/app/products",
     children: [
-      { label: "All Products",        to: "/app/products/all"               },
-      { label: "Categories",          to: "/app/products/categories"        },
-      { label: "Low Stock",           to: "/app/products/low-stock"         },
-      { label: "Product Transfer",    to: "/app/products/transfer"                          },
-      { label: "Products Transferred",to: "/app/products/transfer/sent",     isSubChild: true },
-      { label: "Products Received",   to: "/app/products/transfer/received", isSubChild: true },
+      { label: "All Products",     to: "/app/products/all"        },
+      { label: "Categories",       to: "/app/products/categories" },
+      { label: "Low Stock",        to: "/app/products/low-stock"  },
+      { label: "Product Transfer", to: "/app/products/transfer"   },
     ],
   },
   { label: "Purchase",  icon: ShoppingCart, to: "/app/purchase",
@@ -233,12 +231,13 @@ export function Sidebar() {
         boxShadow: "1px 0 4px rgba(0,0,0,0.04)",
       }}
     >
-      {/* ── Logo ──────────────────────────────────────────── */}
+      {/* ── Logo + collapse arrow ──────────────────────── */}
       <div style={{
-        display: "flex", alignItems: "center", gap: 10,
-        padding: "0 16px", height: 64, flexShrink: 0,
+        display: "flex", alignItems: "center",
+        padding: "0 12px 0 16px", height: 64, flexShrink: 0,
         overflow: "hidden", borderBottom: "1px solid #F8FAFC",
       }}>
+        {/* Logo icon */}
         <div style={{
           width: 36, height: 36, borderRadius: "50%",
           background: "#F97316",
@@ -258,23 +257,65 @@ export function Sidebar() {
             }}
           />
         </div>
+
+        {/* Brand name — hidden when collapsed */}
         <AnimatePresence initial={false}>
           {!sidebarCollapsed && (
             <motion.span key="brand"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
               transition={{ duration: 0.15 }}
-              style={{ color: "#0F172A", fontWeight: 700, fontSize: 15, whiteSpace: "nowrap" }}
+              style={{
+                color: "#0F172A", fontWeight: 700, fontSize: 15,
+                whiteSpace: "nowrap", overflow: "hidden",
+                marginLeft: 10, flex: 1,
+              }}
             >
               Orizo Bills
             </motion.span>
           )}
         </AnimatePresence>
+
+        {/* Collapse / expand arrow — always visible */}
+        <button
+          onClick={toggleSidebarCollapsed}
+          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          style={{
+            width: 28, height: 28,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "none", border: "1px solid #F1F5F9",
+            borderRadius: 7, cursor: "pointer", outline: "none",
+            flexShrink: 0,
+            marginLeft: sidebarCollapsed ? "auto" : 4,
+            transition: "background 0.15s, border-color 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED";
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "#F97316";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "none";
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "#F1F5F9";
+          }}
+        >
+          <motion.div
+            animate={{ rotate: sidebarCollapsed ? 180 : 0 }}
+            transition={{ duration: 0.22 }}
+            style={{ display: "flex", alignItems: "center" }}
+          >
+            <ChevronsLeft size={15} color="#94A3B8" />
+          </motion.div>
+        </button>
       </div>
 
-      {/* ── Nav ───────────────────────────────────────────── */}
+      {/* ── Nav — scrollable, takes all remaining space ─── */}
       <nav style={{
-        flex: 1, overflowY: "auto", overflowX: "hidden",
-        padding: "10px 10px 6px", scrollbarWidth: "none",
+        flex: 1,
+        minHeight: 0,          /* critical: allows flex child to shrink + scroll */
+        overflowY: "auto",
+        overflowX: "hidden",
+        padding: "10px 10px 6px",
+        scrollbarWidth: "none",
       }}>
         {/* No global CSS hover — handled per-item with state */}
 
@@ -345,42 +386,6 @@ export function Sidebar() {
 
       {/* ── Profile drawer ────────────────────────────────── */}
       <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
-
-      {/* ── Collapse button ───────────────────────────────── */}
-      <button
-        onClick={toggleSidebarCollapsed}
-        style={{
-          display: "flex", alignItems: "center", justifyContent: "center",
-          height: 36, width: "100%",
-          background: "transparent", border: "none",
-          borderTop: "1px solid #F1F5F9",
-          cursor: "pointer", flexShrink: 0,
-          transition: "background 0.15s",
-          gap: 6,
-        }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-        aria-label="Toggle sidebar"
-      >
-        <motion.div
-          animate={{ rotate: sidebarCollapsed ? 180 : 0 }}
-          transition={{ duration: 0.22 }}
-          style={{ display: "flex", alignItems: "center" }}
-        >
-          <ChevronsLeft size={15} color="#94A3B8" />
-        </motion.div>
-        <AnimatePresence initial={false}>
-          {!sidebarCollapsed && (
-            <motion.span key="colLabel"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
-              style={{ fontSize: 11, color: "#94A3B8", whiteSpace: "nowrap" }}
-            >
-              Collapse
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </button>
     </motion.div>
   );
 }
