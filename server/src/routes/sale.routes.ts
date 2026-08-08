@@ -195,7 +195,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const invoiceNumber = await getNextSaleNumber();
+      const invoiceNumber = await getNextSaleNumber(req.prisma);
       const { items, paidAmt, discountPct, ...rest } = parse.data;
       const subtotal    = items.reduce((s: number, i: any) => s + i.unitPrice * i.quantity, 0);
       const discountAmt = subtotal * (discountPct / 100);
@@ -224,10 +224,10 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
         // ── Auto-create paymentIn record so POS sales appear in Payment-In page ──
         if (paidAmt > 0) {
-          const payCount = await tx.paymentIn.count();
+          const paymentNumber = await getNextPaymentInNumber(tx);
           await tx.paymentIn.create({
             data: {
-              paymentNumber: `PAY${String(payCount + 1).padStart(4, "0")}`,
+              paymentNumber,
               customerName:  rest.customerName ?? "Walk-in Customer",
               customerId:    rest.customerId   ?? null,
               invoiceId:     s.id,
