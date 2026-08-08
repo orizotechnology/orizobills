@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { successResponse, errorResponse } from "../utils/response.util";
 import { HTTP_STATUS, ERROR_CODES } from "../constants/http.constants";
-import { getNextSaleNumber, getNextReturnNumber, getNextOrderNumber, getNextChallanNumber } from "../services/counter.service";
+import { getNextSaleNumber, getNextReturnNumber, getNextOrderNumber, getNextChallanNumber, getNextPaymentInNumber } from "../services/counter.service";
 
 const saleItemSchema = z.object({
   itemName: z.string().min(1), itemCode: z.string(), productId: z.string().optional(),
@@ -32,7 +32,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
   fastify.get("/next-number", async (_req, reply) => {
     try {
-      const number = await getNextSaleNumber();
+      const number = await getNextSaleNumber(req.prisma);
       return reply.send(successResponse({ number }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
