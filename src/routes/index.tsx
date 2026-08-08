@@ -15,6 +15,9 @@ function PageLoader() {
 const DashboardPage       = lazy(() => import("@/app/dashboard/DashboardPage"));
 const PosPage             = lazy(() => import("@/app/pos/PosPage"));
 const ProductsPage        = lazy(() => import("@/app/products/ProductsPage"));
+const CategoriesPage      = lazy(() => import("@/app/products/CategoriesPage"));
+const LowStockPage        = lazy(() => import("@/app/products/LowStockPage"));
+const ProductTransferPage = lazy(() => import("@/app/products/ProductTransferPage"));
 const SaleInvoicesPage    = lazy(() => import("@/app/sales/invoices/SaleInvoicesPage"));
 const PaymentInPage       = lazy(() => import("@/app/sales/payment-in/PaymentInPage"));
 const SaleOrderPage       = lazy(() => import("@/app/sales/orders/SaleOrderPage"));
@@ -53,7 +56,11 @@ export function AppRoutes() {
         <Route path="/app/pos"              element={<PosPage />} />
 
         {/* Products */}
-        <Route path="/app/products/*"       element={<W><ProductsPage /></W>} />
+        <Route path="/app/products"            element={<Navigate to="/app/products/all" replace />} />
+        <Route path="/app/products/all"        element={<W><ProductsPage /></W>} />
+        <Route path="/app/products/categories" element={<W><CategoriesPage /></W>} />
+        <Route path="/app/products/low-stock"  element={<W><LowStockPage /></W>} />
+        <Route path="/app/products/transfer"   element={<W><ProductTransferPage /></W>} />
 
         {/* Sales */}
         <Route path="/app/sales/invoices"   element={<W><SaleInvoicesPage /></W>} />
