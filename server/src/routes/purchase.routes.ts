@@ -53,7 +53,7 @@ export async function purchaseRoutes(fastify: FastifyInstance) {
 
   fastify.get("/next-number", async (_req, reply) => {
     try {
-      const number = await getNextPurchaseNumber();
+      const number = await getNextPurchaseNumber(req.prisma);
       return reply.send(successResponse({ number }));
     } catch (err) {
       return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(

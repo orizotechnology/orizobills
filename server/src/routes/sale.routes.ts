@@ -332,7 +332,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const challanNumber = await getNextChallanNumber();
+      const challanNumber = await getNextChallanNumber(req.prisma);
       const challan = await req.prisma.deliveryChallan.create({
         data: { challanNumber, customerId: parse.data.customerId ?? null, customerName: parse.data.customerName, challanDate: new Date(parse.data.challanDate), vehicleNo: parse.data.vehicleNo ?? null, notes: parse.data.notes ?? null, items: { create: parse.data.items } },
       });
