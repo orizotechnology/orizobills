@@ -222,13 +222,12 @@ export function Sidebar() {
       transition={{ duration: 0.22, ease: "easeInOut" }}
       style={{
         background: "#FFFFFF",
-        height: "100vh",
+        height: "100%",          /* fill flex parent, not full viewport */
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
-        /* overflow-x hidden to clip text, overflow-y visible so profile isn't cut */
         overflowX: "hidden",
-        overflowY: "visible",
+        overflowY: "hidden",
         borderRight: "1px solid #F1F5F9",
         boxShadow: "1px 0 4px rgba(0,0,0,0.04)",
       }}
