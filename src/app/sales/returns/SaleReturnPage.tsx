@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, AlertTriangle, RotateCcw, Plus, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { http } from "@/lib/axios";
 
 interface SaleReturn {
@@ -22,8 +23,9 @@ function fmtAmt(n: number) {
 }
 
 export default function SaleReturnPage() {
-  const qc    = useQueryClient();
-  const today = toStr(new Date());
+  const qc      = useQueryClient();
+  const navigate = useNavigate();
+  const today   = toStr(new Date());
 
   const [page,     setPage]     = useState(1);
   const [search,   setSearch]   = useState("");
@@ -82,7 +84,7 @@ export default function SaleReturnPage() {
             <RefreshCw size={15} color="#64748B"
               style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
           </button>
-          <button style={primaryBtn}><Plus size={15} /> New Return</button>
+          <button onClick={() => navigate("/app/sales/returns/new")} style={primaryBtn}><Plus size={15} /> New Return</button>
         </div>
       </div>
 

@@ -26,6 +26,7 @@ const PaymentInPage       = lazy(() => import("@/app/sales/payment-in/PaymentInP
 const SaleOrderPage       = lazy(() => import("@/app/sales/orders/SaleOrderPage"));
 const DeliveryChallanPage = lazy(() => import("@/app/sales/challan/DeliveryChallanPage"));
 const SaleReturnPage      = lazy(() => import("@/app/sales/returns/SaleReturnPage"));
+const ReturnEntryPage     = lazy(() => import("@/app/sales/returns/ReturnEntryPage"));
 const AllPurchasesPage    = lazy(() => import("@/app/purchase/all/AllPurchasesPage"));
 const PurchaseReturnPage  = lazy(() => import("@/app/purchase/return/PurchaseReturnPage"));
 const PurchaseEntryPage   = lazy(() => import("@/app/purchase/entry/PurchaseEntryPage"));
@@ -72,7 +73,8 @@ export function AppRoutes() {
         <Route path="/app/sales/payment-in" element={<W><PaymentInPage /></W>} />
         <Route path="/app/sales/orders"     element={<W><SaleOrderPage /></W>} />
         <Route path="/app/sales/challan"    element={<W><DeliveryChallanPage /></W>} />
-        <Route path="/app/sales/returns"    element={<W><SaleReturnPage /></W>} />
+        <Route path="/app/sales/returns"     element={<W><SaleReturnPage /></W>} />
+        <Route path="/app/sales/returns/new" element={<ReturnEntryPage />} />
         <Route path="/app/sales"            element={<Navigate to="/app/sales/invoices" replace />} />
 
         {/* Purchase */}
