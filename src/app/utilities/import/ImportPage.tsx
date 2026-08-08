@@ -350,7 +350,7 @@ export default function ImportPage() {
       const isTooLarge = lower.includes("413") || lower.includes("request entity too large") || lower.includes("body too large");
       const isBadReq = lower === "bad request" || lower.includes("rows array is required");
       setErrMsg(
-        isTooLarge ? `File too large — try splitting into batches of 500 rows or fewer.` :
+        isTooLarge ? `File too large — try splitting into batches of 2000 rows or fewer.` :
         isBadReq   ? `Import failed (HTTP 400). The file may be empty or the wrong format for "${moduleInfo.label}".\n\nDownload the template below to see the expected column format.` :
         isNet      ? `Network error — could not reach the backend.\n\nMake sure the server is running (check the status pill above).` :
         msg

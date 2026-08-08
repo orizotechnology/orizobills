@@ -22,7 +22,7 @@ import {
 //  8. All errors per-row captured — one bad row doesn't abort the batch
 // =============================================================
 
-const MAX_ROWS = 5000;
+const MAX_ROWS = 20000;
 
 function parseTaxRate(raw: unknown): number {
   if (typeof raw === "number") return isNaN(raw) ? 0 : raw;
