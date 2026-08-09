@@ -93,18 +93,6 @@ export default function PosPage() {
     }
   }, [printData]);
 
-  // ── Auto-set paidAmt to total when Cash/Card mode & total changes
-  useEffect(() => {
-    if (!bill) return;
-    if ((bill.paymentMode === "Cash" || bill.paymentMode === "Card") && totalAmount > 0) {
-      // Only auto-fill if still at default empty/zero
-      const cur = parseFloat(bill.paidAmount) || 0;
-      if (cur === 0) {
-        updateBill(bill.id, { paidAmount: String(Math.round(totalAmount)) });
-      }
-    }
-  }, [totalAmount, bill?.paymentMode]);
-
   // ── Save sale ───────────────────────────────────────────────
   const handleSave = useCallback(async (andPrint = false) => {
     if (!bill) return;

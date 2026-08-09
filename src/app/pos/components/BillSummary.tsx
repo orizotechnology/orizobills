@@ -168,17 +168,13 @@ export function BillSummary({
   // Split mode: track cash portion separately
   const [splitCash, setSplitCash] = useState("");
 
-  // When switching modes reset split cash
+  // When switching modes — reset everything to blank so user enters manually
   useEffect(() => {
     setSplitCash("");
+    // Reset paid amount to blank on every mode switch — no auto-fill
+    onPaidAmountChange("");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentMode]);
-
-  // When mode switches to UPI, lock paid amount to total
-  useEffect(() => {
-    if (paymentMode === "UPI") {
-      onPaidAmountChange(String(totalAmount));
-    }
-  }, [paymentMode, totalAmount]);
 
   const paid       = parseFloat(paidAmount) || 0;
   const change     = Math.max(0, paid - totalAmount);
@@ -359,12 +355,18 @@ export function BillSummary({
                 step="1"
                 min={0}
                 max={totalAmount}
-                placeholder="Enter cash portion"
+                placeholder="Enter cash portion…"
+                autoFocus
                 onChange={(e) => {
                   const v = e.target.value;
                   setSplitCash(v);
-                  // Keep paidAmount in sync with total (split = full payment)
-                  onPaidAmountChange(String(totalAmount));
+                  const cashAmt = parseFloat(v) || 0;
+                  // paidAmount = total only when cash entered (so save knows it's fully paid)
+                  if (cashAmt > 0) {
+                    onPaidAmountChange(String(totalAmount));
+                  } else {
+                    onPaidAmountChange("");
+                  }
                 }}
                 style={amtInput}
                 onFocus={(e) => { e.currentTarget.style.borderColor = "#22C55E"; }}
@@ -373,22 +375,24 @@ export function BillSummary({
             </div>
 
             {/* UPI portion — auto-calculated */}
-            <div>
-              <div style={{ ...fieldLabel, color: "#F97316" }}>
-                <Layers size={12} /> UPI Amount (auto)
+            {splitCash !== "" && (
+              <div>
+                <div style={{ ...fieldLabel, color: "#F97316" }}>
+                  <Layers size={12} /> UPI Amount (auto)
+                </div>
+                <div style={{
+                  border: "1.5px solid #FED7AA", borderRadius: 8,
+                  padding: "8px 12px", background: "#FFF7ED",
+                  fontSize: 15, fontWeight: 800, color: "#F97316",
+                  textAlign: "right",
+                }}>
+                  {fmt(splitUpiAmt)}
+                </div>
               </div>
-              <div style={{
-                border: "1.5px solid #FED7AA", borderRadius: 8,
-                padding: "8px 12px", background: "#FFF7ED",
-                fontSize: 15, fontWeight: 800, color: "#F97316",
-                textAlign: "right",
-              }}>
-                {fmt(splitUpiAmt)}
-              </div>
-            </div>
+            )}
 
             {/* QR for UPI portion — only show when cash < total */}
-            {splitUpiAmt > 0 && (
+            {splitCash !== "" && splitUpiAmt > 0 && (
               <UpiQrPanel
                 upiId={upiId}
                 amount={splitUpiAmt}
@@ -396,7 +400,7 @@ export function BillSummary({
               />
             )}
 
-            {splitUpiAmt <= 0 && splitCashAmt > 0 && (
+            {splitCash !== "" && splitUpiAmt <= 0 && splitCashAmt > 0 && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 6,
                 background: "rgba(34,197,94,0.07)",
