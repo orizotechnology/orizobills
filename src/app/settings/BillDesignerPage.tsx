@@ -884,3 +884,89 @@ function TplWholesale({ c, fs, config, profile }: { c: string; fs: number; confi
     </div>
   );
 }
+
+// ── 09 Services: amber, big invoice number callout, timeline ──
+function TplServices({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  const bnFs = config.businessNameSize === "large" ? fs + 6 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
+  return (
+    <div style={{ background: "#FFFBEB", fontFamily: config.fontFamily, minHeight: 560 }}>
+      {/* Header */}
+      <div style={{ background: c, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {config.showLogo && (
+            <div style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff",
+              display: "flex", alignItems: "center", justifyContent: "center", color: c, fontWeight: 900, fontSize: 20 }}>
+              {(profile.storeName || "S").charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: bnFs }}>{profile.storeName || "Pro Services"}</div>
+            <div style={{ color: "#FDE68A", fontSize: fs - 2 }}>Professional Services Provider</div>
+          </div>
+        </div>
+        {/* Big invoice number callout */}
+        <div style={{ background: "#fff", borderRadius: 8, padding: "6px 14px", textAlign: "center", minWidth: 110 }}>
+          <div style={{ fontSize: fs - 2, color: "#92400E", fontWeight: 700, letterSpacing: 1 }}>INVOICE</div>
+          <div style={{ fontSize: fs + 6, fontWeight: 900, color: c, lineHeight: 1 }}>0123</div>
+          <div style={{ fontSize: fs - 2, color: "#92400E" }}>24 May 2024</div>
+        </div>
+      </div>
+      <div style={{ padding: "12px 18px" }}>
+        {/* Bill to + project info */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 12, fontSize: fs - 1 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, color: c, marginBottom: 3 }}>BILLED TO</div>
+            <div style={{ fontWeight: 700, fontSize: fs + 1 }}>Rajesh Kumar</div>
+            <div style={{ color: "#6B7280" }}>Startup Hub, Bengaluru</div>
+            <div style={{ color: "#6B7280" }}>+91 98765 12345</div>
+          </div>
+          <div style={{ flex: 1, background: "#fff", border: `2px solid ${c}`, borderRadius: 8, padding: "8px 10px" }}>
+            <div style={{ fontWeight: 700, color: c, marginBottom: 3 }}>PROJECT</div>
+            <div style={{ fontWeight: 600 }}>Website Redesign</div>
+            <div style={{ color: "#6B7280" }}>Period: May 1–31, 2024</div>
+            <div style={{ color: "#6B7280" }}>Due: <span style={{ color: c, fontWeight: 600 }}>31 May 2024</span></div>
+          </div>
+        </div>
+        {/* Timeline-style services */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, color: c, fontSize: fs - 1, marginBottom: 6, borderBottom: `2px solid ${c}`, paddingBottom: 4 }}>SERVICES RENDERED</div>
+          {[
+            { week: "Week 1", desc: "Discovery & Wireframing", hrs: 8,  rate: 2500 },
+            { week: "Week 2", desc: "UI/UX Design",            hrs: 12, rate: 2500 },
+            { week: "Week 3", desc: "Development",             hrs: 20, rate: 2500 },
+          ].map((s, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, paddingLeft: 10,
+              borderLeft: `3px solid ${i === 2 ? c : `${c}40`}`, fontSize: fs - 1 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600 }}>{s.desc}</div>
+                <div style={{ color: "#6B7280", fontSize: fs - 2 }}>{s.week} · {s.hrs} hrs @ ₹{s.rate}/hr</div>
+              </div>
+              <div style={{ fontWeight: 700, color: "#1F2937" }}>₹{s.hrs * s.rate}</div>
+            </div>
+          ))}
+        </div>
+        {/* Summary */}
+        <div style={{ background: "#fff", border: `1px solid ${c}40`, borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}>
+          {[["Subtotal","₹1,00,000"],["Tax (18%)","₹18,000"]].map(([k,v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, marginBottom: 3 }}>
+              <span style={{ color: "#6B7280" }}>{k}</span><span>{v}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: fs + 2,
+            color: c, borderTop: `2px solid ${c}`, paddingTop: 6, marginTop: 4 }}>
+            <span>TOTAL DUE</span><span>₹1,18,000</span>
+          </div>
+        </div>
+        {config.showBankDetails && (
+          <div style={{ fontSize: fs - 1, color: "#6B7280", marginBottom: 6 }}>
+            <strong>Pay via: </strong>Bank Transfer · A/C: 1234567890 · IFSC: ICIC0001234
+          </div>
+        )}
+        {config.showTerms && <div style={{ fontSize: fs - 1, color: "#6B7280", marginBottom: 4 }}>
+          <strong style={{ color: c }}>Terms: </strong>{config.termsText.split("\n")[0]}
+        </div>}
+        <div style={{ fontSize: fs - 1, color: c, fontStyle: "italic", fontWeight: 600 }}>{config.footerText}</div>
+      </div>
+    </div>
+  );
+}
