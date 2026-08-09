@@ -1111,7 +1111,17 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
         </div>
       )}
       {hv === "boxed" && (
-        <div style={{ border: `2px solid ${c}`, padding: "4px 8px", marginBottom: 6, textAlign: "center" }}>
+        <div style={{ border: `2px solid ${c}`, padding: "6px 8px", marginBottom: 6, textAlign: "center" }}>
+          {config.showLogo && (
+            <div style={{
+              width: 32, height: 32, borderRadius: 6, background: c,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontWeight: 900, fontSize: fs + 6,
+              margin: "0 auto 4px",
+            }}>
+              {(profile.storeName || "S").charAt(0).toUpperCase()}
+            </div>
+          )}
           <div style={{ fontWeight: 900, fontSize: fs + 3, color: c }}>{profile.storeName || "SHOP"}</div>
           <div style={{ fontSize: fs - 2 }}>{profile.phone} · {profile.address}</div>
         </div>
