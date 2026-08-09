@@ -241,7 +241,7 @@ export async function purchaseRoutes(fastify: FastifyInstance) {
         where:   { id: req.params.id },
         include: {
           items: true,
-          returns: { include: { items: true } },
+          returns: true,
         },
       });
 
