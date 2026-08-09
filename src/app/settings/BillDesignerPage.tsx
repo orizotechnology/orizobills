@@ -1213,3 +1213,191 @@ function TplThRestaurant({ c, fs, config, profile }: { c: string; fs: number; co
     </ThermalBase>
   );
 }
+
+// ── Thermal: th-pharmacy ──────────────────────────────────────
+function TplThPharmacy({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  return (
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed">
+      <div style={{ fontSize: fs - 2, marginBottom: 4, color: "#64748B", textAlign: "center" }}>
+        Lic. No: MH-12345 | DL: AB-678
+      </div>
+      <div style={{ fontSize: fs - 1, borderBottom: `1px dashed ${c}`, paddingBottom: 4, marginBottom: 4 }}>
+        <div>Patient: <strong>Rajesh Kumar</strong></div>
+        <div style={{ color: "#64748B" }}>Rx: Dr. Sharma | 24 May 2024</div>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
+        <tbody>
+          {[{name:"Paracetamol 500mg",qty:10,rate:2.5},{name:"Azithromycin 500mg",qty:5,rate:18},{name:"Vitamin C",qty:1,rate:85}].map((it,i) => (
+            <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
+              <td style={{ padding: "2px 3px" }}><div>{it.name}</div><div style={{ fontSize: fs - 3, color: "#94A3B8" }}>Qty: {it.qty} @ ₹{it.rate}</div></td>
+              <td style={{ padding: "2px 3px", textAlign: "right", fontWeight: 700 }}>₹{(it.qty * it.rate).toFixed(0)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs, color: c }}>TOTAL: ₹195</div>
+      <div style={{ fontSize: fs - 2, color: "#64748B", marginTop: 4, borderTop: "1px dashed #E2E8F0", paddingTop: 3 }}>Store medicines in cool dry place</div>
+    </ThermalBase>
+  );
+}
+
+// ── Thermal: th-fashion ───────────────────────────────────────
+function TplThFashion({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  return (
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
+      <div style={{ textAlign: "center", marginBottom: 6 }}>
+        <div style={{ fontSize: fs - 1, color: c, letterSpacing: 3 }}>— RECEIPT —</div>
+        <div style={{ fontSize: fs - 2, color: "#64748B" }}>Priya Sharma | Member #PM-456</div>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
+        <tbody>
+          {[{name:"Silk Kurti (M)",qty:1,rate:1200},{name:"Cotton Scarf",qty:2,rate:350},{name:"Jute Bag",qty:1,rate:450}].map((it,i) => (
+            <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
+              <td style={{ padding: "2px 3px" }}>{it.name}</td>
+              <td style={{ padding: "2px 3px", textAlign: "center" }}>{it.qty}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ fontSize: fs - 1 }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>MRP</span><span>₹2,350</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Member 10% off</span><span style={{ color: c }}>- ₹235</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>YOU PAY</span><span>₹2,115</span></div>
+      </div>
+      <div style={{ textAlign: "center", fontSize: fs - 2, color: "#94A3B8", marginTop: 4, fontStyle: "italic" }}>Exchange within 7 days with receipt</div>
+    </ThermalBase>
+  );
+}
+
+// ── Thermal: th-electronics ───────────────────────────────────
+function TplThElectronics({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  return (
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="leftright">
+      <div style={{ fontSize: fs - 1, marginBottom: 4, display: "flex", justifyContent: "space-between", borderBottom: `1px solid ${c}`, paddingBottom: 3 }}>
+        <span>IMEI: 356-XXX-XXX</span><span>Warranty: 1yr</span>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
+        <tbody>
+          {[{name:"Smartphone X12",qty:1,rate:18999},{name:"Screen Guard",qty:2,rate:149},{name:"Cover Case",qty:1,rate:299}].map((it,i) => (
+            <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
+              <td style={{ padding: "2px 3px" }}>{it.name}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ fontSize: fs - 1, marginBottom: 4 }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Sub</span><span>₹19,596</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>GST</span><span>₹1,727</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>₹21,323</span></div>
+      </div>
+      <div style={{ fontSize: fs - 2, color: "#64748B" }}>Serial: SN-TECH-20240524</div>
+    </ThermalBase>
+  );
+}
+
+// ── Thermal: th-cafe ──────────────────────────────────────────
+function TplThCafe({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  return (
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
+      <div style={{ textAlign: "center", fontSize: fs - 1, marginBottom: 4, borderBottom: `1px dashed ${c}`, paddingBottom: 3 }}>
+        <div style={{ fontWeight: 700, color: c }}>☕ ORDER RECEIPT</div>
+        <div style={{ fontSize: fs - 2, color: "#64748B" }}>Order #456 | Takeaway | 10:30 AM</div>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
+        <tbody>
+          {[{name:"Cappuccino",qty:2,rate:120},{name:"Croissant",qty:1,rate:80},{name:"Iced Latte",qty:1,rate:140}].map((it,i) => (
+            <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
+              <td style={{ padding: "2px 3px" }}>{it.name}</td>
+              <td style={{ padding: "2px 3px", textAlign: "center", color: "#64748B" }}>x{it.qty}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs + 1, color: c, marginBottom: 2 }}>₹460</div>
+      <div style={{ textAlign: "center", fontSize: fs - 2, color: "#64748B" }}>Paid: UPI | Txn: 7890XY</div>
+      <div style={{ textAlign: "center", fontSize: fs - 2, marginTop: 4, color: c, fontStyle: "italic" }}>Enjoy your coffee! ☕</div>
+    </ThermalBase>
+  );
+}
+
+// ── Thermal: th-hardware ──────────────────────────────────────
+function TplThHardware({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  return (
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="leftright">
+      <div style={{ fontSize: fs - 1, marginBottom: 4, borderBottom: `1px dashed ${c}`, paddingBottom: 3 }}>
+        <div>Cust: Rajesh Kumar</div>
+        <div style={{ color: "#64748B", fontSize: fs - 2 }}>Vehicle: MH-12-AB-3456 | Job: #789</div>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
+        <tbody>
+          {[{name:"M10 Bolt ×50",qty:1,rate:120},{name:"PVC Pipe 2m",qty:3,rate:85},{name:"Elbow Joint",qty:6,rate:18}].map((it,i) => (
+            <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
+              <td style={{ padding: "2px 3px" }}>{it.name}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ fontSize: fs - 1, marginBottom: 4 }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Parts</span><span>₹483</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Labour</span><span>₹200</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>₹683</span></div>
+      </div>
+      <div style={{ fontSize: fs - 2, color: "#64748B" }}>Warranty: Parts 30 days</div>
+    </ThermalBase>
+  );
+}
+
+// ── Thermal: th-services ──────────────────────────────────────
+function TplThServices({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  return (
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed">
+      <div style={{ textAlign: "center", fontSize: fs - 1, marginBottom: 4 }}>
+        <div style={{ fontWeight: 700, color: c }}>SERVICE RECEIPT</div>
+        <div style={{ fontSize: fs - 2, color: "#64748B" }}>INV-0123 | 24 May 2024</div>
+      </div>
+      <div style={{ fontSize: fs - 1, marginBottom: 4, borderBottom: `1px dashed ${c}`, paddingBottom: 3 }}>
+        <div>Client: <strong>Rajesh Kumar</strong></div>
+        <div style={{ color: "#64748B" }}>Service: AC Repair + Cleaning</div>
+      </div>
+      {[{desc:"Repair Labour",amt:800},{desc:"Refrigerant Gas",amt:450},{desc:"Cleaning Charge",amt:250}].map((s,i) => (
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, paddingLeft: 8,
+          borderLeft: `2px solid ${i < 2 ? `${c}40` : c}`, marginBottom: 4 }}>
+          <span>{s.desc}</span><span>₹{s.amt}</span>
+        </div>
+      ))}
+      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs, color: c, borderTop: `1px solid ${c}`, paddingTop: 3, marginTop: 2 }}>TOTAL: ₹1,500</div>
+      <div style={{ textAlign: "center", fontSize: fs - 2, color: "#64748B", marginTop: 4 }}>Next service due: 24 Nov 2024</div>
+    </ThermalBase>
+  );
+}
+
+// ── Thermal: th-minimal ───────────────────────────────────────
+function TplThMinimal({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  return (
+    <div style={{ width: 260, background: "#fff", fontFamily: config.fontFamily, fontSize: fs,
+      color: "#000", padding: "14px 16px", minHeight: 280 }}>
+      <div style={{ fontWeight: 900, fontSize: fs + 2 }}>{profile.storeName || "STORE"}</div>
+      <div style={{ fontSize: fs - 2, color: "#555", marginBottom: 6 }}>{profile.phone} · INV-0123 · 24 May 2024</div>
+      <div style={{ borderTop: "1px solid #000", marginBottom: 6 }} />
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 6 }}>
+        <tbody>
+          {SAMPLE_ITEMS.map((it, i) => (
+            <tr key={i}>
+              <td style={{ padding: "2px 0" }}>{it.name}</td>
+              <td style={{ textAlign: "right" }}>{it.qty}×{it.rate}</td>
+              <td style={{ textAlign: "right", fontWeight: 700, paddingLeft: 6 }}>₹{it.qty * it.rate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ borderTop: "1px solid #000", paddingTop: 4, display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: fs + 1 }}>
+        <span>TOTAL</span><span>₹2,891</span>
+      </div>
+      <div style={{ marginTop: 8, fontSize: fs - 2, color: "#555", textAlign: "center" }}>{config.footerText}</div>
+    </div>
+  );
+}
