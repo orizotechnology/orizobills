@@ -2,59 +2,53 @@
    POS PRINT STYLESHEET
    When window.print() fires from PosPage:
    - Hides everything on screen
-   - Shows only .pos-receipt
-   - Resets page margins so the receipt is positioned correctly
+   - Shows only #pos-print-area
    ============================================================= */
 
 @media screen {
-  /* Receipt container is invisible on screen */
+  /* Hide the print area completely on screen */
   #pos-print-area {
-    position: absolute;
-    left: -9999px;
-    top: 0;
-    width: 0;
-    height: 0;
-    overflow: hidden;
-    pointer-events: none;
+    display: none !important;
   }
 }
 
 @media print {
-  /* Hide absolutely everything */
-  body > * {
+  /* Hide every child of #root */
+  #root > * {
     display: none !important;
   }
 
   /* Show only the print area */
-  #pos-print-area {
-    display: block !important;
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
-    width: auto !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  #pos-print-area .pos-receipt {
+  #root > #pos-print-area {
     display: block !important;
   }
 
-  /* Reset page margins — receipt handles its own padding */
+  /* Also handle if it sits outside root */
+  body > #pos-print-area {
+    display: block !important;
+  }
+
+  /* Reset page margins */
   @page {
-    margin: 0;
+    margin: 4mm;
     size: auto;
   }
 
-  /* Prevent page breaks inside a receipt */
+  /* Prevent page breaks inside a single receipt */
   .pos-receipt {
     page-break-inside: avoid;
-    break-inside: avoid;
+    break-inside:      avoid;
   }
 
-  /* If multiple copies, each gets its own page */
+  /* Each copy on its own page */
   .pos-receipt + .pos-receipt {
     page-break-before: always;
-    break-before: page;
+    break-before:      page;
+  }
+
+  /* Make sure background colors print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust:         exact !important;
   }
 }

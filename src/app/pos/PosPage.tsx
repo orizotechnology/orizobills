@@ -34,6 +34,8 @@ export default function PosPage() {
   const [feedback,      setFeedback]      = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [showCustDlg,   setShowCustDlg]   = useState(false);
   const [printing,      setPrinting]      = useState(false);
+  // Bill overview shown after save — stays open until user closes
+  const [showBillOverview, setShowBillOverview] = useState(false);
   // Tracks the last saved invoice snapshot for printing
   const [printData,     setPrintData]     = useState<{
     invoiceNo: string; customerName: string; invoiceDate: Date;
@@ -41,6 +43,8 @@ export default function PosPage() {
     discTotal: number; taxableAmt: number; cgst: number; sgst: number;
     totalAmount: number; paidAmount: number; paymentMode: string;
   } | null>(null);
+  // Used to trigger window.print() after printData is committed to DOM
+  const pendingPrintRef = useRef(false);
   // Local string for discount input — lets user clear the field while typing
   const [discountStr,   setDiscountStr]   = useState("");
 
@@ -73,6 +77,18 @@ export default function PosPage() {
     if (!bill) return;
     setDiscountStr(bill.discount === 0 ? "" : String(bill.discount));
   }, [bill?.id]);
+
+  // ── Fire window.print() AFTER printData is committed to DOM ─
+  useEffect(() => {
+    if (pendingPrintRef.current && printData) {
+      pendingPrintRef.current = false;
+      // Small timeout ensures browser has painted the receipt before print dialog
+      setTimeout(() => {
+        window.print();
+        setPrinting(false);
+      }, 80);
+    }
+  }, [printData]);
 
   // ── Auto-set paidAmt to total when Cash/Card mode & total changes
   useEffect(() => {
@@ -115,8 +131,7 @@ export default function PosPage() {
       });
       if (res.success) {
         const savedInvoiceNo = res.data?.invoiceNumber ?? bill.invoiceNo;
-        // Capture print snapshot with the real invoice number
-        setPrintData({
+        const snapshot = {
           invoiceNo:    savedInvoiceNo,
           customerName: bill.customer.trim() || "Walk-in Customer",
           invoiceDate:  new Date(),
@@ -124,14 +139,19 @@ export default function PosPage() {
           mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst, totalAmount,
           paidAmount:   paid,
           paymentMode:  bill.paymentMode,
-        });
-        setFeedback({ type: "success", msg: `Invoice ${savedInvoiceNo} saved!` });
+        };
+        setPrintData(snapshot);
         qc.invalidateQueries({ queryKey: ["sales"] });
         qc.invalidateQueries({ queryKey: ["inventory"] });
         if (andPrint) {
-          setTimeout(() => { triggerPrint(); }, 400);
+          // Set pending flag BEFORE state update so useEffect catches it
+          pendingPrintRef.current = true;
+          setPrinting(true);
+          // resetAfterSave happens when user closes the overview
         }
-        setTimeout(() => { resetAfterSave(); setFeedback(null); }, 1400);
+        // Show the bill overview modal — user decides to print or close
+        setShowBillOverview(true);
+        resetAfterSave();
       } else {
         setFeedback({ type: "error", msg: "Failed to save sale." });
         setTimeout(() => setFeedback(null), 3000);
@@ -140,15 +160,17 @@ export default function PosPage() {
       setFeedback({ type: "error", msg: err instanceof Error ? err.message : "Failed to save" });
       setTimeout(() => setFeedback(null), 3000);
     } finally { setSaving(false); }
-  }, [bill, addBill, qc, totalAmount, mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst]);
+  }, [bill, qc, totalAmount, mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst]);
 
   // ── Print ───────────────────────────────────────────────────
   const triggerPrint = () => {
-    // If no saved print data yet (print without save), capture current bill snapshot
-    if (!printData && bill && bill.rows.length > 0) {
+    // Build snapshot from current bill if no saved print data exists
+    const dataToUse = printData ?? (() => {
+      if (!bill || bill.rows.length === 0) return null;
       const validRows = bill.rows.filter((r) => r.product.trim() && r.qty > 0);
+      if (!validRows.length) return null;
       const paid = parseFloat(bill.paidAmount) || totalAmount;
-      setPrintData({
+      return {
         invoiceNo:    bill.invoiceNo,
         customerName: bill.customer.trim() || "Walk-in Customer",
         invoiceDate:  new Date(),
@@ -156,13 +178,19 @@ export default function PosPage() {
         mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst, totalAmount,
         paidAmount:   paid,
         paymentMode:  bill.paymentMode,
-      });
-    }
+      };
+    })();
+    if (!dataToUse) return;
     setPrinting(true);
-    setTimeout(() => {
-      window.print();
-      setPrinting(false);
-    }, 150);
+    pendingPrintRef.current = true;
+    // If printData already has the right value, useEffect won't fire again —
+    // so force-trigger print directly in that case
+    if (printData === dataToUse) {
+      pendingPrintRef.current = false;
+      setTimeout(() => { window.print(); setPrinting(false); }, 80);
+    } else {
+      setPrintData(dataToUse); // useEffect will fire window.print() after render
+    }
   };
 
   // ── Add empty row ───────────────────────────────────────────
@@ -431,9 +459,29 @@ export default function PosPage() {
         )}
       </AnimatePresence>
 
+      {/* ── Bill Overview Modal — shown after save ──────────── */}
+      <AnimatePresence>
+        {showBillOverview && printData && (
+          <BillOverviewModal
+            data={printData}
+            onPrint={() => {
+              pendingPrintRef.current = true;
+              setPrinting(true);
+              // printData already set — trigger directly
+              pendingPrintRef.current = false;
+              setTimeout(() => { window.print(); setPrinting(false); }, 80);
+            }}
+            onClose={() => {
+              setShowBillOverview(false);
+              setPrintData(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ── Hidden print receipt area — visible only on print ── */}
       <div id="pos-print-area">
-        {printData && Array.from({ length: printSettings.copies }).map((_, i) => (
+        {printData && Array.from({ length: Math.max(1, printSettings.copies) }).map((_, i) => (
           <PosPrintReceipt
             key={i}
             invoiceNo={printData.invoiceNo}
@@ -560,6 +608,170 @@ function AddCustomerDialog({
     </motion.div>
   );
 }
+
+// ── BillOverviewModal — shown after save ──────────────────────
+
+interface OverviewData {
+  invoiceNo: string; customerName: string; invoiceDate: Date;
+  rows: ProductRow[]; mrpTotal: number; subTotal: number;
+  discTotal: number; taxableAmt: number; cgst: number; sgst: number;
+  totalAmount: number; paidAmount: number; paymentMode: string;
+}
+
+function BillOverviewModal({
+  data, onPrint, onClose,
+}: { data: OverviewData; onPrint: () => void; onClose: () => void }) {
+  const f = (n: number) => "₹" + n.toFixed(2).replace(/\.00$/, "");
+  const change = Math.max(0, data.paidAmount - data.totalAmount);
+  const dateStr = data.invoiceDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const timeStr = data.invoiceDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(15,23,42,0.6)",
+        backdropFilter: "blur(6px)", display: "flex", alignItems: "center",
+        justifyContent: "center", padding: 24 }}>
+      <motion.div
+        initial={{ scale: 0.94, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.94, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 340, damping: 28 }}
+        style={{ background: "#fff", borderRadius: 18, width: "100%", maxWidth: 560,
+          maxHeight: "90vh", display: "flex", flexDirection: "column",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+
+        {/* ── Header ── */}
+        <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid #F1F5F9",
+          display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div>
+            {/* Success badge */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#DCFCE7",
+                display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CheckCircle2 size={16} color="#16A34A" />
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#16A34A" }}>Bill Saved Successfully</span>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#0F172A" }}>{data.invoiceNo}</div>
+            <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+              {dateStr} · {timeStr} · {data.paymentMode}
+              {data.customerName !== "Walk-in Customer" && (
+                <span> · <strong style={{ color: "#475569" }}>{data.customerName}</strong></span>
+              )}
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ width: 30, height: 30, border: "1px solid #E2E8F0", borderRadius: 8,
+              background: "#fff", cursor: "pointer", display: "flex", alignItems: "center",
+              justifyContent: "center", flexShrink: 0, outline: "none" }}>
+            <X size={14} color="#94A3B8" />
+          </button>
+        </div>
+
+        {/* ── Items list ── */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 22px" }}>
+          {/* Table header */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 56px 70px 80px",
+            padding: "10px 0 6px", borderBottom: "1px solid #F1F5F9",
+            fontSize: 11, fontWeight: 700, color: "#94A3B8",
+            textTransform: "uppercase", letterSpacing: "0.04em", gap: 8 }}>
+            <span>Item</span>
+            <span style={{ textAlign: "right" }}>Qty</span>
+            <span style={{ textAlign: "right" }}>Rate</span>
+            <span style={{ textAlign: "right" }}>Amount</span>
+          </div>
+
+          {data.rows.map((r, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 56px 70px 80px",
+              padding: "9px 0", borderBottom: "1px solid #F8FAFC",
+              alignItems: "center", gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "#1E293B" }}>{r.product}</div>
+                <div style={{ fontSize: 11, color: "#94A3B8" }}>
+                  {r.code}
+                  {r.discPct > 0 && <span style={{ color: "#EF4444", marginLeft: 6 }}>-{r.discPct}% off</span>}
+                  {r.taxPct > 0  && <span style={{ color: "#64748B", marginLeft: 6 }}>GST {r.taxPct}%</span>}
+                </div>
+              </div>
+              <div style={{ textAlign: "right", fontSize: 13, color: "#475569" }}>{r.qty}</div>
+              <div style={{ textAlign: "right", fontSize: 13, color: "#475569" }}>₹{r.price.toFixed(0)}</div>
+              <div style={{ textAlign: "right", fontSize: 14, fontWeight: 700, color: "#1E293B" }}>
+                {f(r.total)}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Totals summary ── */}
+        <div style={{ padding: "12px 22px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {data.mrpTotal !== data.subTotal && (
+              <div style={totRow}>
+                <span style={{ color: "#64748B" }}>MRP Total</span>
+                <span>{f(data.mrpTotal)}</span>
+              </div>
+            )}
+            <div style={totRow}>
+              <span style={{ color: "#64748B" }}>Subtotal</span>
+              <span>{f(data.subTotal)}</span>
+            </div>
+            {data.discTotal > 0 && (
+              <div style={totRow}>
+                <span style={{ color: "#64748B" }}>Discount</span>
+                <span style={{ color: "#EF4444" }}>- {f(data.discTotal)}</span>
+              </div>
+            )}
+            {(data.cgst > 0 || data.sgst > 0) && (
+              <>
+                <div style={totRow}>
+                  <span style={{ color: "#64748B" }}>CGST</span><span>{f(data.cgst)}</span>
+                </div>
+                <div style={totRow}>
+                  <span style={{ color: "#64748B" }}>SGST</span><span>{f(data.sgst)}</span>
+                </div>
+              </>
+            )}
+            {/* Big total row */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+              background: "#F97316", color: "#fff", borderRadius: 10,
+              padding: "10px 14px", marginTop: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>TOTAL</span>
+              <span style={{ fontSize: 20, fontWeight: 900 }}>{f(data.totalAmount)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", ...totRow, marginTop: 4 }}>
+              <span style={{ color: "#64748B" }}>Paid ({data.paymentMode})</span>
+              <span style={{ fontWeight: 700, color: "#16A34A" }}>{f(data.paidAmount)}</span>
+            </div>
+            {change > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", ...totRow }}>
+                <span style={{ color: "#64748B" }}>Change</span>
+                <span style={{ fontWeight: 700, color: "#22C55E" }}>{f(change)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Actions ── */}
+        <div style={{ padding: "14px 22px", display: "flex", gap: 10, borderTop: "1px solid #E2E8F0" }}>
+          <button onClick={onClose}
+            style={{ flex: 1, padding: "10px 0", border: "1.5px solid #E2E8F0", borderRadius: 10,
+              background: "#fff", color: "#475569", fontSize: 13, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
+            New Bill
+          </button>
+          <button onClick={onPrint}
+            style={{ flex: 2, padding: "10px 0", border: "none", borderRadius: 10,
+              background: "#F97316", color: "#fff", fontSize: 13, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit", outline: "none",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+            <Printer size={15} /> Print Receipt
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+const totRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", fontSize: 13 };
 
 // ── FooterBtn ─────────────────────────────────────────────────
 
