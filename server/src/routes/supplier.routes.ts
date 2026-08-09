@@ -15,14 +15,19 @@ function toResult(s: any) {
 
 export async function supplierRoutes(fastify: FastifyInstance) {
 
-  fastify.get("/", async (req: FastifyRequest<{ Querystring: { search?: string; pageSize?: string } }>, reply) => {
+  fastify.get("/", async (req: FastifyRequest<{ Querystring: { search?: string; page?: string; pageSize?: string } }>, reply) => {
     try {
-      const { search, pageSize } = req.query;
+      const { search, page, pageSize } = req.query;
+      const pg   = Math.max(1, Number(page ?? 1));
+      const size = Math.min(200, Math.max(1, Number(pageSize ?? 50)));
       const where = search
         ? { isActive: true, OR: [{ name: { contains: search } }, { phone: { contains: search } }] }
         : { isActive: true };
-      const rows = await req.prisma.supplier.findMany({ where, orderBy: { name: "asc" }, ...(pageSize ? { take: Number(pageSize) } : {}) });
-      return reply.send(successResponse(rows.map(toResult)));
+      const [rows, total] = await Promise.all([
+        req.prisma.supplier.findMany({ where, orderBy: { name: "asc" }, skip: (pg - 1) * size, take: size }),
+        req.prisma.supplier.count({ where }),
+      ]);
+      return reply.send(successResponse({ data: rows.map(toResult), total }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
@@ -56,7 +61,12 @@ export async function supplierRoutes(fastify: FastifyInstance) {
 
   fastify.delete("/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
     try {
-      await req.prisma.supplier.delete({ where: { id: req.params.id } });
+      // Soft-delete: set isActive=false so existing purchase invoices
+      // that reference this supplier keep their FK intact.
+      await req.prisma.supplier.update({
+        where: { id: req.params.id },
+        data:  { isActive: false },
+      });
       return reply.send(successResponse(null, "Supplier deleted"));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
