@@ -226,6 +226,55 @@ function downloadTemplate(module: Module) {
 }
 
 // =============================================================
+// CIRCULAR PROGRESS RING
+// SVG-based ring that fills as rows are processed.
+// =============================================================
+function CircularProgress({ done, total, inserted }: { done: number; total: number; inserted: number }) {
+  const size   = 140;
+  const stroke = 10;
+  const r      = (size - stroke) / 2;
+  const circ   = 2 * Math.PI * r;
+  const pct    = total > 0 ? done / total : 0;
+  const dash   = circ * pct;
+  const gap    = circ - dash;
+
+  return (
+    <div style={{ position: "relative", width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        {/* Track */}
+        <circle
+          cx={size / 2} cy={size / 2} r={r}
+          fill="none" stroke="#F1F5F9" strokeWidth={stroke}
+        />
+        {/* Progress arc */}
+        <circle
+          cx={size / 2} cy={size / 2} r={r}
+          fill="none"
+          stroke="#F97316"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${gap}`}
+          style={{ transition: "stroke-dasharray 0.3s ease" }}
+        />
+      </svg>
+      {/* Centre text */}
+      <div style={{
+        position: "absolute", inset: 0,
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+      }}>
+        <span style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", lineHeight: 1 }}>
+          {Math.round(pct * 100)}%
+        </span>
+        <span style={{ fontSize: 11, color: "#64748B", marginTop: 3 }}>
+          {inserted} saved
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================
 // MAIN PAGE COMPONENT
 // =============================================================
 export default function ImportPage() {
@@ -235,6 +284,8 @@ export default function ImportPage() {
   const [parsed,   setParsed]  = useState<ParseResult | null>(null);
   const [result,   setResult]  = useState<{ inserted: number; skipped: number; errors: string[] } | null>(null);
   const [errMsg,   setErrMsg]  = useState("");
+  // Progress tracking during chunked import
+  const [progress, setProgress] = useState<{ done: number; total: number; inserted: number }>({ done: 0, total: 0, inserted: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { getActiveBranch, branches } = useBranchStore();
@@ -243,6 +294,7 @@ export default function ImportPage() {
 
   const reset = () => {
     setPhase("idle"); setFN(""); setParsed(null); setResult(null); setErrMsg("");
+    setProgress({ done: 0, total: 0, inserted: 0 });
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -277,7 +329,6 @@ export default function ImportPage() {
     }
 
     // Pre-send validation: check that rows actually contain the key field
-    // for the selected module. Catches file/module mismatches early.
     const REQUIRED_FIELD: Record<Module, string> = {
       Products:  "name",
       Customers: "name",
@@ -292,74 +343,95 @@ export default function ImportPage() {
       setErrMsg(
         `None of the ${parsed.total} rows have a "${reqField}" column that matches ${moduleInfo.label}.\n\n` +
         `Detected columns: ${parsed.origHeaders.join(", ")}\n\n` +
-        `Make sure you selected the correct data type above, or download the template to see the expected format.`
+        `Make sure you selected the correct data type above, or download the template.`
       );
       setPhase("error"); return;
     }
 
+    // Sanitize all values — strip undefined/null/empty, NaN → 0
+    const sanitize = (rows: Record<string, unknown>[]) =>
+      rows.map((row) => {
+        const clean: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(row)) {
+          if (v === undefined || v === null) continue;
+          if (typeof v === "number") { clean[k] = isFinite(v) ? v : 0; continue; }
+          if (typeof v === "boolean") { clean[k] = v; continue; }
+          const s = String(v).trim();
+          if (s !== "") clean[k] = s;
+        }
+        return clean;
+      }).filter((row) => Object.keys(row).length > 0);
+
+    const cleanRows    = sanitize(validRows);
+    const cleanBatches = parsed.batches?.length ? sanitize(parsed.batches) : undefined;
+
+    if (cleanRows.length === 0) {
+      setErrMsg("No valid rows found after cleaning. Please check the file content.");
+      setPhase("error"); return;
+    }
+
+    // ── Chunked import with live progress ──────────────────
+    // Split into chunks of 500 rows. Send each chunk sequentially.
+    // Progress ring updates after every chunk.
+    const CHUNK = 500;
+    const chunks: Record<string, unknown>[][] = [];
+    for (let i = 0; i < cleanRows.length; i += CHUNK) {
+      chunks.push(cleanRows.slice(i, i + CHUNK));
+    }
+
+    const totalRows = cleanRows.length;
+    setProgress({ done: 0, total: totalRows, inserted: 0 });
     setPhase("importing");
+
+    let totalInserted = 0;
+    let totalSkipped  = 0;
+    const allErrors:  string[] = [];
+
     try {
-      // Use only rows that have the required field, and sanitize all values
-      // to plain strings/numbers so JSON.stringify never produces undefined.
-      const sanitize = (rows: Record<string, unknown>[]) =>
-        rows.map((row) => {
-          const clean: Record<string, unknown> = {};
-          for (const [k, v] of Object.entries(row)) {
-            if (v === undefined || v === null) continue;
-            if (typeof v === "number" || typeof v === "boolean") { clean[k] = v; continue; }
-            const s = String(v).trim();
-            if (s === "") continue;
-            clean[k] = s;
-          }
-          return clean;
-        }).filter((row) => Object.keys(row).length > 0);
+      for (let ci = 0; ci < chunks.length; ci++) {
+        const chunk = chunks[ci];
+        const payload: Record<string, unknown> = { rows: chunk };
+        // Only send batches with the first chunk (batch rows map to product names)
+        if (ci === 0 && cleanBatches?.length) payload.batches = cleanBatches;
 
-      const cleanRows    = sanitize(validRows);
-      const cleanBatches = parsed.batches?.length ? sanitize(parsed.batches) : undefined;
+        const res = await http.post<{
+          success: boolean;
+          data:    { inserted: number; skipped: number; errors: string[] };
+          error?:  { message: string };
+        }>(`/import/${module.toLowerCase()}`, payload);
 
-      if (cleanRows.length === 0) {
-        setErrMsg("No valid rows found after cleaning the file data. Please check the file content.");
-        setPhase("error"); return;
+        if (!res.success) {
+          setErrMsg(res.error?.message ?? "Import failed — check backend logs.");
+          setPhase("error"); return;
+        }
+
+        totalInserted += res.data.inserted;
+        totalSkipped  += res.data.skipped;
+        allErrors.push(...res.data.errors);
+
+        const rowsDone = Math.min((ci + 1) * CHUNK, totalRows);
+        setProgress({ done: rowsDone, total: totalRows, inserted: totalInserted });
       }
 
-      const payload: Record<string, unknown> = { rows: cleanRows };
-      if (cleanBatches?.length) payload.batches = cleanBatches;
+      setResult({ inserted: totalInserted, skipped: totalSkipped, errors: allErrors });
+      setPhase("done");
 
-      // X-Branch-Id is automatically injected by the axios http client
-      // from useBranchStore().activeBranchId on every request.
-      const res = await http.post<{
-        success: boolean;
-        data:    { inserted: number; skipped: number; errors: string[] };
-        error?:  { message: string };
-      }>(`/import/${module.toLowerCase()}`, payload);
-
-      if (res.success) {
-        setResult(res.data);
-        setPhase("done");
-      } else {
-        setErrMsg(res.error?.message ?? "Import failed — check backend logs.");
-        setPhase("error");
-      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Import failed.";
       const lower = msg.toLowerCase();
-      const isNet = lower.includes("failed to fetch") ||
-                    lower.includes("networkerror") ||
-                    lower.includes("load failed") ||
-                    lower.includes("network request failed");
-      const isTooLarge = lower.includes("413") || lower.includes("request entity too large") || lower.includes("body too large");
-      const isBadReq = lower === "bad request" || lower.includes("rows array is required");
+      const isNet = lower.includes("failed to fetch") || lower.includes("networkerror") ||
+                    lower.includes("load failed") || lower.includes("network request failed");
+      const isTooLarge = lower.includes("413") || lower.includes("request entity too large");
       setErrMsg(
-        isTooLarge ? `File too large — try splitting into batches of 2000 rows or fewer.` :
-        isBadReq   ? `Import failed (HTTP 400). The file may be empty or the wrong format for "${moduleInfo.label}".\n\nDownload the template below to see the expected column format.` :
-        isNet      ? `Network error — could not reach the backend.\n\nMake sure the server is running (check the status pill above).` :
+        isTooLarge ? `Chunk too large — contact support.` :
+        isNet      ? `Network error — could not reach the backend.\n\nCheck the status pill above.` :
         msg
       );
       setPhase("error");
     }
   };
 
-  const moduleInfo = MODULES.find((m) => m.value === module)!;
+  const moduleInfo = MODULES.find((m) => m.value === module)!
 
   return (
     <div style={{ padding: "28px 32px", maxWidth: 920, margin: "0 auto" }}>
@@ -541,16 +613,22 @@ export default function ImportPage() {
           </div>
         )}
 
-        {/* ── Importing spinner ─────────────────────────────── */}
+        {/* ── Importing — circular progress ring ───────────── */}
         {phase === "importing" && (
-          <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-            <Loader2 size={32} color="#F97316" style={{ animation: "spin 0.7s linear infinite" }} />
+          <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 14, padding: "36px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+            <CircularProgress
+              done={progress.done}
+              total={progress.total}
+              inserted={progress.inserted}
+            />
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "#0F172A" }}>
-                Saving {parsed?.total} {moduleInfo.label} into <strong style={{ color: "#F97316" }}>{activeBranch?.name ?? "Main Branch"}</strong>…
-                {parsed?.batches?.length ? ` (+ ${parsed.batches.length} batch rows)` : ""}
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>
+                Importing {moduleInfo.label} into{" "}
+                <span style={{ color: "#F97316" }}>{activeBranch?.name ?? "Main Branch"}</span>
               </div>
-              <div style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>Please wait</div>
+              <div style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>
+                {progress.done} of {progress.total} rows processed · {progress.inserted} saved
+              </div>
             </div>
           </div>
         )}
