@@ -7,14 +7,18 @@ import {
 import { nanoid } from "nanoid";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { PosTopBar }    from "./components/PosTopBar";
-import { PosSearchBar } from "./components/PosSearchBar";
-import { BillTabBar }   from "./components/BillTabBar";
-import { ProductTable } from "./components/ProductTable";
-import { BillSummary }  from "./components/BillSummary";
+import { PosTopBar }       from "./components/PosTopBar";
+import { PosSearchBar }    from "./components/PosSearchBar";
+import { BillTabBar }      from "./components/BillTabBar";
+import { ProductTable }    from "./components/ProductTable";
+import { BillSummary }     from "./components/BillSummary";
+import { PosPrintReceipt } from "./components/PosPrintReceipt";
 import type { ProductRow } from "./components/ProductTable";
-import { usePosStore } from "@/store/pos.store";
+import { usePosStore }   from "@/store/pos.store";
+import { usePrintStore } from "@/store/print.store";
+import { useBusinessStore } from "@/store/business.store";
 import { http } from "@/lib/axios";
+import "@/styles/print.css";
 
 export default function PosPage() {
   const navigate  = useNavigate();
@@ -23,11 +27,20 @@ export default function PosPage() {
     activeBillId, getActiveBill, updateBill,
     addRowToBill, updateRowInBill, removeRowFromBill, addBill, resetAfterSave,
   } = usePosStore();
+  const { settings: printSettings } = usePrintStore();
+  const { profile } = useBusinessStore();
 
   const [saving,        setSaving]        = useState(false);
   const [feedback,      setFeedback]      = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [showCustDlg,   setShowCustDlg]   = useState(false);
   const [printing,      setPrinting]      = useState(false);
+  // Tracks the last saved invoice snapshot for printing
+  const [printData,     setPrintData]     = useState<{
+    invoiceNo: string; customerName: string; invoiceDate: Date;
+    rows: ProductRow[]; mrpTotal: number; subTotal: number;
+    discTotal: number; taxableAmt: number; cgst: number; sgst: number;
+    totalAmount: number; paidAmount: number; paymentMode: string;
+  } | null>(null);
   // Local string for discount input — lets user clear the field while typing
   const [discountStr,   setDiscountStr]   = useState("");
 
@@ -101,7 +114,18 @@ export default function PosPage() {
         })),
       });
       if (res.success) {
-        setFeedback({ type: "success", msg: `Invoice ${res.data?.invoiceNumber ?? ""} saved!` });
+        const savedInvoiceNo = res.data?.invoiceNumber ?? bill.invoiceNo;
+        // Capture print snapshot with the real invoice number
+        setPrintData({
+          invoiceNo:    savedInvoiceNo,
+          customerName: bill.customer.trim() || "Walk-in Customer",
+          invoiceDate:  new Date(),
+          rows:         validRows,
+          mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst, totalAmount,
+          paidAmount:   paid,
+          paymentMode:  bill.paymentMode,
+        });
+        setFeedback({ type: "success", msg: `Invoice ${savedInvoiceNo} saved!` });
         qc.invalidateQueries({ queryKey: ["sales"] });
         qc.invalidateQueries({ queryKey: ["inventory"] });
         if (andPrint) {
@@ -116,15 +140,29 @@ export default function PosPage() {
       setFeedback({ type: "error", msg: err instanceof Error ? err.message : "Failed to save" });
       setTimeout(() => setFeedback(null), 3000);
     } finally { setSaving(false); }
-  }, [bill, addBill, qc, totalAmount]);
+  }, [bill, addBill, qc, totalAmount, mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst]);
 
   // ── Print ───────────────────────────────────────────────────
   const triggerPrint = () => {
+    // If no saved print data yet (print without save), capture current bill snapshot
+    if (!printData && bill && bill.rows.length > 0) {
+      const validRows = bill.rows.filter((r) => r.product.trim() && r.qty > 0);
+      const paid = parseFloat(bill.paidAmount) || totalAmount;
+      setPrintData({
+        invoiceNo:    bill.invoiceNo,
+        customerName: bill.customer.trim() || "Walk-in Customer",
+        invoiceDate:  new Date(),
+        rows:         validRows,
+        mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst, totalAmount,
+        paidAmount:   paid,
+        paymentMode:  bill.paymentMode,
+      });
+    }
     setPrinting(true);
     setTimeout(() => {
       window.print();
       setPrinting(false);
-    }, 100);
+    }, 150);
   };
 
   // ── Add empty row ───────────────────────────────────────────
@@ -392,6 +430,30 @@ export default function PosPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* ── Hidden print receipt area — visible only on print ── */}
+      <div id="pos-print-area">
+        {printData && Array.from({ length: printSettings.copies }).map((_, i) => (
+          <PosPrintReceipt
+            key={i}
+            invoiceNo={printData.invoiceNo}
+            customerName={printData.customerName}
+            invoiceDate={printData.invoiceDate}
+            rows={printData.rows}
+            mrpTotal={printData.mrpTotal}
+            subTotal={printData.subTotal}
+            discTotal={printData.discTotal}
+            taxableAmt={printData.taxableAmt}
+            cgst={printData.cgst}
+            sgst={printData.sgst}
+            totalAmount={printData.totalAmount}
+            paidAmount={printData.paidAmount}
+            paymentMode={printData.paymentMode}
+            settings={printSettings}
+            profile={profile}
+          />
+        ))}
+      </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

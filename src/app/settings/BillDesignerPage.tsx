@@ -5,6 +5,7 @@ import {
   HelpCircle, Upload, Download, Eye, Save, Plus,
 } from "lucide-react";
 import { useBusinessStore } from "@/store/business.store";
+import { usePrintStore } from "@/store/print.store";
 
 // =============================================================
 // BILL DESIGNER PAGE — full rewrite
@@ -1668,6 +1669,7 @@ function TemplateThumbnailWrapper({ tpl }: { tpl: Template }) {
 
 export default function BillDesignerPage() {
   const { profile, updateProfile } = useBusinessStore();
+  const { updateSettings } = usePrintStore();
   const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">("A4");
   const [selectedId,  setSelectedId]  = useState("modern");
   const [rightTab,    setRightTab]    = useState<"properties" | "arrange">("properties");
@@ -1713,6 +1715,27 @@ export default function BillDesignerPage() {
   const selectedTpl = TEMPLATES.find(t => t.id === selectedId) ?? TEMPLATES[0];
 
   const handleSave = () => {
+    // Persist chosen template + config to print store so POS uses it
+    updateSettings({
+      templateId:        selectedId,
+      paperType:         config.paperType as import("@/store/print.store").PaperType,
+      primaryColor:      config.primaryColor,
+      fontFamily:        config.fontFamily,
+      fontSize:          config.fontSize,
+      showLogo:          config.showLogo,
+      showQR:            config.showQR,
+      showTerms:         config.showTerms,
+      showAmountInWords: config.showAmountInWords,
+      showSignature:     config.showSignature,
+      footerText:        config.footerText,
+      termsText:         config.termsText,
+      marginTop:         config.marginTop,
+      marginBottom:      config.marginBottom,
+      marginLeft:        config.marginLeft,
+      marginRight:       config.marginRight,
+      copies:            config.copies,
+      tableStyle:        config.tableStyle,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
