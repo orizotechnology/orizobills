@@ -1667,7 +1667,7 @@ function TemplateThumbnailWrapper({ tpl }: { tpl: Template }) {
 // ═══════════════════════════════════════════════════════════════
 
 export default function BillDesignerPage() {
-  const { profile } = useBusinessStore();
+  const { profile, updateProfile } = useBusinessStore();
   const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">("A4");
   const [selectedId,  setSelectedId]  = useState("modern");
   const [rightTab,    setRightTab]    = useState<"properties" | "arrange">("properties");
@@ -1678,7 +1678,26 @@ export default function BillDesignerPage() {
   const [isDesktop,   setIsDesktop]   = useState(true);
   const [defaultMsg,  setDefaultMsg]  = useState("");
 
-  const C = useCallback((patch: Partial<PrintConfig>) => setConfig(p => ({ ...p, ...patch })), []);
+  const handleLogoUpload = () => {
+    const inp = document.createElement("input");
+    inp.type = "file";
+    inp.accept = "image/png,image/jpeg,image/svg+xml,image/webp";
+    inp.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        if (dataUrl) updateProfile({ logoUrl: dataUrl });
+      };
+      reader.readAsDataURL(file);
+    };
+    inp.click();
+  };
+
+  const handleLogoRemove = () => updateProfile({ logoUrl: "" });
+
+
 
   // Escape key closes full-screen preview
   useEffect(() => {
