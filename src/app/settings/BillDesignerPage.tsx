@@ -1697,6 +1697,7 @@ export default function BillDesignerPage() {
 
   const handleLogoRemove = () => updateProfile({ logoUrl: "" });
 
+  const C = useCallback((patch: Partial<PrintConfig>) => setConfig(p => ({ ...p, ...patch })), []);
 
 
   // Escape key closes full-screen preview
@@ -2001,6 +2002,40 @@ export default function BillDesignerPage() {
 
                 <PropSection title="Show / Hide Elements" icon={<span>👁</span>} defaultOpen>
                   <PR label="Show Logo">          <Tog value={config.showLogo}          onChange={v => C({ showLogo: v })} /></PR>
+                  {/* Logo upload — shown when Show Logo is on */}
+                  {config.showLogo && (
+                    <div style={{ padding: "6px 0 8px 0" }}>
+                      {profile.logoUrl ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <img src={profile.logoUrl} alt="logo"
+                            style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6,
+                              border: "1px solid #E2E8F0", background: "#F8FAFC", padding: 3 }} />
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <button onClick={handleLogoUpload}
+                              style={{ fontSize: 11, padding: "3px 10px", border: "1px solid #E2E8F0",
+                                borderRadius: 6, background: "#fff", color: "#475569",
+                                cursor: "pointer", fontFamily: "inherit" }}>
+                              Change
+                            </button>
+                            <button onClick={handleLogoRemove}
+                              style={{ fontSize: 11, padding: "3px 10px", border: "1px solid #FECDD3",
+                                borderRadius: 6, background: "#fff", color: "#EF4444",
+                                cursor: "pointer", fontFamily: "inherit" }}>
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button onClick={handleLogoUpload}
+                          style={{ display: "flex", alignItems: "center", gap: 6, width: "100%",
+                            padding: "7px 10px", border: "1.5px dashed #CBD5E1", borderRadius: 8,
+                            background: "#F8FAFC", color: "#64748B", fontSize: 11, fontWeight: 600,
+                            cursor: "pointer", fontFamily: "inherit" }}>
+                          <Upload size={13} /> Upload Logo (PNG / JPG / SVG)
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <PR label="Signature Line">     <Tog value={config.showSignature}     onChange={v => C({ showSignature: v })} /></PR>
                   <PR label="Bank Details">       <Tog value={config.showBankDetails}   onChange={v => C({ showBankDetails: v })} /></PR>
                   <PR label="QR Code">            <Tog value={config.showQR}            onChange={v => C({ showQR: v })} /></PR>
