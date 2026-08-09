@@ -970,3 +970,246 @@ function TplServices({ c, fs, config, profile }: { c: string; fs: number; config
     </div>
   );
 }
+
+// ── 10 Minimal: pure black and white, no color, ultra clean ──
+function TplMinimal({ fs, config, profile }: { fs: number; config: PrintConfig; profile: ProfileArg }) {
+  const bnFs = config.businessNameSize === "large" ? fs + 7 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
+  return (
+    <div style={{ background: "#fff", fontFamily: config.fontFamily, minHeight: 560, padding: "20px 24px", color: "#000" }}>
+      {/* Minimal header: left biz, right INVOICE */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+        <div>
+          {config.showLogo && (
+            <div style={{ width: 40, height: 40, background: "#000", display: "flex", alignItems: "center",
+              justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 20, marginBottom: 6 }}>
+              {(profile.storeName || "O").charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div style={{ fontWeight: 900, fontSize: bnFs }}>{profile.storeName || "Your Business"}</div>
+          <div style={{ fontSize: fs - 1, color: "#555" }}>{profile.address || "123 Main St, City"}</div>
+          <div style={{ fontSize: fs - 1, color: "#555" }}>{profile.phone}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontWeight: 900, fontSize: fs + 10, letterSpacing: -1, color: "#000" }}>INVOICE</div>
+          <div style={{ fontSize: fs - 1, color: "#777" }}>INV-2024-0123</div>
+          <div style={{ fontSize: fs - 1, color: "#777" }}>24 May 2024</div>
+        </div>
+      </div>
+      {/* Single-pixel horizontal rule */}
+      <div style={{ borderTop: "1px solid #000", marginBottom: 12 }} />
+      {/* Bill To row */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: fs - 1 }}>
+        <div>
+          <div style={{ fontWeight: 700, marginBottom: 2 }}>BILL TO</div>
+          <div>Rajesh Kumar</div>
+          <div style={{ color: "#777" }}>MG Road, Bengaluru</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontWeight: 700, marginBottom: 2 }}>DUE</div>
+          <div>31 May 2024</div>
+          <div style={{ color: "#777" }}>Net 7</div>
+        </div>
+      </div>
+      {/* Table */}
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 12, fontSize: fs - 1 }}>
+        <thead>
+          <tr style={{ borderBottom: "2px solid #000" }}>
+            {["Item","Qty","Rate","Amount"].map(h => (
+              <th key={h} style={{ padding: "5px 6px", textAlign: h === "Item" ? "left" : "right",
+                fontWeight: 700, fontSize: fs - 2, letterSpacing: 0.5 }}>{h.toUpperCase()}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {SAMPLE_ITEMS.map((it, i) => (
+            <tr key={i} style={{ borderBottom: "1px solid #E5E7EB" }}>
+              <td style={{ padding: "5px 6px" }}>{it.name}</td>
+              <td style={{ padding: "5px 6px", textAlign: "right" }}>{it.qty}</td>
+              <td style={{ padding: "5px 6px", textAlign: "right" }}>₹{it.rate}</td>
+              <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 600 }}>₹{it.qty * it.rate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {/* Totals */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <div style={{ minWidth: 200, fontSize: fs - 1 }}>
+          {[["Subtotal","₹2,450"],["GST (18%)","₹441"]].map(([k,v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+              <span style={{ color: "#777" }}>{k}</span><span>{v}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, borderTop: "2px solid #000", paddingTop: 5, fontSize: fs + 1 }}>
+            <span>TOTAL</span><span>₹2,891</span>
+          </div>
+        </div>
+      </div>
+      {config.showAmountInWords && <div style={{ fontSize: fs - 1, color: "#777", marginBottom: 6 }}>Two Thousand Eight Hundred Ninety One Rupees Only</div>}
+      <div style={{ borderTop: "1px solid #000", paddingTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontSize: fs - 1, color: "#777" }}>{config.footerText}</div>
+        {config.showSignature && <div style={{ fontSize: fs - 1, color: "#777", textAlign: "right" }}>
+          <div style={{ borderTop: "1px solid #000", paddingTop: 4, minWidth: 100 }}>Signature</div>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// THERMAL TEMPLATE RENDERERS  (width ≈ 260 px)
+// ═══════════════════════════════════════════════════════════════
+
+function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
+  c: string; fs: number; config: PrintConfig; profile: ProfileArg;
+  children: React.ReactNode;
+  headerVariant?: "centered" | "leftright" | "boxed";
+}) {
+  const hv = headerVariant ?? "centered";
+  return (
+    <div style={{ width: 260, background: "#fff", fontFamily: config.fontFamily, fontSize: fs,
+      color: "#1E293B", padding: `${config.marginTop}px ${config.marginRight}px ${config.marginBottom}px ${config.marginLeft}px`,
+      minHeight: 300 }}>
+      {/* Header */}
+      {hv === "centered" && (
+        <div style={{ textAlign: "center", marginBottom: 6 }}>
+          {config.showLogo && <div style={{ fontWeight: 900, fontSize: fs + 3, color: c }}>{(profile.storeName || "SHOP").toUpperCase()}</div>}
+          <div style={{ fontSize: fs - 2, color: "#64748B" }}>{profile.address}</div>
+          <div style={{ fontSize: fs - 2, color: "#64748B" }}>{profile.phone}</div>
+        </div>
+      )}
+      {hv === "leftright" && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+          <div>
+            <div style={{ fontWeight: 900, color: c, fontSize: fs + 2 }}>{profile.storeName || "SHOP"}</div>
+            <div style={{ fontSize: fs - 2, color: "#64748B" }}>{profile.phone}</div>
+          </div>
+          <div style={{ textAlign: "right", fontSize: fs - 2, color: "#64748B" }}>
+            <div>INV-0123</div><div>24-May-24</div>
+          </div>
+        </div>
+      )}
+      {hv === "boxed" && (
+        <div style={{ border: `2px solid ${c}`, padding: "4px 8px", marginBottom: 6, textAlign: "center" }}>
+          <div style={{ fontWeight: 900, fontSize: fs + 3, color: c }}>{profile.storeName || "SHOP"}</div>
+          <div style={{ fontSize: fs - 2 }}>{profile.phone} · {profile.address}</div>
+        </div>
+      )}
+      {children}
+      {/* Footer */}
+      <div style={{ borderTop: "1px dashed #94A3B8", paddingTop: 4, marginTop: 6, textAlign: "center", fontSize: fs - 2, color: "#64748B" }}>
+        {config.footerText}
+      </div>
+    </div>
+  );
+}
+
+function ThermalItems({ c, fs, config }: { c: string; fs: number; config: PrintConfig }) {
+  return (
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 6 }}>
+      <thead>
+        <tr style={{ borderBottom: `1px solid ${c}` }}>
+          {["Item","Qty","Rate","Amt"].map(h => (
+            <th key={h} style={{ padding: "2px 3px", textAlign: h === "Item" ? "left" : "right", fontSize: fs - 2, color: c }}>{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {SAMPLE_ITEMS.map((it, i) => (
+          <tr key={i} style={{ borderBottom: rowBorder(config.tableStyle, c) }}>
+            <td style={{ padding: "2px 3px" }}>{it.name}</td>
+            <td style={{ padding: "2px 3px", textAlign: "right" }}>{it.qty}</td>
+            <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.rate}</td>
+            <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function ThermalTotals({ c, fs, config }: { c: string; fs: number; config: PrintConfig }) {
+  return (
+    <div style={{ fontSize: fs - 1, marginBottom: 6 }}>
+      {[["Subtotal","₹2,450"],["GST","₹441"]].map(([k,v]) => (
+        <div key={k} style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ color: "#64748B" }}>{k}</span><span>{v}</span>
+        </div>
+      ))}
+      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: fs,
+        borderTop: `1px solid ${c}`, paddingTop: 3, marginTop: 2 }}>
+        <span>TOTAL</span><span style={{ color: c }}>₹2,891</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Thermal: th-retail ────────────────────────────────────────
+function TplThRetail({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  return (
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
+      <div style={{ textAlign: "center", fontSize: fs - 1, marginBottom: 4 }}>
+        <div>** RETAIL RECEIPT **</div>
+        <div style={{ color: "#64748B" }}>Cust: Rajesh Kumar | INV-0123 | 24 May 2024</div>
+      </div>
+      <ThermalItems c={c} fs={fs} config={config} />
+      <ThermalTotals c={c} fs={fs} config={config} />
+      {config.showQR && <div style={{ textAlign: "center" }}><div style={{ display: "inline-block", width: 44, height: 44, border: "1px solid #E2E8F0", fontSize: 8, color: "#94A3B8", display: "flex", alignItems: "center", justifyContent: "center", margin: "4px auto" }}>QR</div></div>}
+    </ThermalBase>
+  );
+}
+
+// ── Thermal: th-grocery ───────────────────────────────────────
+function TplThGrocery({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  return (
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed">
+      <div style={{ fontSize: fs - 1, marginBottom: 4, borderBottom: `1px dashed ${c}`, paddingBottom: 4 }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>Bill No: INV-0123</span><span>24 May 2024</span>
+        </div>
+        <div>Customer: Rajesh Kumar</div>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
+        <tbody>
+          {[{name:"Rice 1kg",qty:2,rate:55},{name:"Atta 5kg",qty:1,rate:210},{name:"Dal 500g",qty:3,rate:90}].map((it,i) => (
+            <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
+              <td style={{ padding: "2px 3px" }}>{it.name}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>{it.qty}×{it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right", fontWeight: 700, color: c }}>₹{it.qty * it.rate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ fontWeight: 900, fontSize: fs + 1, textAlign: "right", color: c }}>Total: ₹490</div>
+      <div style={{ fontSize: fs - 2, color: "#64748B", textAlign: "center", marginTop: 4 }}>Items: 6 | Savings: ₹24</div>
+    </ThermalBase>
+  );
+}
+
+// ── Thermal: th-restaurant ────────────────────────────────────
+function TplThRestaurant({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  return (
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
+      <div style={{ textAlign: "center", marginBottom: 6, borderTop: `1px dashed ${c}`, borderBottom: `1px dashed ${c}`, padding: "3px 0" }}>
+        <div style={{ fontWeight: 700, color: c }}>TABLE 5 | DINE IN</div>
+        <div style={{ fontSize: fs - 2 }}>KOT: 0456 | 24 May 8:30 PM | Server: Amit</div>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
+        <tbody>
+          {[{name:"Paneer Butter Masala",qty:1,rate:280},{name:"Garlic Naan ×2",qty:2,rate:45},{name:"Lassi",qty:1,rate:80}].map((it,i) => (
+            <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
+              <td style={{ padding: "2px 3px" }}>{it.name}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>{it.qty}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ fontSize: fs - 1 }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Food</span><span>₹450</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Service (10%)</span><span>₹45</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>₹495</span></div>
+      </div>
+      <div style={{ textAlign: "center", fontSize: fs - 2, color: "#64748B", marginTop: 4 }}>GST No: 29ABCDE1234F1Z5</div>
+    </ThermalBase>
+  );
+}
