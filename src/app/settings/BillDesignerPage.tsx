@@ -1546,3 +1546,310 @@ function TemplateThumbnail({ tpl }: { tpl: Template }) {
     );
   }
 }
+
+// More thermal thumbnails for TemplateThumbnail
+function ThermalThumbnail({ tpl }: { tpl: Template }) {
+  const c = tpl.color;
+  const W = 80, H = 70;
+  switch (tpl.id) {
+    case "th-retail": return (
+      <svg width={W} height={H} viewBox="0 0 80 70">
+        <rect width="80" height="70" fill="#fff"/>
+        <rect x="10" y="4" width="60" height="6" rx="3" fill={c} opacity="0.8"/>
+        <rect x="15" y="12" width="50" height="3" rx="1" fill="#CBD5E1"/>
+        <rect x="15" y="17" width="40" height="2" rx="1" fill="#E2E8F0"/>
+        {[0,1,2].map(i=><rect key={i} x="4" y={24+i*8} width="72" height="6" rx="1" fill={i%2===0?"#F8FAFC":"#fff"} stroke="#E2E8F0" strokeWidth="0.5"/>)}
+        <rect x="4" y="52" width="72" height="1" stroke={c} strokeWidth="1" strokeDasharray="3,2"/>
+        <rect x="55" y="56" width="21" height="6" rx="2" fill={c}/>
+      </svg>
+    );
+    case "th-grocery": return (
+      <svg width={W} height={H} viewBox="0 0 80 70">
+        <rect width="80" height="70" fill="#fff"/>
+        <rect x="4" y="4" width="72" height="12" rx="2" fill="none" stroke={c} strokeWidth="2"/>
+        <rect x="12" y="7" width="56" height="5" rx="1" fill={c} opacity="0.3"/>
+        {[0,1,2].map(i=><rect key={i} x="4" y={22+i*9} width="72" height="7" rx="1" fill="#fff" stroke="#E5E7EB" strokeWidth="0.5"/>)}
+        <rect x="4" y="55" width="72" height="1" fill="#E5E7EB"/>
+        <rect x="40" y="60" width="36" height="6" rx="2" fill={c} opacity="0.8"/>
+      </svg>
+    );
+    case "th-restaurant": return (
+      <svg width={W} height={H} viewBox="0 0 80 70">
+        <rect width="80" height="70" fill="#fff"/>
+        <rect x="20" y="4" width="40" height="7" rx="3" fill={c} opacity="0.8"/>
+        <rect x="10" y="14" width="60" height="1" stroke={c} strokeWidth="1" strokeDasharray="3,2"/>
+        <rect x="10" y="17" width="60" height="1" stroke={c} strokeWidth="1" strokeDasharray="3,2"/>
+        {[0,1,2].map(i=><rect key={i} x="6" y={24+i*9} width="68" height="7" rx="1" fill={i%2===0?"#fff":"#FFF1F2"} stroke="#FFE4E6" strokeWidth="0.5"/>)}
+        <rect x="30" y="62" width="20" height="5" rx="2" fill={c}/>
+      </svg>
+    );
+    default: return (
+      <svg width={W} height={H} viewBox="0 0 80 70">
+        <rect width="80" height="70" fill="#fff"/>
+        <rect x="15" y="4" width="50" height="8" rx="2" fill={c} opacity="0.7"/>
+        <rect x="8" y="15" width="64" height="2" rx="1" fill="#E2E8F0"/>
+        {[0,1,2].map(i=><rect key={i} x="4" y={22+i*9} width="72" height="7" rx="1" fill={i%2===0?"#F8FAFC":"#fff"} stroke="#E2E8F0" strokeWidth="0.5"/>)}
+        <rect x="30" y="59" width="20" height="7" rx="3" fill={c} opacity="0.8"/>
+      </svg>
+    );
+  }
+}
+
+function TemplateThumbnailWrapper({ tpl }: { tpl: Template }) {
+  if (tpl.type === "Thermal") return <ThermalThumbnail tpl={tpl} />;
+  return <TemplateThumbnail tpl={tpl} />;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════
+
+export default function BillDesignerPage() {
+  const { profile } = useBusinessStore();
+  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">("A4");
+  const [selectedId,  setSelectedId]  = useState("modern");
+  const [rightTab,    setRightTab]    = useState<"properties" | "arrange">("properties");
+  const [zoom,        setZoom]        = useState(100);
+  const [showPreview, setShowPreview] = useState(false);
+  const [config,      setConfig]      = useState<PrintConfig>(DEFAULT_CONFIG);
+  const [saved,       setSaved]       = useState(false);
+  const [isDesktop,   setIsDesktop]   = useState(true);
+  const [defaultMsg,  setDefaultMsg]  = useState("");
+
+  const C = useCallback((patch: Partial<PrintConfig>) => setConfig(p => ({ ...p, ...patch })), []);
+
+  // Escape key closes full-screen preview
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowPreview(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const visibleTemplates = TEMPLATES.filter(t => t.type === activeTab);
+  const selectedTpl = TEMPLATES.find(t => t.id === selectedId) ?? TEMPLATES[0];
+
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleExport = () => {
+    const data = JSON.stringify({ templateId: selectedId, config }, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = `invoice-template-${selectedId}.json`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = () => {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = ".json";
+    inp.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(ev.target?.result as string);
+          if (parsed.templateId) setSelectedId(parsed.templateId as string);
+          if (parsed.config)     setConfig({ ...DEFAULT_CONFIG, ...(parsed.config as Partial<PrintConfig>) });
+        } catch { /* ignore bad file */ }
+      };
+      reader.readAsText(file);
+    };
+    inp.click();
+  };
+
+  const handleDuplicate = () => {
+    alert(`Template "${selectedTpl.name}" duplicated (saved as a copy).`);
+  };
+
+  const handleDelete = () => {
+    setConfig(DEFAULT_CONFIG);
+    alert("Template reset to defaults.");
+  };
+
+  const handleSetDefault = () => {
+    setDefaultMsg("Set as default ✓");
+    setTimeout(() => setDefaultMsg(""), 2000);
+  };
+
+  const previewWidth = isDesktop ? 480 : 340;
+  const scaleStyle: React.CSSProperties = {
+    transform: `scale(${zoom / 100})`,
+    transformOrigin: "top center",
+    transition: "transform 0.15s",
+  };
+
+  const profileArg: ProfileArg = {
+    storeName: profile.storeName,
+    address:   profile.address,
+    phone:     profile.phone,
+    email:     profile.email,
+    upiId:     profile.upiId,
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#F8FAFC", overflow: "hidden" }}>
+
+      {/* ── Full-screen preview overlay ──────────────────── */}
+      {showPreview && (
+        <div onClick={() => setShowPreview(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 24, overflow: "auto" }}>
+          {/* Exit button */}
+          <button onClick={() => setShowPreview(false)}
+            style={{ position: "fixed", top: 16, right: 16, zIndex: 10000,
+              background: "#EF4444", color: "#fff", border: "none", borderRadius: 10,
+              padding: "10px 20px", fontSize: 15, fontWeight: 800,
+              cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(239,68,68,0.5)" }}>
+            ✕ Exit Preview
+          </button>
+          {/* Invoice at actual size */}
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 8, overflow: "hidden",
+              boxShadow: "0 8px 48px rgba(0,0,0,0.4)", maxHeight: "90vh", overflowY: "auto" }}>
+            <InvoicePreview config={config} template={selectedTpl} profile={profileArg} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Top bar ──────────────────────────────────────── */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 20px", height: 52, background: "#fff", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>Bill Designer</div>
+          <div style={{ fontSize: 11, color: "#94A3B8" }}>Design and customize your invoice templates</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <TopBtn icon={<HelpCircle size={14} />}  label="Help"    onClick={() => {}} />
+          <TopBtn icon={<Upload size={14} />}       label="Import"  onClick={handleImport} />
+          <TopBtn icon={<Download size={14} />}     label="Export"  onClick={handleExport} />
+          <TopBtn icon={<Eye size={14} />}          label="Preview" onClick={() => setShowPreview(p => !p)} active={showPreview} />
+          <button onClick={handleSave}
+            style={{ display: "flex", alignItems: "center", gap: 6,
+              background: saved ? "#22C55E" : "#F97316", color: "#fff",
+              border: "none", borderRadius: 8, padding: "8px 16px",
+              fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              outline: "none", transition: "background 0.2s" }}>
+            <Save size={14} /> {saved ? "Saved!" : "Save Template"}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Body: 3 columns ──────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr 300px", flex: 1, overflow: "hidden", minHeight: 0 }}>
+
+        {/* ── LEFT: Template library ─────────────────────── */}
+        <div style={{ background: "#fff", borderRight: "1px solid #E2E8F0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ padding: "12px 14px 8px", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Choose Template</span>
+            </div>
+            <div style={{ display: "flex", background: "#F1F5F9", borderRadius: 8, padding: 3, gap: 3, marginBottom: 10 }}>
+              {(["A4", "Thermal"] as const).map(t => (
+                <button key={t} onClick={() => setActiveTab(t)}
+                  style={{ flex: 1, padding: "5px 0", borderRadius: 6, border: "none",
+                    background: activeTab === t ? "#F97316" : "transparent",
+                    color: activeTab === t ? "#fff" : "#64748B",
+                    fontSize: 12, fontWeight: activeTab === t ? 700 : 500,
+                    cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+            <input placeholder="Search templates..."
+              style={{ width: "100%", border: "1px solid #E2E8F0", borderRadius: 7, padding: "6px 10px",
+                fontSize: 12, color: "#475569", background: "#F8FAFC", outline: "none",
+                fontFamily: "inherit", boxSizing: "border-box" }} />
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", padding: "4px 14px 14px", scrollbarWidth: "none" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {visibleTemplates.map(tpl => (
+                <div key={tpl.id} onClick={() => {
+                    setSelectedId(tpl.id);
+                    C({ primaryColor: tpl.color, paperType: tpl.type === "Thermal" ? "Thermal 80mm" : "A4" });
+                  }}
+                  style={{ cursor: "pointer", borderRadius: 8,
+                    border: `2px solid ${selectedId === tpl.id ? "#F97316" : "#E2E8F0"}`,
+                    overflow: "hidden", background: "#fff", position: "relative",
+                    transition: "border-color 0.15s" }}>
+                  <div style={{ height: 70, overflow: "hidden" }}>
+                    <TemplateThumbnailWrapper tpl={tpl} />
+                  </div>
+                  <div style={{ padding: "5px 6px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: "#1E293B" }}>{tpl.name}</div>
+                    <div style={{ fontSize: 9, color: "#94A3B8" }}>{tpl.type}</div>
+                  </div>
+                  {selectedId === tpl.id && (
+                    <div style={{ position: "absolute", top: 4, right: 4, width: 16, height: 16,
+                      borderRadius: "50%", background: "#F97316",
+                      display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ color: "#fff", fontSize: 9, fontWeight: 800 }}>✓</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding: "10px 14px", borderTop: "1px solid #F1F5F9", flexShrink: 0 }}>
+            <button style={{ width: "100%", padding: "8px 0", border: "1.5px dashed #E2E8F0", borderRadius: 8,
+              background: "#fff", color: "#64748B", fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit", outline: "none",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <Plus size={13} /> New Blank Template
+            </button>
+          </div>
+        </div>
+
+        {/* ── CENTER: Preview canvas ──────────────────────── */}
+        <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", background: "#F1F5F9" }}>
+          {/* Toolbar */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px",
+            background: "#fff", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
+            <button onClick={() => setIsDesktop(true)} style={{ ...iconBtnS, border: `1px solid ${isDesktop ? "#F97316" : "#E2E8F0"}`, background: isDesktop ? "#FFF7ED" : "#fff" }} title="Desktop view">
+              <Monitor size={15} color={isDesktop ? "#F97316" : "#94A3B8"} />
+            </button>
+            <button onClick={() => setIsDesktop(false)} style={{ ...iconBtnS, border: `1px solid ${!isDesktop ? "#F97316" : "#E2E8F0"}`, background: !isDesktop ? "#FFF7ED" : "#fff" }} title="Mobile view">
+              <Smartphone size={15} color={!isDesktop ? "#F97316" : "#94A3B8"} />
+            </button>
+            <div style={{ width: 1, height: 20, background: "#E2E8F0" }} />
+            <button onClick={() => setZoom(z => Math.max(50, z - 10))} style={iconBtnS}>−</button>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#475569", minWidth: 44, textAlign: "center" }}>{zoom}%</span>
+            <button onClick={() => setZoom(z => Math.min(150, z + 10))} style={iconBtnS}>+</button>
+            <div style={{ width: 1, height: 20, background: "#E2E8F0" }} />
+            <button onClick={() => setZoom(100)} style={{ ...iconBtnS, fontSize: 14, color: "#94A3B8" }}>↺</button>
+            <span style={{ fontSize: 11, color: "#94A3B8", marginLeft: 4 }}>
+              {isDesktop ? `Desktop (${previewWidth}px)` : `Mobile (${previewWidth}px)`}
+            </span>
+          </div>
+
+          {/* Canvas area */}
+          <div style={{ flex: 1, overflowY: "auto", overflowX: "auto", display: "flex",
+            alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", scrollbarWidth: "none" }}>
+            <div style={{ ...scaleStyle, width: previewWidth }}>
+              <InvoicePreview config={config} template={selectedTpl} profile={profileArg} />
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px",
+            background: "#fff", borderTop: "1px solid #E2E8F0", flexShrink: 0, flexWrap: "wrap" }}>
+            <BotBtn icon={<Copy size={13} />}      label="Duplicate"     onClick={handleDuplicate} />
+            <BotBtn icon={<Trash2 size={13} />}    label="Delete"        onClick={handleDelete} danger />
+            <BotBtn icon={<RefreshCw size={13} />} label="Reset"         onClick={() => setConfig(DEFAULT_CONFIG)} />
+            <BotBtn icon={<Star size={13} />}      label={defaultMsg || "Set as Default"} onClick={handleSetDefault} orange />
+            <div style={{ flex: 1 }} />
+            <button onClick={() => window.print()}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "#F97316", color: "#fff",
+                border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
+              <Printer size={13} /> Test Print
+            </button>
+          </div>
+        </div>
