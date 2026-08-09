@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  Bell, HelpCircle, Search, ChevronDown, Plus, FileText,
+  Bell, HelpCircle, Search, ChevronDown, Plus,
   ShoppingCart, Receipt, X, CheckCircle2, ChevronRight,
   AlertTriangle, Package, FileWarning,
 } from "lucide-react";
@@ -115,8 +115,8 @@ const HELP_SECTIONS = [
 // =============================================================
 
 const CREATE_ITEMS = [
-  { label: "Sale Invoice",     icon: FileText,     to: "/app/sales/invoices" },
   { label: "POS / Quick Sale", icon: Plus,         to: "/app/pos"            },
+  { label: "Add Product",      icon: Package,      to: "/app/products/all"   },
   { label: "Purchase Bill",    icon: ShoppingCart, to: "/app/purchase/new"   },
   { label: "Expense",          icon: Receipt,      to: "/app/expenses"       },
 ];
