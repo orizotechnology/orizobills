@@ -1401,3 +1401,148 @@ function TplThMinimal({ c, fs, config, profile }: { c: string; fs: number; confi
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════
+// INVOICE PREVIEW DISPATCHER
+// Picks the correct layout based on template.id
+// ═══════════════════════════════════════════════════════════════
+
+function InvoicePreview({ config, template, profile }: {
+  config: PrintConfig;
+  template: Template;
+  profile: ProfileArg;
+}) {
+  const c = config.primaryColor;
+  const fs = config.fontSize === "small" ? 10 : config.fontSize === "large" ? 13 : 11;
+  const isTherm = template.type === "Thermal";
+  const w = isTherm ? 260 : (config.paperType === "A5" ? 380 : 480);
+
+  const wrapStyle: React.CSSProperties = {
+    width: w,
+    background: "#fff",
+    boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+    borderRadius: 4,
+    overflow: "hidden",
+    fontFamily: config.fontFamily,
+  };
+
+  const renderContent = () => {
+    const props = { c, fs, config, profile };
+    switch (template.id) {
+      case "modern":      return <TplModern      {...props} />;
+      case "elegant":     return <TplElegant     {...props} />;
+      case "premium":     return <TplPremium     {...props} />;
+      case "pharmacy":    return <TplPharmacy    {...props} />;
+      case "restaurant":  return <TplRestaurant  {...props} />;
+      case "boutique":    return <TplBoutique    {...props} />;
+      case "electronics": return <TplElectronics {...props} />;
+      case "wholesale":   return <TplWholesale   {...props} />;
+      case "services":    return <TplServices    {...props} />;
+      case "minimal":     return <TplMinimal     c={c} fs={fs} config={config} profile={profile} />;
+      case "th-retail":      return <TplThRetail      {...props} />;
+      case "th-grocery":     return <TplThGrocery     {...props} />;
+      case "th-restaurant":  return <TplThRestaurant  {...props} />;
+      case "th-pharmacy":    return <TplThPharmacy    {...props} />;
+      case "th-fashion":     return <TplThFashion     {...props} />;
+      case "th-electronics": return <TplThElectronics {...props} />;
+      case "th-cafe":        return <TplThCafe        {...props} />;
+      case "th-hardware":    return <TplThHardware    {...props} />;
+      case "th-services":    return <TplThServices    {...props} />;
+      case "th-minimal":     return <TplThMinimal     {...props} />;
+      default:            return <TplModern      {...props} />;
+    }
+  };
+
+  return <div style={wrapStyle}>{renderContent()}</div>;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SVG THUMBNAILS — each template gets a unique miniature layout
+// ═══════════════════════════════════════════════════════════════
+
+function TemplateThumbnail({ tpl }: { tpl: Template }) {
+  const c = tpl.color;
+  const W = 80, H = 70;
+  switch (tpl.id) {
+    case "modern": return (
+      <svg width={W} height={H} viewBox="0 0 80 70">
+        <rect width="80" height="70" fill="#fff"/>
+        <rect x="0" y="0" width="5" height="70" fill={c}/>
+        <rect x="10" y="8" width="30" height="6" rx="2" fill={c} opacity="0.8"/>
+        <rect x="10" y="17" width="22" height="3" rx="1" fill="#E2E8F0"/>
+        <rect x="10" y="22" width="16" height="3" rx="1" fill="#E2E8F0"/>
+        <rect x="55" y="8" width="18" height="3" rx="1" fill="#CBD5E1"/>
+        <rect x="55" y="14" width="12" height="3" rx="1" fill="#CBD5E1"/>
+        <rect x="8" y="30" width="64" height="3" rx="1" fill={c}/>
+        <rect x="8" y="37" width="64" height="5" rx="1" fill={c} opacity="0.15"/>
+        {[0,1,2].map(i=><rect key={i} x="8" y={45+i*6} width="64" height="4" rx="1" fill={i%2===0?"#F8FAFC":"#fff"} stroke="#E2E8F0" strokeWidth="0.5"/>)}
+        <rect x="45" y="62" width="27" height="5" rx="2" fill={c}/>
+      </svg>
+    );
+    case "elegant": return (
+      <svg width={W} height={H} viewBox="0 0 80 70">
+        <rect width="80" height="70" fill="#FAFAFA"/>
+        <circle cx="40" cy="10" r="6" fill="none" stroke={c} strokeWidth="1.5"/>
+        <rect x="20" y="19" width="40" height="4" rx="2" fill="#374151" opacity="0.7"/>
+        <rect x="25" y="25" width="30" height="2" rx="1" fill="#9CA3AF"/>
+        <rect x="5" y="30" width="70" height="1" fill="#E5E7EB"/>
+        <rect x="5" y="33" width="70" height="1" fill="#E5E7EB"/>
+        {[0,1,2].map(i=><rect key={i} x="8" y={38+i*7} width="64" height="5" rx="1" fill="#fff" stroke="#F3F4F6" strokeWidth="0.5"/>)}
+        <rect x="5" y="62" width="70" height="1" fill={c} opacity="0.5"/>
+      </svg>
+    );
+    case "premium": return (
+      <svg width={W} height={H} viewBox="0 0 80 70">
+        <rect width="80" height="70" fill="#fff"/>
+        <rect x="0" y="0" width="80" height="18" fill="#0F172A"/>
+        <rect x="6" y="5" width="20" height="8" rx="2" fill={c} opacity="0.9"/>
+        <rect x="30" y="6" width="22" height="4" rx="1" fill="#fff" opacity="0.8"/>
+        <rect x="30" y="12" width="14" height="3" rx="1" fill="#94A3B8"/>
+        <rect x="60" y="4" width="14" height="5" rx="1" fill={c} opacity="0.7"/>
+        <rect x="0" y="18" width="80" height="3" fill={c} opacity="0.6"/>
+        <rect x="6" y="26" width="28" height="14" rx="2" fill="#F8FAFC" stroke="#E2E8F0" strokeWidth="0.5"/>
+        <rect x="46" y="26" width="28" height="14" rx="2" fill="#0F172A"/>
+        {[0,1,2].map(i=><rect key={i} x="6" y={45+i*6} width="68" height="4" rx="1" fill={i%2===0?"#F1F5F9":"#fff"}/>)}
+        <rect x="50" y="63" width="24" height="5" rx="2" fill="#0F172A"/>
+      </svg>
+    );
+    case "pharmacy": return (
+      <svg width={W} height={H} viewBox="0 0 80 70">
+        <rect width="80" height="70" fill="#fff"/>
+        <rect x="0" y="0" width="80" height="16" fill={c}/>
+        <rect x="4" y="4" width="8" height="8" rx="4" fill="#fff"/>
+        <rect x="16" y="5" width="24" height="4" rx="1" fill="#fff" opacity="0.9"/>
+        <rect x="16" y="11" width="16" height="2" rx="1" fill="#BAE6FD"/>
+        <rect x="60" y="5" width="14" height="6" rx="1" fill="#fff" opacity="0.3"/>
+        <line x1="48" y1="20" x2="48" y2="68" stroke={`${c}40`} strokeWidth="1" strokeDasharray="2,2"/>
+        <rect x="4" y="22" width="40" height="40" fill="transparent"/>
+        {[0,1,2].map(i=><rect key={i} x="4" y={28+i*8} width="40" height="6" rx="1" fill={i%2===0?"#EFF6FF":"#fff"} stroke="#DBEAFE" strokeWidth="0.5"/>)}
+        <rect x="52" y="22" width="24" height="24" rx="3" fill={`${c}15`} stroke={c} strokeWidth="1.5"/>
+        <text x="64" y="38" textAnchor="middle" fontSize="8" fontWeight="900" fill={c}>BILL</text>
+      </svg>
+    );
+    case "restaurant": return (
+      <svg width={W} height={H} viewBox="0 0 80 70">
+        <rect width="80" height="70" fill="#fff"/>
+        <rect x="0" y="0" width="80" height="70" fill="none" stroke={c} strokeWidth="5"/>
+        <circle cx="40" cy="14" r="8" fill={c} opacity="0.9"/>
+        <rect x="22" y="25" width="36" height="5" rx="2" fill="#1F2937" opacity="0.8"/>
+        <rect x="28" y="32" width="24" height="3" rx="1" fill="#9CA3AF"/>
+        <rect x="4" y="38" width="72" height="2" fill={c} opacity="0.4"/>
+        <rect x="4" y="42" width="72" height="2" fill={c} opacity="0.4"/>
+        {[0,1,2].map(i=><rect key={i} x="8" y={47+i*6} width="64" height="4" rx="1" fill={i%2===0?"#fff":"#FFF1F2"} stroke="#FFE4E6" strokeWidth="0.5"/>)}
+        <rect x="25" y="64" width="30" height="4" rx="2" fill={c}/>
+      </svg>
+    );
+    default: return (
+      <svg width={W} height={H} viewBox="0 0 80 70">
+        <rect width="80" height="70" fill={`${c}10`}/>
+        <rect x="4" y="4" width="72" height="8" rx="2" fill={c} opacity="0.7"/>
+        <rect x="4" y="16" width="44" height="3" rx="1" fill="#E2E8F0"/>
+        <rect x="4" y="22" width="32" height="3" rx="1" fill="#E2E8F0"/>
+        {[0,1,2].map(i=><rect key={i} x="4" y={30+i*8} width="72" height="6" rx="1" fill={i%2===0?"#fff":"#F8FAFC"} stroke={`${c}20`} strokeWidth="0.5"/>)}
+        <rect x="48" y="58" width="28" height="8" rx="2" fill={c}/>
+      </svg>
+    );
+  }
+}
