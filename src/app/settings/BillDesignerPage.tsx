@@ -454,3 +454,254 @@ function TplPremium({ c, fs, config, profile }: { c: string; fs: number; config:
     </div>
   );
 }
+
+// ── 04 Pharmacy: blue header, 2-column with big INVOICE stamp ──
+function TplPharmacy({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  const bnFs = config.businessNameSize === "large" ? fs + 6 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
+  return (
+    <div style={{ background: "#fff", fontFamily: config.fontFamily, minHeight: 560 }}>
+      {/* Blue header */}
+      <div style={{ background: c, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {config.showLogo && (
+            <div style={{ width: 40, height: 40, borderRadius: 6, background: "#fff",
+              display: "flex", alignItems: "center", justifyContent: "center", color: c, fontWeight: 900, fontSize: 18 }}>
+              {(profile.storeName || "P").charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: bnFs }}>
+              {profile.storeName || "City Pharmacy"}
+            </div>
+            <div style={{ color: "#BAE6FD", fontSize: fs - 2 }}>Licensed Pharmacy · Dl No. 12-AB-345</div>
+          </div>
+        </div>
+        <div style={{ textAlign: "right", color: "#fff" }}>
+          <div style={{ fontSize: fs - 1 }}>{profile.phone}</div>
+          <div style={{ fontSize: fs - 1 }}>{profile.address}</div>
+        </div>
+      </div>
+      {/* 2-column body */}
+      <div style={{ display: "flex", gap: 0, padding: "12px 16px" }}>
+        {/* Left: customer + items */}
+        <div style={{ flex: 1, paddingRight: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, marginBottom: 8 }}>
+            <div>
+              <div style={{ fontWeight: 700, color: c }}>PATIENT / CUSTOMER</div>
+              <div style={{ fontWeight: 600 }}>Rajesh Kumar</div>
+              <div style={{ color: "#64748B" }}>Age: 35 | Dr. Sharma</div>
+            </div>
+            <div style={{ fontSize: fs - 1 }}>
+              <div>Date: <strong>24 May 2024</strong></div>
+              <div>Bill No: <strong>INV-0123</strong></div>
+            </div>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1 }}>
+            <thead>
+              <tr style={{ background: `${c}18`, borderBottom: `2px solid ${c}` }}>
+                {["Medicine","Qty","MRP","Amt"].map(h => (
+                  <th key={h} style={{ padding: "4px 6px", textAlign: h === "Medicine" ? "left" : "right", color: c }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[{name:"Paracetamol 500mg",qty:2,rate:45},{name:"Cough Syrup 100ml",qty:1,rate:85},{name:"Vitamin D3 Caps",qty:1,rate:320}].map((it,i) => (
+                <tr key={i} style={{ borderBottom: rowBorder(config.tableStyle, c), background: rowBg(i, config.tableStyle, c) }}>
+                  <td style={{ padding: "4px 6px" }}>{it.name}</td>
+                  <td style={{ padding: "4px 6px", textAlign: "right" }}>{it.qty}</td>
+                  <td style={{ padding: "4px 6px", textAlign: "right" }}>₹{it.rate}</td>
+                  <td style={{ padding: "4px 6px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {/* Right: big INVOICE stamp + totals */}
+        <div style={{ width: 140, borderLeft: `2px dashed ${c}40`, paddingLeft: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ border: `3px double ${c}`, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+            <div style={{ fontSize: fs + 8, fontWeight: 900, color: c, letterSpacing: 2 }}>BILL</div>
+            <div style={{ fontSize: fs - 2, color: "#64748B" }}>INV-2024-0123</div>
+          </div>
+          <div style={{ fontSize: fs - 1 }}>
+            {[["Sub","₹535"],["Disc","₹0"],["GST","₹96"],["Total","₹631"]].map(([k,v],idx) => (
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", fontWeight: idx === 3 ? 700 : 400,
+                color: idx === 3 ? c : "#374151", borderTop: idx === 3 ? `1px solid ${c}` : "none",
+                paddingTop: idx === 3 ? 4 : 0, marginBottom: 3 }}>
+                <span>{k}</span><span>{v}</span>
+              </div>
+            ))}
+          </div>
+          {config.showQR && <div style={{ width: "100%", aspectRatio: "1", border: "1px solid #E2E8F0", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", background: "#F8FAFC", fontSize: 8, color: "#94A3B8" }}>QR Pay</div>}
+        </div>
+      </div>
+      <div style={{ borderTop: `1px solid ${c}`, margin: "0 16px", paddingTop: 6, paddingBottom: 8, fontSize: fs - 1, color: "#64748B", textAlign: "center" }}>
+        {config.footerText} · {config.showTerms && config.termsText.split("\n")[0]}
+      </div>
+    </div>
+  );
+}
+
+// ── 05 Restaurant: red checkered border, centered business name large ──
+function TplRestaurant({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  const bnFs = config.businessNameSize === "large" ? fs + 10 : config.businessNameSize === "small" ? fs + 4 : fs + 7;
+  return (
+    <div style={{ background: "#fff", fontFamily: config.fontFamily, minHeight: 560,
+      border: `6px solid ${c}`, outline: `3px solid #fff`, outlineOffset: "-10px" }}>
+      <div style={{ padding: "16px 20px" }}>
+        {/* Centered large business name */}
+        <div style={{ textAlign: "center", marginBottom: 10 }}>
+          {config.showLogo && (
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: c, margin: "0 auto 6px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontWeight: 900, fontSize: 26 }}>
+              {(profile.storeName || "R").charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div style={{ fontWeight: 900, fontSize: bnFs, color: c, letterSpacing: 2 }}>
+            {(profile.storeName || "LA BELLA CUCINA").toUpperCase()}
+          </div>
+          <div style={{ fontSize: fs - 1, color: "#9CA3AF", letterSpacing: 1 }}>Fine Dining · Est. 2010</div>
+          <div style={{ fontSize: fs - 1, color: "#6B7280" }}>{profile.address} · {profile.phone}</div>
+        </div>
+        {/* Decorative separator */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ flex: 1, height: 1, background: c }} />
+          <span style={{ color: c, fontSize: fs + 2 }}>✦</span>
+          <div style={{ flex: 1, height: 1, background: c }} />
+        </div>
+        {/* Invoice tag */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, fontSize: fs - 1 }}>
+          <div>
+            <div style={{ fontWeight: 600 }}>Table No: <span style={{ color: c }}>12</span></div>
+            <div>Guest: Rajesh Kumar</div>
+            <div style={{ color: "#9CA3AF" }}>Covers: 3</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontWeight: 700, color: c, fontSize: fs + 1 }}>KOT #{" "}0123</div>
+            <div>24 May 2024, 8:30 PM</div>
+            <div>Server: Amit</div>
+          </div>
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 10 }}>
+          <thead>
+            <tr style={{ background: c, color: "#fff" }}>
+              {["Item","Qty","Price","Total"].map(h => (
+                <th key={h} style={{ padding: "5px 8px", textAlign: h === "Item" ? "left" : "right", fontSize: fs - 1 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[{name:"Grilled Salmon",qty:2,rate:480},{name:"Caesar Salad",qty:1,rate:280},{name:"Tiramisu",qty:2,rate:220}].map((it,i) => (
+              <tr key={i} style={{ background: rowBg(i, config.tableStyle, c), borderBottom: rowBorder(config.tableStyle, c) }}>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1 }}>{it.name}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>₹{it.qty * it.rate}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ minWidth: 200 }}>
+            {[["Subtotal","₹1,680"],["Service Charge (10%)","₹168"],["CGST (2.5%)","₹46"],["SGST (2.5%)","₹46"]].map(([k,v]) => (
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 16, fontSize: fs - 1, marginBottom: 2 }}>
+                <span style={{ color: "#6B7280" }}>{k}</span><span>{v}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", background: c, color: "#fff",
+              padding: "6px 10px", borderRadius: 4, fontWeight: 700, marginTop: 4, fontSize: fs + 1 }}>
+              <span>GRAND TOTAL</span><span>₹1,940</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ textAlign: "center", marginTop: 10, fontSize: fs - 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 4 }}>
+            <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
+            <span style={{ color: c, fontStyle: "italic", fontWeight: 600 }}>{config.footerText}</span>
+            <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
+          </div>
+          {config.showTerms && <div style={{ fontSize: fs - 2, color: "#9CA3AF" }}>{config.termsText.split("\n")[0]}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 06 Boutique: purple, decorative header [ Business Name ] ──
+function TplBoutique({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+  const bnFs = config.businessNameSize === "large" ? fs + 7 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
+  return (
+    <div style={{ background: "#FAF5FF", fontFamily: config.fontFamily, minHeight: 560, padding: "16px 20px" }}>
+      {/* Decorative header */}
+      <div style={{ textAlign: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: fs - 1, color: c, letterSpacing: 3, marginBottom: 4 }}>✦ ✦ ✦</div>
+        {config.showLogo && (
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: c, margin: "0 auto 6px",
+            display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 20 }}>
+            {(profile.storeName || "B").charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+          <span style={{ color: c, fontSize: bnFs + 2, fontWeight: 300 }}>[</span>
+          <span style={{ fontWeight: 800, fontSize: bnFs, color: "#4B0082", letterSpacing: 2 }}>
+            {(profile.storeName || "LA BOUTIQUE").toUpperCase()}
+          </span>
+          <span style={{ color: c, fontSize: bnFs + 2, fontWeight: 300 }}>]</span>
+        </div>
+        <div style={{ fontSize: fs - 1, color: "#A78BFA", letterSpacing: 1 }}>Couture · Collections · Craftsmanship</div>
+        <div style={{ fontSize: fs - 1, color: "#9CA3AF" }}>{profile.address} · {profile.phone}</div>
+      </div>
+      {/* Thin decorative border */}
+      <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${c}, transparent)`, marginBottom: 12 }} />
+      {/* Invoice info row */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: fs - 1 }}>
+        <div style={{ background: "#fff", border: `1px solid ${c}40`, borderRadius: 8, padding: "8px 12px" }}>
+          <div style={{ fontWeight: 600, color: c, marginBottom: 2 }}>Bill To</div>
+          <div style={{ fontWeight: 700 }}>Priya Sharma</div>
+          <div style={{ color: "#9CA3AF" }}>Member #PM-0456</div>
+        </div>
+        <div style={{ textAlign: "right", background: "#fff", border: `1px solid ${c}40`, borderRadius: 8, padding: "8px 12px" }}>
+          <div style={{ fontWeight: 700, color: c }}>RECEIPT</div>
+          <div>#INV-2024-0123</div>
+          <div style={{ color: "#9CA3AF" }}>24 May 2024</div>
+        </div>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 10 }}>
+        <thead>
+          <tr style={{ borderBottom: `2px solid ${c}` }}>
+            {["Item","Size","Qty","Price","Amount"].map(h => (
+              <th key={h} style={{ padding: "5px 7px", textAlign: h === "Item" ? "left" : "right",
+                fontSize: fs - 2, color: c, fontWeight: 700, letterSpacing: 1 }}>{h.toUpperCase()}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {[{name:"Silk Scarf",size:"One size",qty:1,rate:1200},{name:"Linen Kurti",size:"M",qty:2,rate:1800},{name:"Embrd Clutch",size:"Std",qty:1,rate:950}].map((it,i) => (
+            <tr key={i} style={{ borderBottom: `1px solid ${c}20`, background: rowBg(i, config.tableStyle, c) }}>
+              <td style={{ padding: "5px 7px", fontSize: fs - 1 }}>{it.name}</td>
+              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right", color: "#9CA3AF" }}>{it.size}</td>
+              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
+              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
+              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right", fontWeight: 600, color: "#4B0082" }}>₹{it.qty * it.rate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+        <div style={{ minWidth: 190, background: "#fff", border: `1px solid ${c}40`, borderRadius: 8, padding: "8px 12px" }}>
+          {[["Subtotal","₹5,750"],["Member Disc","- ₹575"]].map(([k,v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, marginBottom: 3 }}>
+              <span style={{ color: "#9CA3AF" }}>{k}</span><span>{v}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, color: "#4B0082",
+            borderTop: `1px solid ${c}40`, paddingTop: 5, fontSize: fs }}>
+            <span>Total</span><span>₹5,175</span>
+          </div>
+        </div>
+      </div>
+      <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${c}, transparent)`, marginBottom: 8 }} />
+      <div style={{ textAlign: "center", fontSize: fs - 1, color: "#A78BFA", fontStyle: "italic" }}>{config.footerText}</div>
+    </div>
+  );
+}
