@@ -14,6 +14,7 @@ export interface BusinessProfile {
   email: string;
   upiId: string;
   website: string;
+  logoUrl: string; // base64 data URL or empty string
 }
 
 interface BusinessState {
@@ -28,6 +29,7 @@ const DEFAULT_PROFILE: BusinessProfile = {
   email: "",
   upiId: "",
   website: "",
+  logoUrl: "",
 };
 
 export const useBusinessStore = create<BusinessState>()(
