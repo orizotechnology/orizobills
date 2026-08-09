@@ -236,7 +236,6 @@ export default function PaymentInPage() {
       {/* ── Payments grouped by day ───────────────────────────── */}
       {!isLoading && !isError && grouped.length === 0 && (
         <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", padding: "60px", textAlign: "center" }}>
-          <Banknote size={40} color="#E2E8F0" style={{ margin: "0 auto 12px", display: "block" }} />
           <div style={{ fontWeight: 600, color: "#94A3B8" }}>No payments in this period</div>
           <div style={{ fontSize: 12, color: "#CBD5E1", marginTop: 4 }}>Payments from POS sales appear here automatically</div>
         </div>

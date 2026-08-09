@@ -123,7 +123,6 @@ export default function LowStockPage() {
               {critical.length === 0 && (
                 <tr><td colSpan={7} style={{ padding: "64px", textAlign: "center" }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                    <Package size={44} color="#E2E8F0" />
                     <div style={{ fontWeight: 600, color: "#94A3B8" }}>All products are well stocked 🎉</div>
                   </div>
                 </td></tr>

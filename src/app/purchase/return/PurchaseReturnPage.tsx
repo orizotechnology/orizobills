@@ -69,7 +69,6 @@ export default function PurchaseReturnPage() {
             {isError && <tr><td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#EF4444" }}><AlertTriangle size={18} /> Backend not connected</td></tr>}
             {!isLoading && !isError && returns.length === 0 && (
               <tr><td colSpan={5} style={{ padding: "64px", textAlign: "center" }}>
-                <RotateCcw size={40} color="#E2E8F0" />
                 <div style={{ marginTop: 8, fontWeight: 600, color: "#94A3B8" }}>No purchase returns yet</div>
               </td></tr>
             )}

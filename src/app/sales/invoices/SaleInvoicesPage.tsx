@@ -367,7 +367,6 @@ export default function SaleInvoicesPage() {
             {!isLoading && !isError && invoices.length === 0 && (
               <tr><td colSpan={10} style={{ padding: "64px", textAlign: "center" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                  <FileText size={40} color="#E2E8F0" />
                   <div style={{ fontWeight: 600, color: "#94A3B8" }}>
                     {search ? `No invoices matching "${search}"` : "No invoices in this period"}
                   </div>

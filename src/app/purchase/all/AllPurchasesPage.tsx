@@ -812,10 +812,6 @@ export default function AllPurchasesPage() {
                           gap: 8,
                         }}
                       >
-                        <ShoppingCart
-                          size={40}
-                          color="#E2E8F0"
-                        />
 
                         <div
                           style={{

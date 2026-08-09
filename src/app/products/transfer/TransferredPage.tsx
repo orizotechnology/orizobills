@@ -123,7 +123,6 @@ export default function TransferredPage() {
         <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0",
           padding: "64px", textAlign: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <ArrowUpRight size={44} color="#E2E8F0" />
             <div style={{ fontWeight: 600, color: "#94A3B8" }}>No transfers sent yet</div>
             <div style={{ fontSize: 12, color: "#CBD5E1" }}>Use the Transfer page to send stock to other branches</div>
           </div>

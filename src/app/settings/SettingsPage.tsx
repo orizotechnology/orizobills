@@ -213,7 +213,6 @@ function OfficerManagement() {
   if (!isAdmin) {
     return (
       <div style={{ padding: "32px", textAlign: "center" }}>
-        <ShieldCheck size={40} color="#E2E8F0" style={{ margin: "0 auto 12px" }} />
         <div style={{ fontSize: 14, fontWeight: 600, color: "#94A3B8" }}>Admin access required</div>
         <div style={{ fontSize: 13, color: "#CBD5E1", marginTop: 4 }}>Only the admin can manage officers.</div>
       </div>
@@ -281,7 +280,6 @@ function OfficerManagement() {
       {/* Officers list */}
       {officers.length === 0 ? (
         <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "40px", textAlign: "center" }}>
-          <UserCog size={36} color="#E2E8F0" style={{ margin: "0 auto 10px" }} />
           <div style={{ fontSize: 13, fontWeight: 600, color: "#94A3B8" }}>No officers yet</div>
           <div style={{ fontSize: 12, color: "#CBD5E1", marginTop: 4 }}>Add officers to let staff access the app</div>
         </div>

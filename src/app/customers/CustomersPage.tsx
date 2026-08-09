@@ -116,7 +116,6 @@ export default function CustomersPage() {
             </td></tr>}
             {!isLoading && !isError && customers.length === 0 && (
               <tr><td colSpan={7} style={centeredCell}>
-                <Users size={40} color="#E2E8F0" />
                 <div style={{ marginTop: 8, fontWeight: 600, color: "#94A3B8" }}>
                   {debSearch ? `No customers matching "${debSearch}"` : "No customers yet"}
                 </div>

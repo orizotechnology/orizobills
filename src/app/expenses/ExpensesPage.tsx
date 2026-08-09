@@ -92,7 +92,6 @@ export default function ExpensesPage() {
             {isError && <tr><td colSpan={8} style={{ padding: "40px", textAlign: "center", color: "#EF4444" }}><AlertTriangle size={18} /> Backend not connected</td></tr>}
             {!isLoading && !isError && expenses.length === 0 && (
               <tr><td colSpan={8} style={{ padding: "64px", textAlign: "center" }}>
-                <Receipt size={40} color="#E2E8F0" />
                 <div style={{ marginTop: 8, fontWeight: 600, color: "#94A3B8" }}>No expenses recorded yet</div>
               </td></tr>
             )}

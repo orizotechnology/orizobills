@@ -132,7 +132,6 @@ export default function InventoryPage() {
               </td></tr>}
               {!isLoading && !isError && items.length === 0 && (
                 <tr><td colSpan={10} style={{ padding: "64px", textAlign: "center" }}>
-                  <Package size={44} color="#E2E8F0" />
                   <div style={{ marginTop: 10, fontWeight: 600, color: "#94A3B8" }}>
                     {filter === "ALL" ? "No products in inventory yet." : `No products with status "${filter.replace("_"," ")}"`}
                   </div>

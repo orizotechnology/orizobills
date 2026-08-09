@@ -112,7 +112,6 @@ export default function SuppliersPage() {
             {isError && <tr><td colSpan={7} style={{ ...centeredCell, color: "#EF4444" }}><AlertTriangle size={18} /> Backend not connected</td></tr>}
             {!isLoading && !isError && suppliers.length === 0 && (
               <tr><td colSpan={7} style={centeredCell}>
-                <Truck size={40} color="#E2E8F0" />
                 <div style={{ marginTop: 8, fontWeight: 600, color: "#94A3B8" }}>
                   {debSearch ? `No suppliers matching "${debSearch}"` : "No suppliers yet"}
                 </div>

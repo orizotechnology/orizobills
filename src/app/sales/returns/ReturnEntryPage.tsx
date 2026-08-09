@@ -343,7 +343,6 @@ export default function ReturnEntryPage() {
                 {rows.length === 0 && (
                   <tr><td colSpan={11} style={{ padding: "60px", textAlign: "center" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                      <RotateCcw size={44} color="#E2E8F0" />
                       <div style={{ fontSize: 14, fontWeight: 600, color: "#94A3B8" }}>Search a product above to add return items</div>
                     </div>
                   </td></tr>

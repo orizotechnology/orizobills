@@ -98,15 +98,6 @@ export function ProductTable({ rows, onRemoveRow, onUpdateRow }: ProductTablePro
                   display: "flex", flexDirection: "column",
                   alignItems: "center", gap: 10,
                 }}>
-                  {/* Box icon */}
-                  <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                    <rect x="10" y="22" width="40" height="28" rx="4" fill="#FED7AA" stroke="#F97316" strokeWidth="1.5"/>
-                    <path d="M10 30h40" stroke="#F97316" strokeWidth="1.5"/>
-                    <path d="M30 22V18M24 18h12" stroke="#F97316" strokeWidth="1.5" strokeLinecap="round"/>
-                    <path d="M22 30v20M38 30v20" stroke="#FDBA74" strokeWidth="1"/>
-                    <circle cx="30" cy="10" r="3" fill="#F97316" opacity="0.5"/>
-                    <path d="M30 7V4" stroke="#F97316" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "#64748B" }}>
                     No items added.
                   </div>

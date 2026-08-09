@@ -263,7 +263,6 @@ export default function ProductsPage() {
               {!isLoading && !isError && products.length === 0 && (
                 <tr><td colSpan={9} style={{ padding: "64px", textAlign: "center" }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                    <Package size={44} color="#E2E8F0" />
                     <div style={{ fontSize: 14, fontWeight: 600, color: "#94A3B8" }}>
                       {search ? `No products matching "${search}"` : `No products with status "${STOCK_FILTERS.find(f => f.value === stockFilter)?.label ?? stockFilter}"`}
                     </div>

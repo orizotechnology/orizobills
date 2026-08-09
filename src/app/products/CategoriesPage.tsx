@@ -98,7 +98,6 @@ export default function CategoriesPage() {
           {categories.length === 0 && (
             <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0",
               padding: "60px", textAlign: "center" }}>
-              <Tag size={40} color="#E2E8F0" style={{ display: "block", margin: "0 auto 12px" }} />
               <div style={{ fontWeight: 600, color: "#94A3B8" }}>No products yet</div>
               <div style={{ fontSize: 12, color: "#CBD5E1", marginTop: 4 }}>Add products to see categories</div>
             </div>
