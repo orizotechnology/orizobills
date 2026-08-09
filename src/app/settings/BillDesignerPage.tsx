@@ -1428,7 +1428,21 @@ function TplThMinimal({ c, fs, config, profile }: { c: string; fs: number; confi
   return (
     <div style={{ width: 260, background: "#fff", fontFamily: config.fontFamily, fontSize: fs,
       color: "#000", padding: "14px 16px", minHeight: 280 }}>
-      <div style={{ fontWeight: 900, fontSize: fs + 2 }}>{profile.storeName || "STORE"}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        {config.showLogo && (
+          profile.logoUrl ? (
+            <img src={profile.logoUrl} alt="logo"
+              style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 4, flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: 28, height: 28, borderRadius: 4, background: "#000",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontWeight: 900, fontSize: fs + 4, flexShrink: 0 }}>
+              {(profile.storeName || "S").charAt(0).toUpperCase()}
+            </div>
+          )
+        )}
+        <div style={{ fontWeight: 900, fontSize: fs + 2 }}>{profile.storeName || "STORE"}</div>
+      </div>
       <div style={{ fontSize: fs - 2, color: "#555", marginBottom: 6 }}>{profile.phone} · INV-0123 · 24 May 2024</div>
       <div style={{ borderTop: "1px solid #000", marginBottom: 6 }} />
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 6 }}>
