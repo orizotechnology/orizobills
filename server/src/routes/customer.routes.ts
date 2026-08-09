@@ -15,14 +15,19 @@ function toResult(c: any) {
 
 export async function customerRoutes(fastify: FastifyInstance) {
 
-  fastify.get("/", async (req: FastifyRequest<{ Querystring: { search?: string; pageSize?: string } }>, reply) => {
+  fastify.get("/", async (req: FastifyRequest<{ Querystring: { search?: string; page?: string; pageSize?: string } }>, reply) => {
     try {
-      const { search, pageSize } = req.query;
+      const { search, page, pageSize } = req.query;
+      const pg   = Math.max(1, Number(page ?? 1));
+      const size = Math.min(200, Math.max(1, Number(pageSize ?? 50)));
       const where = search
         ? { isActive: true, OR: [{ name: { contains: search } }, { phone: { contains: search } }] }
         : { isActive: true };
-      const rows = await req.prisma.customer.findMany({ where, orderBy: { name: "asc" }, ...(pageSize ? { take: Number(pageSize) } : {}) });
-      return reply.send(successResponse(rows.map(toResult)));
+      const [rows, total] = await Promise.all([
+        req.prisma.customer.findMany({ where, orderBy: { name: "asc" }, skip: (pg - 1) * size, take: size }),
+        req.prisma.customer.count({ where }),
+      ]);
+      return reply.send(successResponse({ data: rows.map(toResult), total }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
