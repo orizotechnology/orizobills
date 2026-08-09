@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   UserRound, Printer, Save, RefreshCw, Archive,
@@ -82,11 +83,13 @@ export default function PosPage() {
   useEffect(() => {
     if (pendingPrintRef.current && printData) {
       pendingPrintRef.current = false;
-      // Small timeout ensures browser has painted the receipt before print dialog
-      setTimeout(() => {
-        window.print();
-        setPrinting(false);
-      }, 80);
+      // Double rAF ensures browser has fully painted the portal before print dialog
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.print();
+          setPrinting(false);
+        });
+      });
     }
   }, [printData]);
 
@@ -140,15 +143,14 @@ export default function PosPage() {
           paidAmount:   paid,
           paymentMode:  bill.paymentMode,
         };
-        setPrintData(snapshot);
         qc.invalidateQueries({ queryKey: ["sales"] });
         qc.invalidateQueries({ queryKey: ["inventory"] });
         if (andPrint) {
-          // Set pending flag BEFORE state update so useEffect catches it
+          // Set flag BEFORE setPrintData so useEffect fires with flag=true
           pendingPrintRef.current = true;
           setPrinting(true);
-          // resetAfterSave happens when user closes the overview
         }
+        setPrintData(snapshot);
         // Show the bill overview modal — user decides to print or close
         setShowBillOverview(true);
         resetAfterSave();
@@ -163,10 +165,10 @@ export default function PosPage() {
   }, [bill, qc, totalAmount, mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst]);
 
   // ── Print ───────────────────────────────────────────────────
-  const triggerPrint = () => {
+  const triggerPrint = useCallback(() => {
     // Build snapshot from current bill if no saved print data exists
-    const dataToUse = printData ?? (() => {
-      if (!bill || bill.rows.length === 0) return null;
+    const snap = printData ?? (() => {
+      if (!bill) return null;
       const validRows = bill.rows.filter((r) => r.product.trim() && r.qty > 0);
       if (!validRows.length) return null;
       const paid = parseFloat(bill.paidAmount) || totalAmount;
@@ -180,18 +182,22 @@ export default function PosPage() {
         paymentMode:  bill.paymentMode,
       };
     })();
-    if (!dataToUse) return;
+    if (!snap) return;
+
     setPrinting(true);
-    pendingPrintRef.current = true;
-    // If printData already has the right value, useEffect won't fire again —
-    // so force-trigger print directly in that case
-    if (printData === dataToUse) {
-      pendingPrintRef.current = false;
-      setTimeout(() => { window.print(); setPrinting(false); }, 80);
+
+    if (snap === printData) {
+      // printData already in DOM — fire directly
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        window.print();
+        setPrinting(false);
+      }));
     } else {
-      setPrintData(dataToUse); // useEffect will fire window.print() after render
+      // Set flag first, then state — useEffect will fire after render
+      pendingPrintRef.current = true;
+      setPrintData(snap);
     }
-  };
+  }, [printData, bill, mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst, totalAmount]);
 
   // ── Add empty row ───────────────────────────────────────────
   const addEmptyRow = useCallback(() => {
@@ -479,29 +485,32 @@ export default function PosPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Hidden print receipt area — visible only on print ── */}
-      <div id="pos-print-area">
-        {printData && Array.from({ length: Math.max(1, printSettings.copies) }).map((_, i) => (
-          <PosPrintReceipt
-            key={i}
-            invoiceNo={printData.invoiceNo}
-            customerName={printData.customerName}
-            invoiceDate={printData.invoiceDate}
-            rows={printData.rows}
-            mrpTotal={printData.mrpTotal}
-            subTotal={printData.subTotal}
-            discTotal={printData.discTotal}
-            taxableAmt={printData.taxableAmt}
-            cgst={printData.cgst}
-            sgst={printData.sgst}
-            totalAmount={printData.totalAmount}
-            paidAmount={printData.paidAmount}
-            paymentMode={printData.paymentMode}
-            settings={printSettings}
-            profile={profile}
-          />
-        ))}
-      </div>
+      {/* ── Print receipt portal — renders directly into body ── */}
+      {printData && createPortal(
+        <div id="pos-print-area">
+          {Array.from({ length: Math.max(1, printSettings.copies) }).map((_, i) => (
+            <PosPrintReceipt
+              key={i}
+              invoiceNo={printData.invoiceNo}
+              customerName={printData.customerName}
+              invoiceDate={printData.invoiceDate}
+              rows={printData.rows}
+              mrpTotal={printData.mrpTotal}
+              subTotal={printData.subTotal}
+              discTotal={printData.discTotal}
+              taxableAmt={printData.taxableAmt}
+              cgst={printData.cgst}
+              sgst={printData.sgst}
+              totalAmount={printData.totalAmount}
+              paidAmount={printData.paidAmount}
+              paymentMode={printData.paymentMode}
+              settings={printSettings}
+              profile={profile}
+            />
+          ))}
+        </div>,
+        document.body
+      )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

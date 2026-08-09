@@ -1,52 +1,51 @@
 /* =============================================================
    POS PRINT STYLESHEET
-   When window.print() fires from PosPage:
-   - Hides everything on screen
-   - Shows only #pos-print-area
+   The receipt portal (#pos-print-area) is rendered directly
+   into document.body via ReactDOM.createPortal().
+   On screen it is hidden. On print everything else is hidden.
    ============================================================= */
 
+/* ── Screen: hide the portal ─────────────────────────────── */
 @media screen {
-  /* Hide the print area completely on screen */
   #pos-print-area {
     display: none !important;
+    visibility: hidden !important;
+    position:   absolute !important;
+    left:       -9999px !important;
   }
 }
 
+/* ── Print: show ONLY the portal ─────────────────────────── */
 @media print {
-  /* Hide every child of #root */
-  #root > * {
+  /* hide the entire app */
+  body > #root {
     display: none !important;
   }
 
-  /* Show only the print area */
-  #root > #pos-print-area {
-    display: block !important;
-  }
-
-  /* Also handle if it sits outside root */
+  /* show the portal that is a direct child of body */
   body > #pos-print-area {
-    display: block !important;
+    display:    block !important;
+    visibility: visible !important;
+    position:   static !important;
+    left:       auto !important;
+    width:      100% !important;
   }
 
-  /* Reset page margins */
   @page {
     margin: 4mm;
-    size: auto;
+    size:   auto;
   }
 
-  /* Prevent page breaks inside a single receipt */
   .pos-receipt {
     page-break-inside: avoid;
     break-inside:      avoid;
   }
 
-  /* Each copy on its own page */
   .pos-receipt + .pos-receipt {
     page-break-before: always;
     break-before:      page;
   }
 
-  /* Make sure background colors print */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust:         exact !important;
