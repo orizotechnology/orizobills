@@ -1853,3 +1853,196 @@ export default function BillDesignerPage() {
             </button>
           </div>
         </div>
+
+        {/* ── RIGHT: Properties panel ─────────────────────── */}
+        <div style={{ background: "#fff", borderLeft: "1px solid #E2E8F0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ display: "flex", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
+            {(["properties", "arrange"] as const).map(t => (
+              <button key={t} onClick={() => setRightTab(t)}
+                style={{ flex: 1, padding: "10px 0", border: "none",
+                  borderBottom: rightTab === t ? "2px solid #F97316" : "2px solid transparent",
+                  background: "none", cursor: "pointer", fontFamily: "inherit", outline: "none",
+                  fontSize: 12, fontWeight: rightTab === t ? 700 : 500,
+                  color: rightTab === t ? "#F97316" : "#64748B", transition: "all 0.15s" }}>
+                {t === "properties" ? "🎨 Properties" : "Aa Arrange"}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
+            {rightTab === "properties" ? (
+              <>
+                <PropSection title="Template Settings" icon={<span>⚙</span>} defaultOpen>
+                  <PR label="Paper Size">
+                    <select value={config.paperType} onChange={e => C({ paperType: e.target.value as PrintConfig["paperType"] })} style={sel}>
+                      <option>A4</option><option>A5</option><option>Thermal 80mm</option><option>Thermal 58mm</option>
+                    </select>
+                  </PR>
+                  <PR label="Primary Color">
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <input type="color" value={config.primaryColor}
+                        onChange={e => C({ primaryColor: e.target.value })}
+                        style={{ width: 28, height: 28, border: "1px solid #E2E8F0", borderRadius: 6, cursor: "pointer", padding: 2 }} />
+                      <span style={{ fontSize: 11, color: "#64748B" }}>{config.primaryColor}</span>
+                    </div>
+                  </PR>
+                  <PR label="Font">
+                    <select value={config.fontFamily} onChange={e => C({ fontFamily: e.target.value })} style={sel}>
+                      {FONT_FAMILIES.map(f => <option key={f}>{f}</option>)}
+                    </select>
+                  </PR>
+                  <PR label="Font Size">
+                    <select value={config.fontSize} onChange={e => C({ fontSize: e.target.value as PrintConfig["fontSize"] })} style={sel}>
+                      {FONT_SIZES.map(f => <option key={f.v} value={f.v}>{f.l}</option>)}
+                    </select>
+                  </PR>
+                </PropSection>
+
+                <PropSection title="Layout & Style" icon={<span>🖼</span>} defaultOpen>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>Header Alignment</div>
+                    <TriBtn options={[{v:"left",l:"Left"},{v:"center",l:"Center"},{v:"right",l:"Right"}]} value={config.headerAlign} onChange={v => C({ headerAlign: v })} />
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>Layout Style</div>
+                    <TriBtn options={[{v:"compact",l:"Compact"},{v:"standard",l:"Standard"},{v:"spacious",l:"Spacious"}]} value={config.layoutStyle} onChange={v => C({ layoutStyle: v })} />
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>Table Style</div>
+                    <TriBtn options={[{v:"striped",l:"Striped"},{v:"bordered",l:"Bordered"},{v:"minimal",l:"Minimal"}]} value={config.tableStyle} onChange={v => C({ tableStyle: v })} />
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>Business Name Size</div>
+                    <TriBtn options={[{v:"small",l:"S"},{v:"medium",l:"M"},{v:"large",l:"L"}]} value={config.businessNameSize} onChange={v => C({ businessNameSize: v })} />
+                  </div>
+                </PropSection>
+
+                <PropSection title="Show / Hide Elements" icon={<span>👁</span>} defaultOpen>
+                  <PR label="Show Logo">          <Tog value={config.showLogo}          onChange={v => C({ showLogo: v })} /></PR>
+                  <PR label="Signature Line">     <Tog value={config.showSignature}     onChange={v => C({ showSignature: v })} /></PR>
+                  <PR label="Bank Details">       <Tog value={config.showBankDetails}   onChange={v => C({ showBankDetails: v })} /></PR>
+                  <PR label="QR Code">            <Tog value={config.showQR}            onChange={v => C({ showQR: v })} /></PR>
+                  <PR label="Terms & Conditions"> <Tog value={config.showTerms}         onChange={v => C({ showTerms: v })} /></PR>
+                  <PR label="Amount in Words">    <Tog value={config.showAmountInWords} onChange={v => C({ showAmountInWords: v })} /></PR>
+                </PropSection>
+
+                <PropSection title="Footer Settings" icon={<span>📝</span>}>
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, color: "#475569", marginBottom: 4 }}>Footer Message</div>
+                    <textarea value={config.footerText} onChange={e => C({ footerText: e.target.value })} rows={2}
+                      style={{ width: "100%", border: "1px solid #E2E8F0", borderRadius: 6, padding: "6px 8px",
+                        fontSize: 11, color: "#1E293B", background: "#F8FAFC", outline: "none",
+                        fontFamily: "inherit", resize: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "#475569", marginBottom: 4 }}>Terms & Conditions</div>
+                    <textarea value={config.termsText} onChange={e => C({ termsText: e.target.value })} rows={3}
+                      style={{ width: "100%", border: "1px solid #E2E8F0", borderRadius: 6, padding: "6px 8px",
+                        fontSize: 11, color: "#1E293B", background: "#F8FAFC", outline: "none",
+                        fontFamily: "inherit", resize: "none", boxSizing: "border-box" }} />
+                  </div>
+                </PropSection>
+              </>
+            ) : (
+              <div style={{ padding: "14px" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 12 }}>Appearance</div>
+                <PR label="Font">
+                  <select value={config.fontFamily} onChange={e => C({ fontFamily: e.target.value })} style={sel}>
+                    {FONT_FAMILIES.map(f => <option key={f}>{f}</option>)}
+                  </select>
+                </PR>
+                <PR label="Font Size">
+                  <select value={config.fontSize} onChange={e => C({ fontSize: e.target.value as PrintConfig["fontSize"] })} style={sel}>
+                    {FONT_SIZES.map(f => <option key={f.v} value={f.v}>{f.l}</option>)}
+                  </select>
+                </PR>
+                <PR label="Color">
+                  <input type="color" value={config.primaryColor} onChange={e => C({ primaryColor: e.target.value })}
+                    style={{ width: 28, height: 28, border: "1px solid #E2E8F0", borderRadius: 6, cursor: "pointer", padding: 2 }} />
+                </PR>
+              </div>
+            )}
+
+            {/* Paper & Print Settings (always visible at bottom) */}
+            <div style={{ margin: "0 14px 14px", borderTop: "1px solid #F1F5F9", paddingTop: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 10 }}>Paper & Print</div>
+              <PR label="Orientation">
+                <div style={{ display: "flex", gap: 6 }}>
+                  {(["portrait", "landscape"] as const).map(o => (
+                    <button key={o} onClick={() => C({ orientation: o })}
+                      style={{ width: 30, height: 30, borderRadius: 6,
+                        border: `1.5px solid ${config.orientation === o ? "#F97316" : "#E2E8F0"}`,
+                        background: config.orientation === o ? "#FFF7ED" : "#fff",
+                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        outline: "none", fontSize: 14 }}>
+                      {o === "portrait" ? "□" : "▭"}
+                    </button>
+                  ))}
+                </div>
+              </PR>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Margin (mm)</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {(["marginTop","marginBottom","marginLeft","marginRight"] as const).map(k => (
+                  <div key={k}>
+                    <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 3, textTransform: "capitalize" }}>
+                      {k.replace("margin", "")}
+                    </div>
+                    <input type="number" value={config[k] as number}
+                      onChange={e => C({ [k]: parseInt(e.target.value) || 0 })}
+                      style={{ ...numInp, width: "100%" }} />
+                  </div>
+                ))}
+              </div>
+              <PR label="Copies">
+                <input type="number" value={config.copies}
+                  onChange={e => C({ copies: Math.max(1, parseInt(e.target.value) || 1) })}
+                  style={numInp} />
+              </PR>
+              <PR label="Auto Print on Save">
+                <Tog value={config.autoPrint} onChange={v => C({ autoPrint: v })} />
+              </PR>
+              <button onClick={() => window.print()}
+                style={{ width: "100%", padding: "9px 0", background: "#F97316", color: "#fff",
+                  border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit", outline: "none", marginTop: 8,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <Printer size={14} /> Print Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Small button helpers ───────────────────────────────────────
+function TopBtn({ icon, label, onClick, active }: {
+  icon: React.ReactNode; label: string; onClick: () => void; active?: boolean;
+}) {
+  return (
+    <button onClick={onClick}
+      style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px",
+        border: `1px solid ${active ? "#F97316" : "#E2E8F0"}`,
+        borderRadius: 8, background: active ? "#FFF7ED" : "#fff",
+        color: active ? "#F97316" : "#475569", fontSize: 12, fontWeight: 600,
+        cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
+      {icon}{label}
+    </button>
+  );
+}
+
+function BotBtn({ icon, label, onClick, danger, orange }: {
+  icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean; orange?: boolean;
+}) {
+  return (
+    <button onClick={onClick}
+      style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px",
+        border: `1px solid ${danger ? "#FECDD3" : orange ? "#F97316" : "#E2E8F0"}`,
+        borderRadius: 8, background: orange ? "#FFF7ED" : "#fff",
+        color: danger ? "#EF4444" : orange ? "#F97316" : "#475569",
+        fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
+      {icon}{label}
+    </button>
+  );
+}
