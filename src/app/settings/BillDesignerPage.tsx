@@ -191,6 +191,7 @@ const SAMPLE_ITEMS = [
 type ProfileArg = {
   storeName: string; address: string;
   phone: string; email: string; upiId: string;
+  logoUrl?: string;
 };
 
 // ── Utility: row background for table style ───────────────────
@@ -1073,15 +1074,20 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
       {hv === "centered" && (
         <div style={{ textAlign: "center", marginBottom: 6 }}>
           {config.showLogo && (
-            <div style={{
-              width: 40, height: 40, borderRadius: "50%", background: c,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontWeight: 900, fontSize: fs + 8,
-              margin: "0 auto 5px",
-              boxShadow: `0 2px 8px ${c}60`,
-            }}>
-              {(profile.storeName || "S").charAt(0).toUpperCase()}
-            </div>
+            profile.logoUrl ? (
+              <img src={profile.logoUrl} alt="logo"
+                style={{ width: 44, height: 44, objectFit: "contain", borderRadius: 6, margin: "0 auto 5px", display: "block" }} />
+            ) : (
+              <div style={{
+                width: 40, height: 40, borderRadius: "50%", background: c,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontWeight: 900, fontSize: fs + 8,
+                margin: "0 auto 5px",
+                boxShadow: `0 2px 8px ${c}60`,
+              }}>
+                {(profile.storeName || "S").charAt(0).toUpperCase()}
+              </div>
+            )
           )}
           <div style={{ fontWeight: 900, fontSize: fs + 3, color: c }}>{(profile.storeName || "SHOP").toUpperCase()}</div>
           <div style={{ fontSize: fs - 2, color: "#64748B" }}>{profile.address}</div>
@@ -1092,13 +1098,18 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             {config.showLogo && (
-              <div style={{
-                width: 30, height: 30, borderRadius: 6, background: c,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontWeight: 900, fontSize: fs + 4, flexShrink: 0,
-              }}>
-                {(profile.storeName || "S").charAt(0).toUpperCase()}
-              </div>
+              profile.logoUrl ? (
+                <img src={profile.logoUrl} alt="logo"
+                  style={{ width: 30, height: 30, objectFit: "contain", borderRadius: 6, flexShrink: 0 }} />
+              ) : (
+                <div style={{
+                  width: 30, height: 30, borderRadius: 6, background: c,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontWeight: 900, fontSize: fs + 4, flexShrink: 0,
+                }}>
+                  {(profile.storeName || "S").charAt(0).toUpperCase()}
+                </div>
+              )
             )}
             <div>
               <div style={{ fontWeight: 900, color: c, fontSize: fs + 2 }}>{profile.storeName || "SHOP"}</div>
@@ -1113,14 +1124,19 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
       {hv === "boxed" && (
         <div style={{ border: `2px solid ${c}`, padding: "6px 8px", marginBottom: 6, textAlign: "center" }}>
           {config.showLogo && (
-            <div style={{
-              width: 32, height: 32, borderRadius: 6, background: c,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontWeight: 900, fontSize: fs + 6,
-              margin: "0 auto 4px",
-            }}>
-              {(profile.storeName || "S").charAt(0).toUpperCase()}
-            </div>
+            profile.logoUrl ? (
+              <img src={profile.logoUrl} alt="logo"
+                style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 6, margin: "0 auto 4px", display: "block" }} />
+            ) : (
+              <div style={{
+                width: 32, height: 32, borderRadius: 6, background: c,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontWeight: 900, fontSize: fs + 6,
+                margin: "0 auto 4px",
+              }}>
+                {(profile.storeName || "S").charAt(0).toUpperCase()}
+              </div>
+            )
           )}
           <div style={{ fontWeight: 900, fontSize: fs + 3, color: c }}>{profile.storeName || "SHOP"}</div>
           <div style={{ fontSize: fs - 2 }}>{profile.phone} · {profile.address}</div>
@@ -1722,6 +1738,7 @@ export default function BillDesignerPage() {
     phone:     profile.phone,
     email:     profile.email,
     upiId:     profile.upiId,
+    logoUrl:   profile.logoUrl,
   };
 
   return (
