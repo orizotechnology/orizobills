@@ -1072,16 +1072,38 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
       {/* Header */}
       {hv === "centered" && (
         <div style={{ textAlign: "center", marginBottom: 6 }}>
-          {config.showLogo && <div style={{ fontWeight: 900, fontSize: fs + 3, color: c }}>{(profile.storeName || "SHOP").toUpperCase()}</div>}
+          {config.showLogo && (
+            <div style={{
+              width: 40, height: 40, borderRadius: "50%", background: c,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontWeight: 900, fontSize: fs + 8,
+              margin: "0 auto 5px",
+              boxShadow: `0 2px 8px ${c}60`,
+            }}>
+              {(profile.storeName || "S").charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div style={{ fontWeight: 900, fontSize: fs + 3, color: c }}>{(profile.storeName || "SHOP").toUpperCase()}</div>
           <div style={{ fontSize: fs - 2, color: "#64748B" }}>{profile.address}</div>
           <div style={{ fontSize: fs - 2, color: "#64748B" }}>{profile.phone}</div>
         </div>
       )}
       {hv === "leftright" && (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-          <div>
-            <div style={{ fontWeight: 900, color: c, fontSize: fs + 2 }}>{profile.storeName || "SHOP"}</div>
-            <div style={{ fontSize: fs - 2, color: "#64748B" }}>{profile.phone}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            {config.showLogo && (
+              <div style={{
+                width: 30, height: 30, borderRadius: 6, background: c,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontWeight: 900, fontSize: fs + 4, flexShrink: 0,
+              }}>
+                {(profile.storeName || "S").charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <div style={{ fontWeight: 900, color: c, fontSize: fs + 2 }}>{profile.storeName || "SHOP"}</div>
+              <div style={{ fontSize: fs - 2, color: "#64748B" }}>{profile.phone}</div>
+            </div>
           </div>
           <div style={{ textAlign: "right", fontSize: fs - 2, color: "#64748B" }}>
             <div>INV-0123</div><div>24-May-24</div>
