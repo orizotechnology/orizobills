@@ -14,6 +14,7 @@ interface BillSummaryProps {
   taxableAmount: number;
   cgst:          number;
   sgst:          number;
+  roundingAdj:   number;  // difference from rounding total to nearest ₹5
   totalAmount:   number;
   paidAmount:    string;
   onPaidAmountChange: (v: string) => void;
@@ -22,8 +23,8 @@ interface BillSummaryProps {
 }
 
 function fmt(n: number) {
-  const s = n.toFixed(2);
-  return `₹${s.endsWith(".00") ? s.slice(0, -3) : s}`;
+  // All POS amounts are rounded to nearest ₹5 — show as whole rupees
+  return `₹${Math.round(n)}`;
 }
 
 function buildUpiUrl(upiId: string, amount: number): string {
@@ -158,7 +159,7 @@ const qrBox: React.CSSProperties = {
 
 export function BillSummary({
   mrpTotal, subTotal, discount, taxableAmount,
-  cgst, sgst, totalAmount,
+  cgst, sgst, roundingAdj, totalAmount,
   paidAmount, onPaidAmountChange,
   paymentMode, onPaymentModeChange,
 }: BillSummaryProps) {
@@ -233,6 +234,24 @@ export function BillSummary({
             <span style={{ fontWeight: 500, color, fontSize: 12 }}>{value}</span>
           </div>
         ))}
+
+        {/* Rounding adjustment — only shown when non-zero */}
+        {roundingAdj !== 0 && (
+          <div style={{
+            display: "flex", justifyContent: "space-between",
+            alignItems: "center", marginBottom: 5,
+          }}>
+            <span style={{ color: "#64748B", fontSize: 12 }}>
+              Rounding {roundingAdj > 0 ? "▲" : "▼"}
+            </span>
+            <span style={{
+              fontWeight: 500, fontSize: 12,
+              color: roundingAdj > 0 ? "#16A34A" : "#EF4444",
+            }}>
+              {roundingAdj > 0 ? "+" : ""}{fmt(roundingAdj)}
+            </span>
+          </div>
+        )}
 
         {/* Total row */}
         <div style={{

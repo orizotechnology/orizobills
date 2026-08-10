@@ -42,7 +42,7 @@ export default function PosPage() {
     invoiceNo: string; customerName: string; invoiceDate: Date;
     rows: ProductRow[]; mrpTotal: number; subTotal: number;
     discTotal: number; taxableAmt: number; cgst: number; sgst: number;
-    totalAmount: number; paidAmount: number; paymentMode: string;
+    roundingAdj: number; totalAmount: number; paidAmount: number; paymentMode: string;
   } | null>(null);
   // Used to trigger window.print() after printData is committed to DOM
   const pendingPrintRef = useRef(false);
@@ -56,22 +56,25 @@ export default function PosPage() {
   const paidAmt  = bill?.paidAmount  ?? "";
 
   // ── Totals ──────────────────────────────────────────────────
-  const mrpTotal    = rows.reduce((s, r) => s + r.mrp   * r.qty, 0);
-  const subTotal    = rows.reduce((s, r) => s + r.price * r.qty, 0);
-  const discTotal   = rows.reduce((s, r) => s + r.discAmt, 0) + discount;
-  const taxableAmt  = Math.max(0, subTotal - discTotal);
-  const cgst        = rows.reduce((s, r) => s + r.taxAmt / 2, 0);
-  const sgst        = cgst;
-  const totalAmount = Math.max(0, taxableAmt + cgst + sgst);
-  const totalItems  = rows.length;
-  const totalQty    = rows.reduce((s, r) => s + r.qty, 0);
-  const totalTax    = rows.reduce((s, r) => s + r.taxAmt, 0);
+  const mrpTotal      = rows.reduce((s, r) => s + r.mrp   * r.qty, 0);
+  const subTotal      = rows.reduce((s, r) => s + r.price * r.qty, 0);
+  // bill.discount is a percentage — convert to rupee amount before adding
+  const billDiscAmt   = subTotal * (discount / 100);
+  const rowDiscAmt    = rows.reduce((s, r) => s + r.discAmt, 0);
+  const discTotal     = rowDiscAmt + billDiscAmt;
+  const taxableAmt    = Math.max(0, subTotal - discTotal);
+  const cgst          = rows.reduce((s, r) => s + r.taxAmt / 2, 0);
+  const sgst          = cgst;
+  const rawTotal      = Math.max(0, taxableAmt + cgst + sgst);
+  // Round to nearest ₹5 (e.g. ₹252.50 → ₹255, ₹252.00 → ₹250)
+  const totalAmount   = Math.round(rawTotal / 5) * 5;
+  const roundingAdj   = +(totalAmount - rawTotal).toFixed(2);
+  const totalItems    = rows.length;
+  const totalQty      = rows.reduce((s, r) => s + r.qty, 0);
+  const totalTax      = rows.reduce((s, r) => s + r.taxAmt, 0);
 
-  // Drop .00 from displayed amounts
-  const fmtAmt = (n: number) => {
-    const s = n.toFixed(2);
-    return s.endsWith(".00") ? String(Math.round(n)) : s;
-  };
+  // All amounts are whole rupees after rounding — no decimals needed
+  const fmtAmt = (n: number) => String(Math.round(n));
 
   // Sync discountStr when active bill switches (tab change)
   useEffect(() => {
@@ -127,7 +130,8 @@ export default function PosPage() {
           customerName: bill.customer.trim() || "Walk-in Customer",
           invoiceDate:  new Date(),
           rows:         validRows,
-          mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst, totalAmount,
+          mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst,
+          roundingAdj, totalAmount,
           paidAmount:   paid,
           paymentMode:  bill.paymentMode,
         };
@@ -165,7 +169,8 @@ export default function PosPage() {
         customerName: bill.customer.trim() || "Walk-in Customer",
         invoiceDate:  new Date(),
         rows:         validRows,
-        mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst, totalAmount,
+        mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst,
+        roundingAdj, totalAmount,
         paidAmount:   paid,
         paymentMode:  bill.paymentMode,
       };
@@ -432,6 +437,7 @@ export default function PosPage() {
         <BillSummary
           mrpTotal={mrpTotal} subTotal={subTotal} discount={discTotal}
           taxableAmount={taxableAmt} cgst={cgst} sgst={sgst}
+          roundingAdj={roundingAdj}
           totalAmount={totalAmount} paidAmount={paidAmt}
           onPaidAmountChange={(v) => updateBill(bill.id, { paidAmount: v })}
           paymentMode={payMode}
@@ -612,13 +618,13 @@ interface OverviewData {
   invoiceNo: string; customerName: string; invoiceDate: Date;
   rows: ProductRow[]; mrpTotal: number; subTotal: number;
   discTotal: number; taxableAmt: number; cgst: number; sgst: number;
-  totalAmount: number; paidAmount: number; paymentMode: string;
+  roundingAdj: number; totalAmount: number; paidAmount: number; paymentMode: string;
 }
 
 function BillOverviewModal({
   data, onPrint, onClose,
 }: { data: OverviewData; onPrint: () => void; onClose: () => void }) {
-  const f = (n: number) => "₹" + n.toFixed(2).replace(/\.00$/, "");
+  const f = (n: number) => "₹" + Math.round(n);
   const change = Math.max(0, data.paidAmount - data.totalAmount);
   const dateStr = data.invoiceDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   const timeStr = data.invoiceDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
@@ -726,6 +732,14 @@ function BillOverviewModal({
                   <span style={{ color: "#64748B" }}>SGST</span><span>{f(data.sgst)}</span>
                 </div>
               </>
+            )}
+            {data.roundingAdj !== 0 && (
+              <div style={totRow}>
+                <span style={{ color: "#64748B" }}>Rounding {data.roundingAdj > 0 ? "▲" : "▼"}</span>
+                <span style={{ color: data.roundingAdj > 0 ? "#16A34A" : "#EF4444", fontWeight: 600 }}>
+                  {data.roundingAdj > 0 ? "+" : ""}{f(data.roundingAdj)}
+                </span>
+              </div>
             )}
             {/* Big total row */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",

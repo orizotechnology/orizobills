@@ -10,7 +10,7 @@ import type { BusinessProfile } from "@/store/business.store";
 // =============================================================
 
 interface ReceiptProps {
-  invoiceNo:    string;   // real invoice number from server after save, or local tab label
+  invoiceNo:    string;
   customerName: string;
   invoiceDate:  Date;
   rows:         ProductRow[];
@@ -20,6 +20,7 @@ interface ReceiptProps {
   taxableAmt:   number;
   cgst:         number;
   sgst:         number;
+  roundingAdj:  number;
   totalAmount:  number;
   paidAmount:   number;
   paymentMode:  string;
@@ -28,7 +29,7 @@ interface ReceiptProps {
 }
 
 function fmt(n: number): string {
-  return "₹" + n.toFixed(2).replace(/\.00$/, "");
+  return "₹" + Math.round(n);
 }
 
 function fmtDate(d: Date): string {
@@ -151,6 +152,14 @@ function ThermalReceipt({
               <span style={{ color: "#666" }}>SGST</span><span>{fmt(sgst)}</span>
             </div>
           </>
+        )}
+        {roundingAdj !== 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#666" }}>Rounding {roundingAdj > 0 ? "▲" : "▼"}</span>
+            <span style={{ color: roundingAdj > 0 ? "#16a34a" : "#e53e3e" }}>
+              {roundingAdj > 0 ? "+" : ""}{fmt(roundingAdj)}
+            </span>
+          </div>
         )}
         <div style={{ display: "flex", justifyContent: "space-between",
           fontWeight: 900, fontSize: fs + 1, borderTop: `1px solid ${c}`,
