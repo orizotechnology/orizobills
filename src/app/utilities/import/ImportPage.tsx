@@ -237,6 +237,7 @@ function CircularProgress({ done, total, inserted }: { done: number; total: numb
   const pct    = total > 0 ? done / total : 0;
   const dash   = circ * pct;
   const gap    = circ - dash;
+  const pctInt = total > 0 ? Math.floor((done / total) * 100) : 0;
 
   return (
     <div style={{ position: "relative", width: size, height: size }}>
@@ -254,7 +255,7 @@ function CircularProgress({ done, total, inserted }: { done: number; total: numb
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${dash} ${gap}`}
-          style={{ transition: "stroke-dasharray 0.3s ease" }}
+          style={{ transition: "stroke-dasharray 0.15s linear" }}
         />
       </svg>
       {/* Centre text */}
@@ -264,9 +265,12 @@ function CircularProgress({ done, total, inserted }: { done: number; total: numb
         alignItems: "center", justifyContent: "center",
       }}>
         <span style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", lineHeight: 1 }}>
-          {Math.round(pct * 100)}%
+          {pctInt}%
         </span>
         <span style={{ fontSize: 11, color: "#64748B", marginTop: 3 }}>
+          {done}/{total}
+        </span>
+        <span style={{ fontSize: 11, color: "#22C55E", marginTop: 1, fontWeight: 600 }}>
           {inserted} saved
         </span>
       </div>
@@ -370,15 +374,9 @@ export default function ImportPage() {
       setPhase("error"); return;
     }
 
-    // ── Chunked import with live progress ──────────────────
-    // Split into chunks of 500 rows. Send each chunk sequentially.
-    // Progress ring updates after every chunk.
-    const CHUNK = 500;
-    const chunks: Record<string, unknown>[][] = [];
-    for (let i = 0; i < cleanRows.length; i += CHUNK) {
-      chunks.push(cleanRows.slice(i, i + CHUNK));
-    }
-
+    // ── Row-by-row import with live progress ──────────────
+    // Send each row individually so the progress ring increments
+    // one step at a time and the percentage never jumps.
     const totalRows = cleanRows.length;
     setProgress({ done: 0, total: totalRows, inserted: 0 });
     setPhase("importing");
@@ -388,11 +386,10 @@ export default function ImportPage() {
     const allErrors:  string[] = [];
 
     try {
-      for (let ci = 0; ci < chunks.length; ci++) {
-        const chunk = chunks[ci];
-        const payload: Record<string, unknown> = { rows: chunk };
-        // Only send batches with the first chunk (batch rows map to product names)
-        if (ci === 0 && cleanBatches?.length) payload.batches = cleanBatches;
+      for (let i = 0; i < cleanRows.length; i++) {
+        const payload: Record<string, unknown> = { rows: [cleanRows[i]] };
+        // Send batches only with the first row
+        if (i === 0 && cleanBatches?.length) payload.batches = cleanBatches;
 
         const res = await http.post<{
           success: boolean;
@@ -409,8 +406,8 @@ export default function ImportPage() {
         totalSkipped  += res.data.skipped;
         allErrors.push(...res.data.errors);
 
-        const rowsDone = Math.min((ci + 1) * CHUNK, totalRows);
-        setProgress({ done: rowsDone, total: totalRows, inserted: totalInserted });
+        // Update progress after every single row
+        setProgress({ done: i + 1, total: totalRows, inserted: totalInserted });
       }
 
       setResult({ inserted: totalInserted, skipped: totalSkipped, errors: allErrors });
@@ -627,7 +624,7 @@ export default function ImportPage() {
                 <span style={{ color: "#F97316" }}>{activeBranch?.name ?? "Main Branch"}</span>
               </div>
               <div style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>
-                {progress.done} of {progress.total} rows processed · {progress.inserted} saved
+                Row {progress.done} of {progress.total} · {progress.inserted} saved
               </div>
             </div>
           </div>
