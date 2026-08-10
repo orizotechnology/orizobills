@@ -1,186 +1,311 @@
-import { useState } from "react";
-import { Calculator } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
 
-type CalcOp = "+" | "-" | "×" | "÷" | null;
-
-export default function CalculatorPage() {
+export default function Calculator() {
   const [display, setDisplay] = useState("0");
-  const [prev, setPrev]       = useState<number | null>(null);
-  const [op, setOp]           = useState<CalcOp>(null);
-  const [fresh, setFresh]     = useState(false); // next digit resets display
+  const [prevValue, setPrevValue] = useState(null);
+  const [operator, setOperator] = useState(null);
+  const [waitingForNext, setWaitingForNext] = useState(false);
 
-  const pushDigit = (d: string) => {
-    setDisplay((cur) => {
-      if (fresh) { setFresh(false); return d; }
-      if (cur === "0" && d !== ".") return d;
-      if (d === "." && cur.includes(".")) return cur;
-      return cur + d;
-    });
-  };
+  const inputDigit = useCallback(
+    (digit) => {
+      if (waitingForNext) {
+        setDisplay(digit);
+        setWaitingForNext(false);
+      } else {
+        setDisplay(display === "0" ? digit : display + digit);
+      }
+    },
+    [display, waitingForNext]
+  );
 
-  const pushOp = (o: CalcOp) => {
-    const val = parseFloat(display);
-    if (prev !== null && op && !fresh) {
-      const result = compute(prev, val, op);
-      setDisplay(String(result));
-      setPrev(result);
-    } else {
-      setPrev(val);
+  const inputDecimal = useCallback(() => {
+    if (waitingForNext) {
+      setDisplay("0.");
+      setWaitingForNext(false);
+      return;
     }
-    setOp(o);
-    setFresh(true);
-  };
+    if (!display.includes(".")) {
+      setDisplay(display + ".");
+    }
+  }, [display, waitingForNext]);
 
-  const equals = () => {
-    if (prev === null || op === null) return;
-    const val = parseFloat(display);
-    const result = compute(prev, val, op);
-    setDisplay(String(result));
-    setPrev(null);
-    setOp(null);
-    setFresh(true);
-  };
-
-  const clear = () => {
+  const clearAll = useCallback(() => {
     setDisplay("0");
-    setPrev(null);
-    setOp(null);
-    setFresh(false);
+    setPrevValue(null);
+    setOperator(null);
+    setWaitingForNext(false);
+  }, []);
+
+  const toggleSign = useCallback(() => {
+    setDisplay((d) => (d.charAt(0) === "-" ? d.slice(1) : "-" + d));
+  }, []);
+
+  const inputPercent = useCallback(() => {
+    setDisplay((d) => String(parseFloat(d) / 100));
+  }, []);
+
+  const backspace = useCallback(() => {
+    setDisplay((d) => {
+      if (d.length === 1 || (d.length === 2 && d.charAt(0) === "-")) return "0";
+      return d.slice(0, -1);
+    });
+  }, []);
+
+  const calculate = (a, b, op) => {
+    switch (op) {
+      case "+":
+        return a + b;
+      case "-":
+        return a - b;
+      case "×":
+        return a * b;
+      case "÷":
+        return b === 0 ? NaN : a / b;
+      default:
+        return b;
+    }
   };
 
-  const toggleSign = () => {
-    setDisplay((cur) => String(parseFloat(cur) * -1));
+  const formatResult = (num) => {
+    if (Number.isNaN(num)) return "Error";
+    if (!Number.isFinite(num)) return "Error";
+    const rounded = Math.round(num * 1e10) / 1e10;
+    return String(rounded);
   };
 
-  const percent = () => {
-    setDisplay((cur) => String(parseFloat(cur) / 100));
+  const performOperator = useCallback(
+    (nextOperator) => {
+      const inputValue = parseFloat(display);
+
+      if (prevValue === null) {
+        setPrevValue(inputValue);
+      } else if (operator && !waitingForNext) {
+        const result = calculate(prevValue, inputValue, operator);
+        setDisplay(formatResult(result));
+        setPrevValue(Number.isNaN(result) ? null : result);
+      }
+
+      setWaitingForNext(true);
+      setOperator(nextOperator);
+    },
+    [display, prevValue, operator, waitingForNext]
+  );
+
+  const performEquals = useCallback(() => {
+    const inputValue = parseFloat(display);
+    if (operator === null || prevValue === null) return;
+    const result = calculate(prevValue, inputValue, operator);
+    setDisplay(formatResult(result));
+    setPrevValue(null);
+    setOperator(null);
+    setWaitingForNext(true);
+  }, [display, prevValue, operator]);
+
+  // Keyboard support
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const { key } = e;
+
+      if (key >= "0" && key <= "9") {
+        e.preventDefault();
+        inputDigit(key);
+        return;
+      }
+
+      switch (key) {
+        case ".":
+          e.preventDefault();
+          inputDecimal();
+          break;
+        case "+":
+          e.preventDefault();
+          performOperator("+");
+          break;
+        case "-":
+          e.preventDefault();
+          performOperator("-");
+          break;
+        case "*":
+        case "x":
+        case "X":
+          e.preventDefault();
+          performOperator("×");
+          break;
+        case "/":
+          e.preventDefault();
+          performOperator("÷");
+          break;
+        case "Enter":
+        case "=":
+          e.preventDefault();
+          performEquals();
+          break;
+        case "Backspace":
+          e.preventDefault();
+          backspace();
+          break;
+        case "Delete":
+        case "Escape":
+          e.preventDefault();
+          clearAll();
+          break;
+        case "%":
+          e.preventDefault();
+          inputPercent();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [inputDigit, inputDecimal, performOperator, performEquals, backspace, clearAll, inputPercent]);
+
+  const isActiveOp = (op) => operator === op && waitingForNext;
+
+  const keyBase = {
+    height: 70,
+    fontSize: 22,
+    fontWeight: 500,
+    border: "1px solid #eef0f5",
+    background: "#ffffff",
+    color: "#1a1f36",
+    cursor: "pointer",
+    outline: "none",
+    transition: "filter 0.15s ease",
   };
 
-  const backspace = () => {
-    setDisplay((cur) => (cur.length > 1 ? cur.slice(0, -1) : "0"));
+  const grayKey = {
+    ...keyBase,
+    background: "#eef1f8",
+    color: "#4b5468",
   };
+
+  const orangeKey = (active) => ({
+    ...keyBase,
+    background: active ? "#c9520f" : "#f0791f",
+    color: "#ffffff",
+  });
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 420 }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: 10,
-          background: "rgba(249,115,22,0.1)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <Calculator size={20} color="#F97316" />
+    <div
+      style={{
+        minHeight: "100vh",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f6f7fb",
+        fontFamily:
+          "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        padding: 24,
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          width: 320,
+          borderRadius: 16,
+          overflow: "hidden",
+          boxShadow: "0 10px 30px rgba(20,24,40,0.08)",
+          border: "1px solid #eceef4",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "14px 18px",
+            background: "#ffffff",
+          }}
+        >
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              background: "#fbe4d0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 18,
+            }}
+          >
+            🧮
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 15, color: "#1a1f36" }}>
+              Calculator
+            </div>
+            <div style={{ fontSize: 12, color: "#8a91a6" }}>
+              Quick calculations while billing
+            </div>
+          </div>
         </div>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0F172A" }}>Calculator</h1>
-          <p style={{ margin: 0, fontSize: 13, color: "#64748B" }}>Quick calculations while billing</p>
-        </div>
-      </div>
 
-      {/* Body */}
-      <div style={{
-        background: "#fff",
-        border: "1px solid #E2E8F0",
-        borderRadius: 16,
-        overflow: "hidden",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-        maxWidth: 320,
-      }}>
         {/* Display */}
-        <div style={{
-          background: "#0F172A",
-          padding: "24px 20px 16px",
-          textAlign: "right",
-        }}>
-          <div style={{ color: "#64748B", fontSize: 13, minHeight: 18, marginBottom: 4 }}>
-            {prev !== null ? `${prev} ${op ?? ""}` : ""}
-          </div>
-          <div style={{
-            color: "#fff",
-            fontSize: display.length > 12 ? 22 : 36,
-            fontWeight: 300,
-            fontFamily: "monospace",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}>
+        <div
+          style={{
+            background: "#131a2c",
+            color: "#ffffff",
+            minHeight: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            padding: "0 20px",
+          }}
+        >
+          <span
+            style={{
+              fontSize: 40,
+              fontWeight: 400,
+              wordBreak: "break-all",
+              overflowWrap: "anywhere",
+              textAlign: "right",
+            }}
+          >
             {display}
-          </div>
+          </span>
         </div>
 
-        {/* Buttons */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 1,
-          background: "#E2E8F0",
-        }}>
-          {[
-            { label: "AC",  action: clear,              type: "func" as const },
-            { label: "+/-", action: toggleSign,          type: "func" as const },
-            { label: "%",   action: percent,             type: "func" as const },
-            { label: "÷",   action: () => pushOp("÷"),  type: "op"   as const },
+        {/* Keypad */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 1,
+            background: "#eef0f5",
+          }}
+        >
+          <button style={grayKey} onClick={clearAll}>AC</button>
+          <button style={grayKey} onClick={toggleSign}>+/-</button>
+          <button style={grayKey} onClick={inputPercent}>%</button>
+          <button style={orangeKey(isActiveOp("÷"))} onClick={() => performOperator("÷")}>÷</button>
 
-            { label: "7",   action: () => pushDigit("7"), type: "num" as const },
-            { label: "8",   action: () => pushDigit("8"), type: "num" as const },
-            { label: "9",   action: () => pushDigit("9"), type: "num" as const },
-            { label: "×",   action: () => pushOp("×"),    type: "op"  as const },
+          <button style={keyBase} onClick={() => inputDigit("7")}>7</button>
+          <button style={keyBase} onClick={() => inputDigit("8")}>8</button>
+          <button style={keyBase} onClick={() => inputDigit("9")}>9</button>
+          <button style={orangeKey(isActiveOp("×"))} onClick={() => performOperator("×")}>×</button>
 
-            { label: "4",   action: () => pushDigit("4"), type: "num" as const },
-            { label: "5",   action: () => pushDigit("5"), type: "num" as const },
-            { label: "6",   action: () => pushDigit("6"), type: "num" as const },
-            { label: "-",   action: () => pushOp("-"),    type: "op"  as const },
+          <button style={keyBase} onClick={() => inputDigit("4")}>4</button>
+          <button style={keyBase} onClick={() => inputDigit("5")}>5</button>
+          <button style={keyBase} onClick={() => inputDigit("6")}>6</button>
+          <button style={orangeKey(isActiveOp("-"))} onClick={() => performOperator("-")}>-</button>
 
-            { label: "1",   action: () => pushDigit("1"), type: "num" as const },
-            { label: "2",   action: () => pushDigit("2"), type: "num" as const },
-            { label: "3",   action: () => pushDigit("3"), type: "num" as const },
-            { label: "+",   action: () => pushOp("+"),    type: "op"  as const },
+          <button style={keyBase} onClick={() => inputDigit("1")}>1</button>
+          <button style={keyBase} onClick={() => inputDigit("2")}>2</button>
+          <button style={keyBase} onClick={() => inputDigit("3")}>3</button>
+          <button style={orangeKey(isActiveOp("+"))} onClick={() => performOperator("+")}>+</button>
 
-            { label: "⌫",   action: backspace,            type: "func" as const },
-            { label: "0",   action: () => pushDigit("0"), type: "num"  as const },
-            { label: ".",   action: () => pushDigit("."), type: "num"  as const },
-            { label: "=",   action: equals,               type: "eq"   as const },
-          ].map(({ label, action, type }) => {
-            const bg = type === "op" ? "#F97316"
-                     : type === "eq" ? "#EA580C"
-                     : type === "func" ? "#F1F5F9"
-                     : "#fff";
-            const color = type === "op" || type === "eq" ? "#fff"
-                        : type === "func" ? "#475569"
-                        : "#0F172A";
-            return (
-              <button
-                key={label}
-                onClick={action}
-                style={{
-                  background: bg,
-                  color,
-                  border: "none",
-                  padding: "18px 0",
-                  fontSize: 18,
-                  fontWeight: type === "eq" || type === "op" ? 600 : 400,
-                  cursor: "pointer",
-                  transition: "filter 0.1s",
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.filter = "brightness(0.92)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.filter = "none"; }}
-              >
-                {label}
-              </button>
-            );
-          })}
+          <button style={grayKey} onClick={backspace}>⌫</button>
+          <button style={keyBase} onClick={() => inputDigit("0")}>0</button>
+          <button style={keyBase} onClick={inputDecimal}>.</button>
+          <button style={{ ...keyBase, background: "#dd5a11", color: "#fff" }} onClick={performEquals}>=</button>
         </div>
       </div>
     </div>
   );
-}
-
-function compute(a: number, b: number, op: CalcOp): number {
-  switch (op) {
-    case "+": return a + b;
-    case "-": return a - b;
-    case "×": return a * b;
-    case "÷": return b !== 0 ? a / b : 0;
-    default:  return b;
-  }
 }
