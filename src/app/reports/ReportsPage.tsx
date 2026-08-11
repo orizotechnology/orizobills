@@ -8,6 +8,7 @@ import { http } from "@/lib/axios";
 // =============================================================
 
 type ReportKey = "sales" | "purchases" | "stock" | "customers" | "pnl" | "gst" | null;
+type DateFilter = "today" | "week" | "month" | "custom" | "all";
 
 interface ApiResp<T> { success: boolean; data: T }
 
@@ -19,6 +20,60 @@ const CARDS = [
   { key: "pnl"       as ReportKey, icon: BarChart2,   color: "#EF4444", title: "Profit & Loss",      desc: "Net profit, expenses & GST summary" },
   { key: "gst"       as ReportKey, icon: FileText,    color: "#F59E0B", title: "GST Reports",        desc: "GSTR-1, GSTR-3B and HSN summary" },
 ];
+
+const DATE_FILTERS: { key: DateFilter; label: string }[] = [
+  { key: "today",  label: "Today" },
+  { key: "week",   label: "This Week" },
+  { key: "month",  label: "This Month" },
+  { key: "custom", label: "Custom" },
+  { key: "all",    label: "All" },
+];
+
+// ── Date filter bar (top-right pill toggle) ────────────────────
+
+function DateFilterBar({ value, onChange }: { value: DateFilter; onChange: (v: DateFilter) => void }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        background: "#fff",
+        border: "1px solid #E2E8F0",
+        borderRadius: 10,
+        padding: 4,
+        flexShrink: 0,
+      }}
+    >
+      {DATE_FILTERS.map((f) => {
+        const active = value === f.key;
+        return (
+          <button
+            key={f.key}
+            onClick={() => onChange(f.key)}
+            style={{
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontSize: 12.5,
+              fontWeight: 600,
+              padding: "7px 14px",
+              borderRadius: 7,
+              whiteSpace: "nowrap",
+              background: active ? "#F97316" : "transparent",
+              color: active ? "#fff" : "#64748B",
+              transition: "background 0.15s, color 0.15s",
+            }}
+            onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = "#F8FAFC"; }}
+            onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+          >
+            {f.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 // ── Individual report components ─────────────────────────────
 
@@ -263,6 +318,7 @@ const REPORT_CONTENT: Record<NonNullable<ReportKey>, React.ReactNode> = {
 
 export default function ReportsPage() {
   const [active, setActive] = useState<ReportKey>(null);
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
 
   // Show detail view when a report is selected
   if (active) {
@@ -276,14 +332,17 @@ export default function ReportsPage() {
         >
           <ArrowLeft size={15} /> Back to Reports
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${card.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Icon size={20} color={card.color} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: `${card.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon size={20} color={card.color} />
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#0F172A" }}>{card.title}</div>
+              <div style={{ fontSize: 13, color: "#94A3B8" }}>{card.desc}</div>
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#0F172A" }}>{card.title}</div>
-            <div style={{ fontSize: 13, color: "#94A3B8" }}>{card.desc}</div>
-          </div>
+          <DateFilterBar value={dateFilter} onChange={setDateFilter} />
         </div>
         {REPORT_CONTENT[active]}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
