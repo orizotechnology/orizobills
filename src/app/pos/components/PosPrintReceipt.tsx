@@ -40,6 +40,7 @@ function fmtDate(d: Date): string {
 function ThermalReceipt({
   invoiceNo, customerName, invoiceDate,
   rows, mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst,
+  roundingAdj,
   totalAmount, paidAmount, paymentMode,
   settings, profile,
 }: ReceiptProps) {
