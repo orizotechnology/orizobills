@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart2, FileText, TrendingUp, ShoppingBag, Package, Users, ArrowLeft } from "lucide-react";
+import { BarChart2, FileText, TrendingUp, ShoppingBag, Package, Users, ArrowLeft, Download } from "lucide-react";
 import { http } from "@/lib/axios";
 
 // =============================================================
@@ -156,6 +156,17 @@ function PurchaseSummaryReport({ dateRange }: { dateRange: DateRange }) {
   const tax      = rows.reduce((s, r) => s + r.taxAmt, 0);
   const discount = rows.reduce((s, r) => s + r.discountAmt, 0);
   const fmt = (v: number) => `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+
+  const handleExport = () => {
+    downloadCSV("purchase-summary.csv", ["Metric", "Value"], [
+      ["Total Bills", rows.length],
+      ["Total Amount", total],
+      ["Total Tax Paid", tax],
+      ["Total Discount", discount],
+      ["Avg Bill Value", rows.length ? total / rows.length : 0],
+    ]);
+  };
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
       {[
@@ -188,6 +199,15 @@ function StockReport() {
   const items   = data?.data?.items   ?? [];
   const summary = data?.data?.summary;
   const fmt = (v: number) => `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+
+  const handleExport = () => {
+    downloadCSV(
+      "stock-report.csv",
+      ["Product", "Code", "Unit", "Stock", "Value", "Status"],
+      items.map((item) => [item.productName, item.productCode, item.unit, item.currentStock, item.stockValue.toFixed(2), item.status.replace("_", " ")])
+    );
+  };
+
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
@@ -202,6 +222,9 @@ function StockReport() {
             <div style={{ fontSize: 20, fontWeight: 800, color: r.color }}>{r.value}</div>
           </div>
         ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <ExportButton onExport={handleExport} disabled={items.length === 0} />
       </div>
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -240,12 +263,27 @@ function StockReport() {
 function CustomerReport() {
   const { data, isLoading } = useQuery({
     queryKey: ["report-customers"],
-    queryFn: () => http.get<ApiResp<Array<{ id: string; name: string; phone: string | null; balance: number; createdAt: string }>>>("/customers"),
+    queryFn: () => http.get<ApiResp<Customer[] | { data: Customer[]; total: number }>>("/customers"),
     staleTime: 60_000,
   });
   if (isLoading) return <LoadingState />;
   const customers        = (data?.data ?? []).sort((a, b) => b.balance - a.balance);
   const totalOutstanding = customers.filter((c) => c.balance > 0).reduce((s, c) => s + c.balance, 0);
+
+  const handleExport = () => {
+    downloadCSV(
+      "customer-report.csv",
+      ["Customer", "Phone", "Balance", "Type", "Since"],
+      customers.map((c) => [
+        c.name,
+        c.phone ?? "",
+        Math.abs(c.balance).toFixed(2),
+        c.balance > 0 ? "DR" : c.balance < 0 ? "CR" : "",
+        new Date(c.createdAt).toLocaleDateString("en-IN"),
+      ])
+    );
+  };
+
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
@@ -259,6 +297,9 @@ function CustomerReport() {
             <div style={{ fontSize: 20, fontWeight: 800, color: r.color }}>{r.value}</div>
           </div>
         ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <ExportButton onExport={handleExport} disabled={customers.length === 0} />
       </div>
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -315,6 +356,16 @@ function PnLReport({ dateRange }: { dateRange: DateRange }) {
     { label: "Total Expenses",      value: `(${fmt(totalExp)})`,               color: "#EF4444", bold: false },
     { label: "Net Profit / (Loss)", value: fmt(Math.abs(netProfit)),           color: netProfit >= 0 ? "#16A34A" : "#EF4444", bold: true },
   ];
+
+  const handleExport = () => {
+    downloadCSV("profit-and-loss.csv", ["Line Item", "Amount"], [
+      ["Total Revenue", s?.totalSales ?? 0],
+      ["Cost of Purchases", -(s?.totalPurchases ?? 0)],
+      ["Total Expenses", -totalExp],
+      ["Net Profit / (Loss)", netProfit],
+    ]);
+  };
+
   return (
     <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, overflow: "hidden", maxWidth: 480 }}>
       {rows.map((r, i) => (
@@ -343,8 +394,20 @@ function GstReport({ dateRange }: { dateRange: DateRange }) {
   const totalCgst = rows.reduce((s, r) => s + r.cgst, 0);
   const totalSgst = rows.reduce((s, r) => s + r.sgst, 0);
   const fmt = (v: number) => `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+
+  const handleExport = () => {
+    downloadCSV(
+      "gst-report.csv",
+      ["Invoice Date", "CGST", "SGST", "Total Amount"],
+      rows.map((r) => [new Date(r.invoiceDate).toLocaleDateString("en-IN"), r.cgst.toFixed(2), r.sgst.toFixed(2), r.totalAmt.toFixed(2)])
+    );
+  };
+
   return (
     <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <ExportButton onExport={handleExport} disabled={rows.length === 0} />
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
         {[
           { label: "Total CGST", value: fmt(totalCgst),              color: "#F59E0B" },
