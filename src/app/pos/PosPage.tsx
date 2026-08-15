@@ -52,21 +52,24 @@ export default function PosPage() {
   const bill     = getActiveBill();
   const rows     = bill?.rows ?? [];
   const discount = bill?.discount  ?? 0;
-  const payMode  = bill?.paymentMode ?? "Cash";
-  const paidAmt  = bill?.paidAmount  ?? "";
+  const payMode      = bill?.paymentMode  ?? "Cash";
+  const paidAmt      = bill?.paidAmount   ?? "";
+  const discType     = bill?.discountType ?? "%";
 
   // ── Totals ──────────────────────────────────────────────────
   const mrpTotal      = rows.reduce((s, r) => s + r.mrp   * r.qty, 0);
   const subTotal      = rows.reduce((s, r) => s + r.price * r.qty, 0);
-  // bill.discount is a percentage — convert to rupee amount before adding
-  const billDiscAmt   = subTotal * (discount / 100);
+  // bill-level discount: % mode = percentage of subTotal, ₹ mode = flat rupee deduction
+  const billDiscAmt   = discType === "%" 
+    ? subTotal * (discount / 100)
+    : Math.min(discount, subTotal);           // ₹ — can't discount more than subtotal
   const rowDiscAmt    = rows.reduce((s, r) => s + r.discAmt, 0);
   const discTotal     = rowDiscAmt + billDiscAmt;
   const taxableAmt    = Math.max(0, subTotal - discTotal);
   const cgst          = rows.reduce((s, r) => s + r.taxAmt / 2, 0);
   const sgst          = cgst;
   const rawTotal      = Math.max(0, taxableAmt + cgst + sgst);
-  // Round to nearest ₹5 (e.g. ₹252.50 → ₹255, ₹252.00 → ₹250)
+  // Round to nearest ₹5
   const totalAmount   = Math.round(rawTotal / 5) * 5;
   const roundingAdj   = +(totalAmount - rawTotal).toFixed(2);
   const totalItems    = rows.length;
@@ -80,7 +83,7 @@ export default function PosPage() {
   useEffect(() => {
     if (!bill) return;
     setDiscountStr(bill.discount === 0 ? "" : String(bill.discount));
-  }, [bill?.id]);
+  }, [bill?.id]); // discountType is already in bill state, no extra sync needed
 
   // ── Fire window.print() AFTER printData is committed to DOM ─
   useEffect(() => {
@@ -336,26 +339,48 @@ export default function PosPage() {
               </select>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Discount — toggle between % and ₹ */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 12, color: "#64748B" }}>Discount</span>
+
+              {/* Type toggle: % / ₹ */}
+              <div style={{ display: "flex", border: "1px solid #E2E8F0", borderRadius: 7, overflow: "hidden" }}>
+                {(["%", "₹"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      updateBill(bill.id, { discountType: t, discount: 0 });
+                      setDiscountStr("");
+                    }}
+                    style={{
+                      padding: "5px 9px", border: "none", cursor: "pointer",
+                      fontSize: 12, fontWeight: 700, fontFamily: "inherit",
+                      background: discType === t ? "#F97316" : "#fff",
+                      color:      discType === t ? "#fff"    : "#64748B",
+                      transition: "background 0.15s",
+                    }}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {/* Value input */}
               <input
                 type="text"
                 inputMode="numeric"
                 value={discountStr}
                 placeholder="0"
                 onChange={(e) => {
-                  // Allow only digits and a single decimal point
                   const raw = e.target.value.replace(/[^0-9.]/g, "");
                   setDiscountStr(raw);
                   const n = parseFloat(raw);
-                  updateBill(bill.id, { discount: isNaN(n) ? 0 : Math.min(n, 100) });
+                  const capped = isNaN(n) ? 0
+                    : discType === "%" ? Math.min(n, 100)
+                    : n; // ₹ — no upper cap here, calc handles it
+                  updateBill(bill.id, { discount: capped });
                 }}
-                onFocus={(e) => {
-                  // Select all on focus so user can replace immediately
-                  e.currentTarget.select();
-                }}
+                onFocus={(e) => { e.currentTarget.select(); }}
                 onBlur={() => {
-                  // Normalise on blur — empty becomes "" (placeholder shows 0)
                   const n = parseFloat(discountStr);
                   if (isNaN(n) || n === 0) {
                     setDiscountStr("");
@@ -365,12 +390,18 @@ export default function PosPage() {
                   }
                 }}
                 style={{
-                  width: 60, border: "1px solid #E2E8F0", borderRadius: 7,
+                  width: 64, border: "1px solid #E2E8F0", borderRadius: 7,
                   padding: "6px 8px", fontSize: 13, textAlign: "right",
                   outline: "none", fontFamily: "inherit",
                 }}
               />
-              <span style={{ fontSize: 12, color: "#64748B" }}>%</span>
+
+              {/* Live computed discount amount — shown as hint */}
+              {billDiscAmt > 0 && (
+                <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 600, whiteSpace: "nowrap" }}>
+                  −₹{Math.round(billDiscAmt)}
+                </span>
+              )}
             </div>
 
             <div style={{ flex: 1 }} />

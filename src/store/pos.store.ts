@@ -10,6 +10,7 @@ export interface Bill {
   paymentMode: "Cash" | "UPI" | "Card" | "Split";
   paidAmount: string;
   discount: number;
+  discountType: "%" | "₹";
   createdAt: string;
 }
 
@@ -65,6 +66,7 @@ function makeBill(n: number): Bill {
     paymentMode: "Cash",
     paidAmount: "",
     discount: 0,
+    discountType: "%",
     createdAt: new Date().toISOString(),
   };
 }
