@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Search, Truck, Edit2, Trash2, RefreshCw, AlertTriangle, X, Loader2, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Truck, Wallet, CheckCircle, Edit2, Trash2, RefreshCw, AlertTriangle, X, Loader2, CheckCircle2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { http } from "@/lib/axios";
 import { useInfiniteScroll } from "@/hooks";
 
@@ -13,12 +13,43 @@ interface Supplier {
 interface ApiResponse<T> { success: boolean; data: T; }
 
 const PAGE_SIZE = 50;
+type BalanceFilter = "ALL" | "PAYABLE" | "SETTLED";
+type SortKey = "name" | "balance";
+type SortDir = "asc" | "desc";
+
+// Single warm tone family — distinct from Customers page's multi-color avatars
+const SUPPLIER_AVATAR_SHADES = ["#C2410C", "#EA580C", "#D97706", "#B45309", "#9A3412"];
+function avatarShadeFor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return SUPPLIER_AVATAR_SHADES[Math.abs(hash) % SUPPLIER_AVATAR_SHADES.length];
+}
+function initialsFor(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function PayableBadge({ balance }: { balance: number }) {
+  if (balance === 0) {
+    return <span style={{ ...badgeBase, background: "#F1F5F9", color: "#64748B" }}>Settled</span>;
+  }
+  return (
+    <span style={{ ...badgeBase, background: "#FFF7ED", color: "#C2410C" }}>
+      ₹{Math.abs(balance).toFixed(2)} Payable
+    </span>
+  );
+}
 
 export default function SuppliersPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [debSearch, setDebSearch] = useState("");
   const [dialog, setDialog] = useState<Supplier | null | "new">(null);
+  const [balanceFilter, setBalanceFilter] = useState<BalanceFilter>("ALL");
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const handleSearch = (val: string) => {
     setSearch(val);
@@ -47,8 +78,37 @@ export default function SuppliersPage() {
     staleTime: 30_000,
   });
 
-  const suppliers = data?.pages.flatMap((p) => p.data) ?? [];
-  const total     = data?.pages[0]?.total ?? 0;
+  const allSuppliers = data?.pages.flatMap((p) => p.data) ?? [];
+  const total        = data?.pages[0]?.total ?? 0;
+
+  const summary = useMemo(() => {
+    let payable = 0, payableCount = 0, settledCount = 0;
+    for (const s of allSuppliers) {
+      if (s.balance > 0) { payable += s.balance; payableCount++; }
+      else settledCount++;
+    }
+    return { payable, payableCount, settledCount };
+  }, [allSuppliers]);
+
+  const suppliers = useMemo(() => {
+    let list = allSuppliers;
+    if (balanceFilter === "PAYABLE") list = list.filter((s) => s.balance > 0);
+    else if (balanceFilter === "SETTLED") list = list.filter((s) => s.balance === 0);
+
+    if (sortKey) {
+      list = [...list].sort((a, b) => {
+        const cmp = sortKey === "name" ? a.name.localeCompare(b.name) : a.balance - b.balance;
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
+    return list;
+  }, [allSuppliers, balanceFilter, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey !== key) { setSortKey(key); setSortDir("asc"); }
+    else if (sortDir === "asc") setSortDir("desc");
+    else { setSortKey(null); setSortDir("asc"); }
+  };
 
   const sentinelRef = useInfiniteScroll({
     onLoadMore: () => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); },
@@ -68,6 +128,11 @@ export default function SuppliersPage() {
     await refetch();
   }, [qc, refetch]);
 
+  const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => {
+    if (!active) return <ArrowUpDown size={11} color="#CBD5E1" />;
+    return dir === "asc" ? <ArrowUp size={11} color="#C2410C" /> : <ArrowDown size={11} color="#C2410C" />;
+  };
+
   return (
     <div style={{ padding: "24px 28px", height: "100%", display: "flex", flexDirection: "column", background: "#F8FAFC" }}>
       {/* Header */}
@@ -86,14 +151,52 @@ export default function SuppliersPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #E2E8F0", padding: "10px 14px", marginBottom: 14, flexShrink: 0 }}>
-        <div style={{ position: "relative", maxWidth: 340 }}>
+      {/* Summary cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 16, flexShrink: 0 }}>
+        {[
+          { icon: <Truck size={20} color="#C2410C" />,      label: "Total Suppliers", value: `${total}`,                    color: "#C2410C", f: "ALL" as BalanceFilter     },
+          { icon: <Wallet size={20} color="#EA580C" />,     label: "Payable Due",     value: `₹${summary.payable.toFixed(2)}`, color: "#EA580C", f: "PAYABLE" as BalanceFilter },
+          { icon: <CheckCircle size={20} color="#22C55E" />,label: "Settled",         value: `${summary.settledCount}`,     color: "#22C55E", f: "SETTLED" as BalanceFilter  },
+        ].map((c) => (
+          <button key={c.label} onClick={() => setBalanceFilter(c.f)} style={{
+            background: "#fff", border: `1.5px solid ${balanceFilter === c.f ? c.color : "#E2E8F0"}`,
+            borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12,
+            cursor: "pointer", textAlign: "left",
+            boxShadow: balanceFilter === c.f ? `0 0 0 3px ${c.color}22` : "none", transition: "all 0.15s",
+          }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: `${c.color}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>{c.icon}</div>
+            <div>
+              <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>{c.label}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#0F172A" }}>{c.value}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Search + balance filter chips */}
+      <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #E2E8F0", padding: "10px 14px", marginBottom: 14, flexShrink: 0, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ position: "relative", maxWidth: 340, flex: 1 }}>
           <Search size={13} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none" }} />
           <input value={search} onChange={(e) => handleSearch(e.target.value)} placeholder="Search by name or phone…"
             style={{ width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "7px 10px 7px 28px", fontSize: 13, color: "#475569", background: "#F8FAFC", outline: "none", fontFamily: "inherit", boxSizing: "border-box" as const }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#F97316"; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "#C2410C"; }}
             onBlur={(e)  => { e.currentTarget.style.borderColor = "#E2E8F0"; }} />
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {([
+            { key: "ALL",     label: "All" },
+            { key: "PAYABLE", label: `Payable (${summary.payableCount})` },
+            { key: "SETTLED", label: `Settled (${summary.settledCount})` },
+          ] as { key: BalanceFilter; label: string }[]).map((f) => (
+            <button key={f.key} onClick={() => setBalanceFilter(f.key)} style={{
+              padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              border: balanceFilter === f.key ? "1.5px solid #C2410C" : "1.5px solid #E2E8F0",
+              background: balanceFilter === f.key ? "#FFF7ED" : "#fff",
+              color: balanceFilter === f.key ? "#C2410C" : "#64748B",
+            }}>
+              {f.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -102,18 +205,30 @@ export default function SuppliersPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
             <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-              {["Name","Phone","Email","Address","GSTIN","Balance",""].map((h) => (
-                <th key={h} style={thStyle}>{h}</th>
-              ))}
+              <th style={thStyle}>
+                <button onClick={() => toggleSort("name")} style={sortHeaderBtn}>
+                  Name <SortIcon active={sortKey === "name"} dir={sortDir} />
+                </button>
+              </th>
+              <th style={thStyle}>Phone</th>
+              <th style={thStyle}>Email</th>
+              <th style={thStyle}>Address</th>
+              <th style={thStyle}>GSTIN</th>
+              <th style={thStyle}>
+                <button onClick={() => toggleSort("balance")} style={sortHeaderBtn}>
+                  Balance <SortIcon active={sortKey === "balance"} dir={sortDir} />
+                </button>
+              </th>
+              <th style={thStyle}></th>
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={7} style={centeredCell}><Loader2 size={20} color="#F97316" style={{ animation: "spin 0.7s linear infinite" }} /></td></tr>}
+            {isLoading && <tr><td colSpan={7} style={centeredCell}><Loader2 size={20} color="#C2410C" style={{ animation: "spin 0.7s linear infinite" }} /></td></tr>}
             {isError && <tr><td colSpan={7} style={{ ...centeredCell, color: "#EF4444" }}><AlertTriangle size={18} /> Backend not connected</td></tr>}
             {!isLoading && !isError && suppliers.length === 0 && (
               <tr><td colSpan={7} style={centeredCell}>
                 <div style={{ marginTop: 8, fontWeight: 600, color: "#94A3B8" }}>
-                  {debSearch ? `No suppliers matching "${debSearch}"` : "No suppliers yet"}
+                  {debSearch ? `No suppliers matching "${debSearch}"` : balanceFilter !== "ALL" ? "No suppliers match this filter" : "No suppliers yet"}
                 </div>
               </td></tr>
             )}
@@ -123,18 +238,30 @@ export default function SuppliersPage() {
                   style={{ borderBottom: idx < suppliers.length - 1 ? "1px solid #F1F5F9" : "none" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
-                  <td style={{ ...tdStyle, fontWeight: 600 }}>{s.name}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                        background: avatarShadeFor(s.name) + "1A", color: avatarShadeFor(s.name),
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 11, fontWeight: 800,
+                      }}>
+                        {initialsFor(s.name)}
+                      </div>
+                      <span>{s.name}</span>
+                    </div>
+                  </td>
                   <td style={{ ...tdStyle, color: "#64748B" }}>{s.phone ?? "—"}</td>
                   <td style={{ ...tdStyle, color: "#64748B" }}>{s.email ?? "—"}</td>
                   <td style={{ ...tdStyle, color: "#94A3B8", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.address ?? "—"}</td>
                   <td style={{ ...tdStyle, color: "#64748B" }}>{s.gstin ?? "—"}</td>
-                  <td style={{ ...tdStyle, fontWeight: 700, color: s.balance > 0 ? "#EF4444" : "#94A3B8" }}>
-                    {s.balance !== 0 ? `₹${Math.abs(s.balance).toFixed(2)}` : "—"}
+                  <td style={tdStyle}>
+                    <PayableBadge balance={s.balance} />
                   </td>
                   <td style={tdStyle}>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={() => setDialog(s)} style={rowIconBtn} title="Edit"
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#F97316"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#C2410C"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; }}
                         onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#64748B"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
                         <Edit2 size={13} />
                       </button>
@@ -155,10 +282,10 @@ export default function SuppliersPage() {
         <div ref={sentinelRef} style={{ height: 1 }} />
         {isFetchingNextPage && (
           <div style={{ padding: "14px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#94A3B8", fontSize: 13 }}>
-            <Loader2 size={16} color="#F97316" style={{ animation: "spin 0.7s linear infinite" }} /> Loading more…
+            <Loader2 size={16} color="#C2410C" style={{ animation: "spin 0.7s linear infinite" }} /> Loading more…
           </div>
         )}
-        {!hasNextPage && suppliers.length > 0 && (
+        {!hasNextPage && suppliers.length > 0 && balanceFilter === "ALL" && !debSearch && (
           <div style={{ padding: "10px", textAlign: "center", fontSize: 12, color: "#CBD5E1" }}>
             All {total} suppliers loaded
           </div>
@@ -241,3 +368,5 @@ const rowIconBtn:  React.CSSProperties = { width: 28, height: 28, borderRadius: 
 const labelStyle:  React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 5 };
 const inputStyle:  React.CSSProperties = { width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#1E293B", outline: "none", fontFamily: "inherit", background: "#F8FAFC", boxSizing: "border-box" as const };
 const centeredCell: React.CSSProperties = { padding: "48px", textAlign: "center", color: "#94A3B8", fontSize: 13 };
+const badgeBase:   React.CSSProperties = { fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "3px 10px", display: "inline-block" };
+const sortHeaderBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.04em", fontFamily: "inherit" };
