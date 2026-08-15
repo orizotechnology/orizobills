@@ -10,8 +10,10 @@ import {
   EyeOff,
   Image,
 } from "lucide-react";
+import FlashToast from "@/components/FlashToast"; 
 import { useAuthStore } from "@/store/auth.store";
 import BillDesignerPage from "./BillDesignerPage";
+
 
 // =============================================================
 // SETTINGS PAGE
@@ -516,6 +518,27 @@ function TransactionSettings() {
         />
       </SettingRow>
 
+      {/* NEW: Starting Invoice Number */}
+      <SettingRow
+        label="Starting Invoice Number"
+        description="Invoice numbering will begin from this number"
+      >
+        <input
+          style={inp}
+          type="number"
+          placeholder="1000"
+          min={1}
+        />
+      </SettingRow>
+
+      {/* NEW: Reset Numbering per Financial Year */}
+      <SettingRow
+        label="Reset Numbering Every Financial Year"
+        description="Invoice number restarts from 1 (or start number) each new financial year"
+      >
+        <Toggle />
+      </SettingRow>
+
       <SettingRow
         label="Enable Stock Check on Sale"
         description="Warn when stock falls below minimum"
@@ -533,6 +556,40 @@ function TransactionSettings() {
       <SettingRow
         label="Round Off Total"
         description="Round bill total to nearest rupee"
+      >
+        <Toggle defaultOn />
+      </SettingRow>
+
+      {/* NEW: Round Off Method direction */}
+      <SettingRow
+        label="Round Off Method"
+        description="How the total should be rounded"
+      >
+        <select style={inp} defaultValue="nearest">
+          <option value="nearest">Nearest — 0.5 rounds up</option>
+          <option value="up">Always Round Up</option>
+          <option value="down">Always Round Down</option>
+        </select>
+      </SettingRow>
+
+      {/* NEW: Default Payment Mode */}
+      <SettingRow
+        label="Default Payment Mode"
+        description="Pre-selected payment mode on new transactions"
+      >
+        <select style={inp} defaultValue="cash">
+          <option value="cash">Cash</option>
+          <option value="upi">UPI</option>
+          <option value="card">Card</option>
+          <option value="bank">Bank Transfer</option>
+          <option value="credit">Credit</option>
+        </select>
+      </SettingRow>
+
+      {/* NEW: Lock Invoice after Save */}
+      <SettingRow
+        label="Lock Invoice After Save"
+        description="Prevent editing invoices once they are saved"
       >
         <Toggle defaultOn />
       </SettingRow>
@@ -626,11 +683,17 @@ function TaxSettings() {
         </select>
       </SettingRow>
 
+      {/* NEW: GST Registration Type (replaces Composition Scheme toggle) */}
       <SettingRow
-        label="Composition Scheme"
-        description="Are you under GST composition scheme?"
+        label="GST Registration Type"
+        description="Type of GST registration for your business"
       >
-        <Toggle />
+        <select style={inp} defaultValue="regular">
+          <option value="regular">Regular</option>
+          <option value="composition">Composition</option>
+          <option value="unregistered">Unregistered</option>
+          <option value="sez">SEZ</option>
+        </select>
       </SettingRow>
 
       <SettingRow
@@ -648,6 +711,35 @@ function TaxSettings() {
           <option>18%</option>
           <option>28%</option>
         </select>
+      </SettingRow>
+
+      {/* NEW: HSN/SAC Code Mandatory */}
+      <SettingRow
+        label="HSN/SAC Code Mandatory"
+        description="Require HSN/SAC code when adding products"
+      >
+        <Toggle defaultOn />
+      </SettingRow>
+
+      {/* NEW: Show Tax Breakup on Invoice */}
+      <SettingRow
+        label="Show Tax Breakup on Invoice"
+        description="Show CGST/SGST/IGST separately instead of combined GST"
+      >
+        <Toggle defaultOn />
+      </SettingRow>
+
+      {/* NEW: E-Way Bill Threshold Amount */}
+      <SettingRow
+        label="E-Way Bill Threshold Amount"
+        description="Generate e-way bill prompt above this invoice value (₹)"
+      >
+        <input
+          style={inp}
+          type="number"
+          placeholder="50000"
+          min={0}
+        />
       </SettingRow>
     </Section>
   );
@@ -690,6 +782,22 @@ function MessageSettings() {
         />
       </SettingRow>
 
+      {/* NEW: Overdue Payment Message */}
+      <SettingRow
+        label="Overdue Payment Message"
+        description="Sent when payment is past the due date"
+      >
+        <textarea
+          style={{
+            ...inp,
+            width: 260,
+            height: 64,
+            resize: "none",
+          }}
+          placeholder="Dear {name}, your payment of ₹{amount} is overdue since {due_date}. Please clear it at the earliest."
+        />
+      </SettingRow>
+
       <SettingRow
         label="WhatsApp Message Template"
         description="Template for WhatsApp invoice sharing"
@@ -704,6 +812,43 @@ function MessageSettings() {
           placeholder="Invoice {invoice_no} for ₹{amount} is attached."
         />
       </SettingRow>
+
+      {/* NEW: Estimate / Quotation Message Template */}
+      <SettingRow
+        label="Estimate/Quotation Message Template"
+        description="Sent when sharing an estimate or quotation"
+      >
+        <textarea
+          style={{
+            ...inp,
+            width: 260,
+            height: 64,
+            resize: "none",
+          }}
+          placeholder="Dear {name}, please find your quotation {invoice_no} for ₹{amount} attached."
+        />
+      </SettingRow>
+
+      {/* NEW: Send WhatsApp Automatically on Invoice Save */}
+      <SettingRow
+        label="Send WhatsApp Automatically on Invoice Save"
+        description="Auto-send WhatsApp message when an invoice is saved"
+      >
+        <Toggle />
+      </SettingRow>
+
+      {/* NEW: Available Variables hint */}
+      <div
+        style={{
+          padding: "12px 0 16px",
+          fontSize: 11.5,
+          color: "#94A3B8",
+          lineHeight: 1.6,
+        }}
+      >
+        <strong style={{ color: "#64748B" }}>Available variables: </strong>
+        {"{name}"}, {"{amount}"}, {"{invoice_no}"}, {"{due_date}"}, {"{business_name}"}
+      </div>
     </Section>
   );
 }
@@ -726,6 +871,14 @@ function PartySettings() {
         />
       </SettingRow>
 
+      {/* NEW: Block Sale When Credit Limit Exceeded */}
+      <SettingRow
+        label="Block Sale When Credit Limit Exceeded"
+        description="Prevent new sales once customer crosses their credit limit"
+      >
+        <Toggle defaultOn />
+      </SettingRow>
+
       <SettingRow
         label="Default Credit Days"
         description="Payment due period in days"
@@ -745,8 +898,36 @@ function PartySettings() {
         <Toggle />
       </SettingRow>
 
+      {/* NEW: Duplicate Mobile Number Check */}
+      <SettingRow
+        label="Duplicate Mobile Number Check"
+        description="Prevent adding a party with a mobile number already in use"
+      >
+        <Toggle defaultOn />
+      </SettingRow>
+
       <SettingRow label="Mandatory GSTIN for Business">
         <Toggle />
+      </SettingRow>
+
+      {/* NEW: Allow Opening Balance for New Party */}
+      <SettingRow
+        label="Allow Opening Balance for New Party"
+        description="Let new parties be added with an existing due/advance balance"
+      >
+        <Toggle defaultOn />
+      </SettingRow>
+
+      {/* NEW: Default Party Category */}
+      <SettingRow
+        label="Default Party Category"
+        description="Default category assigned to new parties"
+      >
+        <select style={inp} defaultValue="retail">
+          <option value="retail">Retail</option>
+          <option value="wholesale">Wholesale</option>
+          <option value="distributor">Distributor</option>
+        </select>
       </SettingRow>
     </Section>
   );
@@ -831,6 +1012,35 @@ function ReminderSettings() {
           type="number"
           placeholder="1"
         />
+      </SettingRow>
+
+      {/* NEW: Maximum Reminders to Send */}
+      <SettingRow
+        label="Maximum Reminders to Send"
+        description="Stop sending after this many reminders"
+      >
+        <input
+          style={inp}
+          type="number"
+          placeholder="3"
+          min={1}
+        />
+      </SettingRow>
+
+      {/* NEW: Send Reminder After Due Date Also */}
+      <SettingRow
+        label="Send Reminder After Due Date Also"
+        description="Continue sending reminders even after the due date has passed"
+      >
+        <Toggle defaultOn />
+      </SettingRow>
+
+      {/* NEW: Auto-create Next Service Reminder After Completion */}
+      <SettingRow
+        label="Auto-create Next Service Reminder After Completion"
+        description="Automatically schedule the next reminder once a service is marked complete"
+      >
+        <Toggle />
       </SettingRow>
     </Section>
   );
@@ -1656,11 +1866,18 @@ export default function SettingsPage() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const [hasChanges, setHasChanges] =
+const [hasChanges, setHasChanges] =
     useState(false);
 
   const [isSaving, setIsSaving] =
     useState(false);
+
+const [flash, setFlash] = useState<FlashState | null>(null);
+ type FlashState = { type: "saved" | "changed"; key: number };  
+
+  const triggerFlash = (type: "saved" | "changed") => {
+    setFlash({ type, key: Date.now() });
+  };
 
   const previousPathRef =
     useRef(pathname);
@@ -1684,7 +1901,10 @@ export default function SettingsPage() {
   // MARK PAGE AS DIRTY WHEN FORM VALUES CHANGE
   // =========================================================
 
-  const markAsChanged = () => {
+ const markAsChanged = () => {
+    if (!hasChanges) {
+      triggerFlash("changed");
+    }
     setHasChanges(true);
   };
 
@@ -1693,43 +1913,27 @@ export default function SettingsPage() {
   // =========================================================
 
   useEffect(() => {
-    const previousPath =
-      previousPathRef.current;
+    const previousPath = previousPathRef.current;
 
-    if (
-      previousPath !== pathname
-    ) {
-      if (
-        hasChanges &&
-        !allowNavigationRef.current
-      ) {
-        const shouldLeave =
-          window.confirm(
-            "You have unsaved changes. Are you sure you want to leave this page?"
-          );
+    if (previousPath !== pathname) {
+      if (hasChanges && !allowNavigationRef.current) {
+        const shouldLeave = window.confirm(
+          "You have unsaved changes. Are you sure you want to leave this page?"
+        );
 
         if (!shouldLeave) {
-          navigate(previousPath, {
-            replace: true,
-          });
-
+          navigate(previousPath, { replace: true });
           return;
         }
 
         setHasChanges(false);
       }
 
-      allowNavigationRef.current =
-        false;
-
-      previousPathRef.current =
-        pathname;
+      allowNavigationRef.current = false;
+      previousPathRef.current = pathname;
     }
-  }, [
-    pathname,
-    hasChanges,
-    navigate,
-  ]);
+  }, [pathname, hasChanges, navigate]);
+  
 
   // =========================================================
   // BROWSER / TAB CLOSE CONFIRMATION
@@ -1821,8 +2025,7 @@ export default function SettingsPage() {
   // =========================================================
   // NORMAL SETTINGS PAGE
   // =========================================================
-
-  return (
+return (
     <div
       style={{
         height: "100%",
@@ -1830,11 +2033,25 @@ export default function SettingsPage() {
         background: "#F8FAFC",
       }}
     >
+      {flash && (
+        <FlashToast
+          key={flash.key}
+          type={flash.type}
+          message={
+            flash.type === "saved"
+              ? "Changes saved"
+              : "Unsaved change"
+          }
+          onDone={() => setFlash(null)}
+        />
+      )}
+
       <div
         style={{
           padding: "24px 28px",
         }}
       >
+  
         {/* =================================================
             PAGE HEADER
         ================================================== */}
