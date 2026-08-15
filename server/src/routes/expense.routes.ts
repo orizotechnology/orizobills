@@ -17,13 +17,18 @@ function toResult(e: any) {
 
 export async function expenseRoutes(fastify: FastifyInstance) {
 
-  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string } }>, reply) => {
+  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; startDate?: string; endDate?: string } }>, reply) => {
     try {
       const page = Number(req.query.page ?? 1);
       const size = Number(req.query.pageSize ?? 20);
+      const dateWhere: Record<string, unknown> = {};
+      if (req.query.startDate && req.query.endDate) {
+        dateWhere.expenseDate = { gte: new Date(req.query.startDate), lte: new Date(req.query.endDate + "T23:59:59.999Z") };
+      }
+      const where = Object.keys(dateWhere).length ? dateWhere : undefined;
       const [rows, total] = await Promise.all([
-        req.prisma.expense.findMany({ orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
-        req.prisma.expense.count(),
+        req.prisma.expense.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
+        req.prisma.expense.count({ where }),
       ]);
       return reply.send(successResponse({ data: rows.map(toResult), total }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }

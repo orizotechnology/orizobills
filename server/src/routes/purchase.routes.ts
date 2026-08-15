@@ -96,18 +96,23 @@ export async function purchaseRoutes(fastify: FastifyInstance) {
 
   // ── Collection & parameterised ────────────────────────────
 
-  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string } }>, reply) => {
+  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; startDate?: string; endDate?: string } }>, reply) => {
     try {
       const page = Number(req.query.page ?? 1);
       const size = Number(req.query.pageSize ?? 20);
+      const dateWhere: Record<string, unknown> = {};
+      if (req.query.startDate && req.query.endDate) {
+        dateWhere.billDate = { gte: new Date(req.query.startDate), lte: new Date(req.query.endDate + "T23:59:59.999Z") };
+      }
       const [rows, total] = await Promise.all([
         req.prisma.purchaseInvoice.findMany({
+          where: Object.keys(dateWhere).length ? dateWhere : undefined,
           include: { _count: { select: { items: true } } },
           orderBy: { createdAt: "desc" },
           skip: (page - 1) * size,
           take: size,
         }),
-        req.prisma.purchaseInvoice.count(),
+        req.prisma.purchaseInvoice.count({ where: Object.keys(dateWhere).length ? dateWhere : undefined }),
       ]);
       return reply.send(successResponse({ data: rows.map(toResult), total }));
     } catch (err) {

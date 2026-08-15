@@ -81,25 +81,22 @@ export async function saleRoutes(fastify: FastifyInstance) {
   });
 
   // ── Dashboard stats endpoint ─────────────────────────────
-  fastify.get("/stats", async (req: FastifyRequest<{ Querystring: { year?: string; month?: string } }>, reply) => {
+  fastify.get("/stats", async (req: FastifyRequest<{ Querystring: { year?: string; month?: string; startDate?: string; endDate?: string } }>, reply) => {
     try {
-      // If year+month provided → filter to that month, else all-time
-      const { year: y, month: m } = req.query;
+      const { year: y, month: m, startDate, endDate } = req.query;
       let dateWhere: Record<string, unknown> = {};
-      if (y && m) {
-        const yr    = Number(y);
-        const mo    = Number(m);
-        const start = new Date(yr, mo - 1, 1);
-        const end   = new Date(yr, mo, 1);
-        dateWhere   = { invoiceDate: { gte: start, lt: end } };
-      }
       let purchaseDateWhere: Record<string, unknown> = {};
-      if (y && m) {
+      if (startDate && endDate) {
+        // Explicit date range takes priority
+        dateWhere         = { invoiceDate: { gte: new Date(startDate), lte: new Date(endDate + "T23:59:59.999Z") } };
+        purchaseDateWhere = { billDate:    { gte: new Date(startDate), lte: new Date(endDate + "T23:59:59.999Z") } };
+      } else if (y && m) {
         const yr    = Number(y);
         const mo    = Number(m);
         const start = new Date(yr, mo - 1, 1);
         const end   = new Date(yr, mo, 1);
-        purchaseDateWhere = { billDate: { gte: start, lt: end } };
+        dateWhere         = { invoiceDate: { gte: start, lt: end } };
+        purchaseDateWhere = { billDate:    { gte: start, lt: end } };
       }
 
       const [salesAgg, purchasesAgg, outstanding] = await Promise.all([
