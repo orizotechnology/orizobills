@@ -525,7 +525,7 @@ function TransactionSettings() {
       >
         <input
           style={inp}
-          type="number"
+          type="text" inputMode="decimal"
           placeholder="1000"
           min={1}
         />
@@ -642,7 +642,7 @@ function PrintSettings() {
               ...inp,
               width: 60,
             }}
-            type="number"
+            type="text" inputMode="decimal"
             defaultValue={1}
           />
         </SettingRow>
@@ -736,7 +736,7 @@ function TaxSettings() {
       >
         <input
           style={inp}
-          type="number"
+          type="text" inputMode="decimal"
           placeholder="50000"
           min={0}
         />
@@ -866,7 +866,7 @@ function PartySettings() {
       >
         <input
           style={inp}
-          type="number"
+          type="text" inputMode="decimal"
           placeholder="0"
         />
       </SettingRow>
@@ -885,7 +885,7 @@ function PartySettings() {
       >
         <input
           style={inp}
-          type="number"
+          type="text" inputMode="decimal"
           placeholder="30"
         />
       </SettingRow>
@@ -952,7 +952,7 @@ function ProductSettings() {
       <SettingRow label="Low Stock Alert Threshold">
         <input
           style={inp}
-          type="number"
+          type="text" inputMode="decimal"
           placeholder="10"
         />
       </SettingRow>
@@ -990,7 +990,7 @@ function ReminderSettings() {
       <SettingRow label="Reminder Days Before Due">
         <input
           style={inp}
-          type="number"
+          type="text" inputMode="decimal"
           placeholder="3"
         />
       </SettingRow>
@@ -1009,7 +1009,7 @@ function ReminderSettings() {
       >
         <input
           style={inp}
-          type="number"
+          type="text" inputMode="decimal"
           placeholder="1"
         />
       </SettingRow>
@@ -1021,7 +1021,7 @@ function ReminderSettings() {
       >
         <input
           style={inp}
-          type="number"
+          type="text" inputMode="decimal"
           placeholder="3"
           min={1}
         />

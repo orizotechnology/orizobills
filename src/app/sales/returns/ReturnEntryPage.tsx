@@ -354,11 +354,11 @@ export default function ReturnEntryPage() {
                     <td style={{ padding: "6px 10px", textAlign: "center", color: "#94A3B8" }}>{idx + 1}</td>
                     <td style={{ padding: "6px 10px", fontWeight: 500, color: "#1E293B" }}>{r.product}</td>
                     <td style={{ padding: "6px 10px", textAlign: "right", color: "#64748B" }}>{r.code}</td>
-                    <td style={{ padding: "6px 10px" }}><input type="number" step="1" min={1} value={r.qty} onChange={(e) => updateRow(r.id, "qty", parseFloat(e.target.value) || 1)} style={cellInp} /></td>
-                    <td style={{ padding: "6px 10px" }}><input type="number" step="1" value={fmtNum(r.price)} onChange={(e) => updateRow(r.id, "price", parseFloat(e.target.value) || 0)} style={cellInp} /></td>
-                    <td style={{ padding: "6px 10px" }}><input type="number" step="1" value={fmtNum(r.discPct)} onChange={(e) => updateRow(r.id, "discPct", parseFloat(e.target.value) || 0)} style={cellInp} /></td>
+                    <td style={{ padding: "6px 10px" }}><input type="text" inputMode="decimal" value={r.qty} onChange={(e) => updateRow(r.id, "qty", parseFloat(e.target.value) || 1)} style={cellInp} /></td>
+                    <td style={{ padding: "6px 10px" }}><input type="text" inputMode="decimal" value={fmtNum(r.price)} onChange={(e) => updateRow(r.id, "price", parseFloat(e.target.value) || 0)} style={cellInp} /></td>
+                    <td style={{ padding: "6px 10px" }}><input type="text" inputMode="decimal" value={fmtNum(r.discPct)} onChange={(e) => updateRow(r.id, "discPct", parseFloat(e.target.value) || 0)} style={cellInp} /></td>
                     <td style={{ padding: "6px 10px", textAlign: "right", color: "#64748B" }}>{fmtNum(r.discAmt)}</td>
-                    <td style={{ padding: "6px 10px" }}><input type="number" step="1" value={fmtNum(r.taxPct)} onChange={(e) => updateRow(r.id, "taxPct", parseFloat(e.target.value) || 0)} style={cellInp} /></td>
+                    <td style={{ padding: "6px 10px" }}><input type="text" inputMode="decimal" value={fmtNum(r.taxPct)} onChange={(e) => updateRow(r.id, "taxPct", parseFloat(e.target.value) || 0)} style={cellInp} /></td>
                     <td style={{ padding: "6px 10px", textAlign: "right", color: "#64748B" }}>{fmtNum(r.taxAmt)}</td>
                     <td style={{ padding: "6px 10px", textAlign: "right", fontWeight: 600, color: "#EF4444" }}>{fmtNum(r.total)}</td>
                     <td style={{ padding: "6px 10px", textAlign: "center" }}>

@@ -95,11 +95,11 @@ export function AddProductModal({ prefill, onCreated, onClose }: AddProductModal
             </div>
             <div>
               <label style={lbl}>MRP (₹)</label>
-              <input style={inp} type="number" min={0} step="0.01" value={form.mrp} onChange={(e) => set("mrp", e.target.value)} />
+              <input style={inp} type="text" inputMode="decimal" placeholder="0.00" value={form.mrp} onChange={(e) => set("mrp", e.target.value)} />
             </div>
             <div>
               <label style={lbl}>Sale Price (₹) *</label>
-              <input style={inp} type="number" min={0} step="0.01" value={form.salePrice} onChange={(e) => set("salePrice", e.target.value)} />
+              <input style={inp} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice} onChange={(e) => set("salePrice", e.target.value)} />
             </div>
             <div>
               <label style={lbl}>GST %</label>

@@ -267,7 +267,7 @@ export default function TransferPage() {
             {/* Quantity */}
             <div style={{ marginBottom: 14 }}>
               <label style={lbl}>Quantity</label>
-              <input type="number" min={0.001} step={1} value={qty}
+              <input type="text" inputMode="decimal" value={qty}
                 onChange={(e) => setQty(e.target.value)} placeholder="0" style={inp}
                 onFocus={(e) => { e.currentTarget.style.borderColor = "#F97316"; }}
                 onBlur={(e)  => { e.currentTarget.style.borderColor = "#E2E8F0"; }} />
@@ -575,9 +575,9 @@ function EmptyCard({ icon, title, sub }: { icon: React.ReactNode; title: string;
 }
 
 // ── Styles ────────────────────────────────────────────────────
-const lbl:    React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 5 };
-const inp:    React.CSSProperties = { width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#1E293B", outline: "none", fontFamily: "inherit", background: "#F8FAFC", boxSizing: "border-box" as const, transition: "border-color 0.15s" };
-const thStyle: React.CSSProperties = { padding: "9px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.04em", whiteSpace: "nowrap" };
+const lbl:    React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "hsl(var(--foreground))", marginBottom: 5 };
+const inp:    React.CSSProperties = { width: "100%", border: "1.5px solid hsl(var(--border))", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "hsl(var(--foreground))", outline: "none", fontFamily: "inherit", background: "hsl(var(--background))", boxSizing: "border-box" as const, transition: "border-color 0.15s" };
+const thStyle: React.CSSProperties = { padding: "9px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "hsl(var(--muted-foreground))", letterSpacing: "0.04em", whiteSpace: "nowrap" };
 const tdStyle: React.CSSProperties = { padding: "11px 14px", fontSize: 13 };
-const chip:    React.CSSProperties = { fontSize: 12, background: "#F1F5F9", borderRadius: 4, padding: "2px 6px", color: "#475569" };
-const iconBtn: React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
+const chip:    React.CSSProperties = { fontSize: 12, background: "hsl(var(--muted))", borderRadius: 4, padding: "2px 6px", color: "hsl(var(--foreground))" };
+const iconBtn: React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };

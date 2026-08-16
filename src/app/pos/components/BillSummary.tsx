@@ -304,9 +304,9 @@ export function BillSummary({
           <div style={{ marginTop: 12 }}>
             <div style={fieldLabel}>Cash Received</div>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={paidAmount}
-              step="1"
               onChange={(e) => onPaidAmountChange(e.target.value)}
               style={amtInput}
               onFocus={(e) => { e.currentTarget.style.borderColor = "#F97316"; }}
@@ -369,18 +369,15 @@ export function BillSummary({
                 <Banknote size={12} /> Cash Amount
               </div>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={splitCash}
-                step="1"
-                min={0}
-                max={totalAmount}
                 placeholder="Enter cash portion…"
                 autoFocus
                 onChange={(e) => {
                   const v = e.target.value;
                   setSplitCash(v);
                   const cashAmt = parseFloat(v) || 0;
-                  // paidAmount = total only when cash entered (so save knows it's fully paid)
                   if (cashAmt > 0) {
                     onPaidAmountChange(String(totalAmount));
                   } else {
@@ -445,9 +442,9 @@ export function BillSummary({
           <div style={{ marginTop: 12 }}>
             <div style={fieldLabel}>Amount Charged to Card</div>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={paidAmount}
-              step="1"
               onChange={(e) => onPaidAmountChange(e.target.value)}
               style={amtInput}
               onFocus={(e) => { e.currentTarget.style.borderColor = "#F97316"; }}

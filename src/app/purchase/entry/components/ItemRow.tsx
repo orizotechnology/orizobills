@@ -76,11 +76,6 @@ export function ItemRow({
 
   return (
     <>
-      <style>{`
-        .pur-num::-webkit-inner-spin-button,
-        .pur-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .pur-num[type=number] { -moz-appearance: textfield; }
-      `}</style>
       <tr style={{ borderBottom: "1px solid #F8FAFC" }}>
 
         {/* # */}
@@ -124,7 +119,7 @@ export function ItemRow({
 
         {/* MRP */}
         <td style={td(66)}>
-          <input className="pur-num" style={{ ...ci, textAlign: "right" }} type="number"
+          <input className="pur-num" style={{ ...ci, textAlign: "right" }} type="text"
             inputMode="decimal" value={row.mrp} onChange={(e) => update("mrp", e.target.value)} />
         </td>
 
@@ -133,8 +128,8 @@ export function ItemRow({
 
         {/* QTY */}
         <td style={td(52)}>
-          <input className="pur-num" style={{ ...ci, textAlign: "right" }} type="number"
-            inputMode="decimal" min={0} value={row.qty}
+          <input className="pur-num" style={{ ...ci, textAlign: "right" }} type="text"
+            inputMode="decimal" value={row.qty}
             onChange={(e) => update("qty", parseFloat(e.target.value) || 0)} />
         </td>
 
@@ -167,8 +162,8 @@ export function ItemRow({
         {/* Conversion Rate (1 primary = n secondary) — only if sec unit set */}
         <td style={td(54)}>
           {row.secondaryUnit ? (
-            <input className="pur-num" style={{ ...ci, textAlign: "right", fontSize: 11 }} type="number"
-              inputMode="decimal" min={0} placeholder="1:n"
+            <input className="pur-num" style={{ ...ci, textAlign: "right", fontSize: 11 }} type="text"
+              inputMode="decimal" placeholder="1:n"
               value={row.conversionRate || ""}
               onChange={(e) => update("conversionRate", parseFloat(e.target.value) || 0)} />
           ) : (
@@ -178,15 +173,15 @@ export function ItemRow({
 
         {/* Price/Unit */}
         <td style={td(78)}>
-          <input className="pur-num" style={{ ...ci, textAlign: "right" }} type="number"
-            inputMode="decimal" min={0} step="0.01" value={row.priceUnit}
+          <input className="pur-num" style={{ ...ci, textAlign: "right" }} type="text"
+            inputMode="decimal" value={row.priceUnit}
             onChange={(e) => update("priceUnit", e.target.value)} />
         </td>
 
         {/* Disc % */}
         <td style={td(52)}>
-          <input className="pur-num" style={{ ...ci, textAlign: "right" }} type="number"
-            inputMode="decimal" min={0} max={100} value={row.discPct}
+          <input className="pur-num" style={{ ...ci, textAlign: "right" }} type="text"
+            inputMode="decimal" value={row.discPct}
             onChange={(e) => update("discPct", e.target.value)} />
         </td>
 

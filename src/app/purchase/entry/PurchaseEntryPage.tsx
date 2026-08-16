@@ -445,7 +445,7 @@ export default function PurchaseEntryPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ fontSize: 13, color: "#64748B", fontWeight: 500 }}>Discount</span>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <input type="number" min={0} max={100} value={discPct}
+              <input type="text" inputMode="decimal" min={0} max={100} value={discPct}
                 onChange={(e) => setDiscPct(e.target.value)}
                 style={{ ...inp, width: 64, textAlign: "right", padding: "5px 8px" }} />
               <span style={{ fontSize: 12, color: "#64748B" }}>%</span>

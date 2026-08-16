@@ -99,20 +99,20 @@ const FONT_SIZES    = [
 
 // ── Shared style constants ────────────────────────────────────
 const sel: React.CSSProperties = {
-  border: "1px solid #E2E8F0", borderRadius: 6, padding: "4px 6px",
-  fontSize: 12, color: "#1E293B", background: "#F8FAFC", outline: "none",
+  border: "1px solid hsl(var(--border))", borderRadius: 6, padding: "4px 6px",
+  fontSize: 12, color: "hsl(var(--foreground))", background: "hsl(var(--background))", outline: "none",
   fontFamily: "inherit", cursor: "pointer",
 };
 
 const numInp: React.CSSProperties = {
-  border: "1px solid #E2E8F0", borderRadius: 6, padding: "4px 6px",
-  fontSize: 12, color: "#1E293B", background: "#F8FAFC", outline: "none",
+  border: "1px solid hsl(var(--border))", borderRadius: 6, padding: "4px 6px",
+  fontSize: 12, color: "hsl(var(--foreground))", background: "hsl(var(--background))", outline: "none",
   fontFamily: "inherit", width: 52, textAlign: "right",
 };
 
 const iconBtnS: React.CSSProperties = {
-  width: 28, height: 28, border: "1px solid #E2E8F0", borderRadius: 6,
-  background: "#fff", cursor: "pointer", display: "flex",
+  width: 28, height: 28, border: "1px solid hsl(var(--border))", borderRadius: 6,
+  background: "hsl(var(--card))", cursor: "pointer", display: "flex",
   alignItems: "center", justifyContent: "center", outline: "none",
 };
 
@@ -2127,14 +2127,14 @@ export default function BillDesignerPage() {
                     <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 3, textTransform: "capitalize" }}>
                       {k.replace("margin", "")}
                     </div>
-                    <input type="number" value={config[k] as number}
+                    <input type="text" inputMode="decimal" value={config[k] as number}
                       onChange={e => C({ [k]: parseInt(e.target.value) || 0 })}
                       style={{ ...numInp, width: "100%" }} />
                   </div>
                 ))}
               </div>
               <PR label="Copies">
-                <input type="number" value={config.copies}
+                <input type="text" inputMode="decimal" value={config.copies}
                   onChange={e => C({ copies: Math.max(1, parseInt(e.target.value) || 1) })}
                   style={numInp} />
               </PR>

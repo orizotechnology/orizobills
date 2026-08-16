@@ -383,7 +383,7 @@ function CustomerDialog({ customer, onClose, onSaved }: { customer: Customer | n
           </div>
           <div>
             <label style={labelStyle}>Opening Balance (₹)</label>
-            <input type="number" step={0.01} value={form.openingBalance} onChange={(e) => set("openingBalance", e.target.value)} placeholder="0.00" style={inputStyle} />
+            <input type="text" inputMode="decimal" step={0.01} value={form.openingBalance} onChange={(e) => set("openingBalance", e.target.value)} placeholder="0.00" style={inputStyle} />
             <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>
               Positive = customer owes you (DR) · Negative = you owe customer (CR)
             </div>
@@ -401,14 +401,14 @@ function CustomerDialog({ customer, onClose, onSaved }: { customer: Customer | n
   );
 }
 
-const primaryBtn:  React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "#F97316", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
-const cancelBtn:   React.CSSProperties = { flex: 1, padding: "9px 0", border: "1.5px solid #E2E8F0", borderRadius: 8, background: "#fff", color: "#475569", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" };
-const iconBtn:     React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
-const thStyle:     React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.04em", background: "#F8FAFC" };
+const primaryBtn:  React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
+const cancelBtn:   React.CSSProperties = { flex: 1, padding: "9px 0", border: "1.5px solid hsl(var(--border))", borderRadius: 8, background: "hsl(var(--card))", color: "hsl(var(--foreground))", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" };
+const iconBtn:     React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
+const thStyle:     React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "hsl(var(--muted-foreground))", letterSpacing: "0.04em", background: "hsl(var(--background))" };
 const tdStyle:     React.CSSProperties = { padding: "12px 14px", fontSize: 13 };
-const rowIconBtn:  React.CSSProperties = { width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: "#64748B", display: "flex", alignItems: "center", justifyContent: "center" };
-const labelStyle:  React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 5 };
-const inputStyle:  React.CSSProperties = { width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#1E293B", outline: "none", fontFamily: "inherit", background: "#F8FAFC", boxSizing: "border-box" as const };
-const centeredCell: React.CSSProperties = { padding: "48px", textAlign: "center", color: "#94A3B8", fontSize: 13 };
+const rowIconBtn:  React.CSSProperties = { width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: "hsl(var(--muted-foreground))", display: "flex", alignItems: "center", justifyContent: "center" };
+const labelStyle:  React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "hsl(var(--foreground))", marginBottom: 5 };
+const inputStyle:  React.CSSProperties = { width: "100%", border: "1.5px solid hsl(var(--border))", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "hsl(var(--foreground))", outline: "none", fontFamily: "inherit", background: "hsl(var(--background))", boxSizing: "border-box" as const };
+const centeredCell: React.CSSProperties = { padding: "48px", textAlign: "center", color: "hsl(var(--muted-foreground))", fontSize: 13 };
 const badgeBase:   React.CSSProperties = { fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "3px 10px", display: "inline-block" };
-const sortHeaderBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.04em", fontFamily: "inherit" };
+const sortHeaderBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11, fontWeight: 700, color: "hsl(var(--muted-foreground))", letterSpacing: "0.04em", fontFamily: "inherit" };
