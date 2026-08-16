@@ -119,14 +119,7 @@ export function DbPasswordGate({ children }: Props) {
         {children}
       </div>
 
-      {/* Invisible drag strip — window is movable even in dialog mode */}
-      <div
-        data-tauri-drag-region
-        style={{
-          position: "fixed", top: 0, left: 0, right: 0,
-          height: 28, zIndex: 10002, cursor: "default",
-        }}
-      />
+      {/* Invisible drag strip removed — window is always maximized, no dragging needed */}
 
       {/* Transparent overlay — same pattern as AuthGuard */}
       <AnimatePresence>

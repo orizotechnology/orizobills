@@ -21,28 +21,17 @@ async function getWin() {
 }
 
 export function TitleBar() {
-  const [isMaximized, setIsMaximized] = useState(false);
   const [inTauri] = useState(isTauri);
 
-  // Track maximized state — maximize on mount
+  // Maximize on mount and keep maximized
   useEffect(() => {
     if (!inTauri) return;
-    let unlisten: (() => void) | undefined;
     (async () => {
       try {
         const win = await getWin();
-        // Always maximize on launch
         await win.maximize();
-        setIsMaximized(true);
-        unlisten = await win.onResized(async () => {
-          const maxed = await win.isMaximized();
-          setIsMaximized(maxed);
-          // Re-maximize if user somehow restores
-          if (!maxed) await win.maximize();
-        });
       } catch { /* browser */ }
     })();
-    return () => { unlisten?.(); };
   }, [inTauri]);
 
   const handleMinimize = async () => {
@@ -68,16 +57,15 @@ export function TitleBar() {
         zIndex: 1000,
       }}
     >
-      {/* Drag region — only active when not maximized */}
+      {/* Title text — no drag region, window is always maximized */}
       <div
-        {...(!isMaximized ? { "data-tauri-drag-region": true } : {})}
         style={{
           flex: 1,
           height: "100%",
           display: "flex",
           alignItems: "center",
           paddingLeft: 14,
-          cursor: isMaximized ? "default" : "move",
+          cursor: "default",
         }}
       >
         <span style={{
