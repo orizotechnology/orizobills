@@ -136,9 +136,37 @@ export const usePosStore = create<PosState>((set, get) => {
 
     addRowToBill: (id, row) => {
       set((s) => ({
-        bills: s.bills.map((b) =>
-          b.id === id ? { ...b, rows: [...b.rows, row] } : b
-        ),
+        bills: s.bills.map((b) => {
+          if (b.id !== id) return b;
+
+          // If the same product already exists in the bill, increment qty
+          const existingIdx = b.rows.findIndex((r) =>
+            row.productId
+              ? r.productId === row.productId
+              : r.code !== "" && r.code === row.code
+          );
+
+          if (existingIdx !== -1) {
+            const rows = b.rows.map((r, i) => {
+              if (i !== existingIdx) return r;
+              const qty     = r.qty + 1;
+              const discAmt = (r.mrp * qty * r.discPct) / 100;
+              const taxable = r.price * qty - discAmt;
+              const taxAmt  = (taxable * r.taxPct) / 100;
+              return {
+                ...r,
+                qty,
+                discAmt: +discAmt.toFixed(2),
+                taxAmt:  +taxAmt.toFixed(2),
+                total:   +(taxable + taxAmt).toFixed(2),
+              };
+            });
+            return { ...b, rows };
+          }
+
+          // New product — append row as before
+          return { ...b, rows: [...b.rows, row] };
+        }),
       }));
     },
 

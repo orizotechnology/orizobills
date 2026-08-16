@@ -312,7 +312,8 @@ export function PosSearchBar({ onProductAdded }: PosSearchBarProps) {
               {results.map((p, idx) => (
                 <div
                   key={p.id}
-                  onClick={() => {
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // prevent input blur before selection
                     addProduct(p);
                     setQuery(""); setResults([]); setShowDrop(false);
                     inputRef.current?.focus();
