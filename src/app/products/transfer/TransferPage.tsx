@@ -26,7 +26,6 @@ interface StockTransfer {
   quantity: number; unit: string; notes: string | null;
   status: string; transferDate: string;
 }
-interface Branch   { id: string; name: string; }
 interface Product  { id: string; name: string; code: string; unit: string; isActive: boolean; }
 interface InvItem  { productId: string; currentStock: number; }
 interface ApiRes<T>{ success: boolean; data: T; }
@@ -47,8 +46,13 @@ function groupByBranch<T extends { toBranchName?: string; fromBranchName?: strin
 
 export default function TransferPage() {
   const qc = useQueryClient();
-  const { getActiveBranch } = useBranchStore();
-  const activeBranch = getActiveBranch();
+  const { branches: allBranches, activeBranchId } = useBranchStore();
+  const activeBranch = allBranches.find((b) => b.id === activeBranchId) ?? null;
+
+  // ── Branches: read from store (always up-to-date, excludes current) ──
+  const branches = allBranches.filter(
+    (b) => b.id !== activeBranchId && b.isActive
+  );
 
   const [tab,      setTab]      = useState<Tab>("transfer");
   const [toBranchId,   setToBranchId]   = useState("");
@@ -58,17 +62,6 @@ export default function TransferPage() {
   const [notes,        setNotes]        = useState("");
   const [submitting,   setSubmitting]   = useState(false);
   const [feedback,     setFeedback]     = useState<{ type: "success" | "error"; msg: string } | null>(null);
-
-  // ── API: available branches ──────────────────────────────
-  const { data: branchData } = useQuery({
-    queryKey: ["transfer-branches"],
-    queryFn: async () => {
-      const res = await http.get<ApiRes<Branch[]>>("/transfers/branches");
-      return res.success ? res.data : [];
-    },
-    staleTime: 60_000,
-  });
-  const branches: Branch[] = branchData ?? [];
 
   // ── API: products + stock ────────────────────────────────
   const { data: prodData } = useQuery({
