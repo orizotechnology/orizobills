@@ -357,37 +357,41 @@ export default function AllPurchasesPage() {
   const qc = useQueryClient();
 
   const [page, setPage] = useState(1);
-  const [deleteTarget, setDeleteTarget] =
-    useState<PurchaseInvoice | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PurchaseInvoice | null>(null);
+  const [search,   setSearch]   = useState("");
+  const [filter,   setFilter]   = useState("All");
+  const [fromDate, setFromDate] = useState(new Date().toISOString().slice(0, 10));
+  const [toDate,   setToDate]   = useState(new Date().toISOString().slice(0, 10));
 
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
+  const FILTERS = ["All", "Today", "This Week", "This Month", "Custom"];
 
-  const FILTERS = [
-    "Today",
-    "This Week",
-    "This Month",
-    "Custom",
-    "All",
-  ];
+  // Resolve date range from filter — same pattern as SaleInvoicesPage
+  function toStr(d: Date) { return d.toISOString().slice(0, 10); }
+  const dateRange = (() => {
+    const now = new Date();
+    const today = toStr(now);
+    if (filter === "All")    return { start: "", end: "" };
+    if (filter === "Custom") return { start: fromDate, end: toDate };
+    if (filter === "Today")  return { start: today, end: today };
+    if (filter === "This Week") {
+      const mon = new Date(now);
+      mon.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
+      return { start: toStr(mon), end: today };
+    }
+    if (filter === "This Month") {
+      return { start: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`, end: today };
+    }
+    return { start: "", end: "" };
+  })();
 
-  const { data, isLoading, isError, refetch, isFetching } =
-    useQuery({
-      queryKey: ["purchases", page],
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+      queryKey: ["purchases", page, dateRange.start, dateRange.end],
       queryFn: async () => {
-        const res = await http.get<
-          ApiResponse<{
-            data: PurchaseInvoice[];
-            total: number;
-          }>
-        >(
-          `/purchases?page=${page}&pageSize=20`
-        );
-
-        if (!res.success) {
-          throw new Error("Failed to load purchases");
-        }
-
+        let url = `/purchases?page=${page}&pageSize=20`;
+        if (dateRange.start && dateRange.end)
+          url += `&startDate=${dateRange.start}&endDate=${dateRange.end}`;
+        const res = await http.get<ApiResponse<{ data: PurchaseInvoice[]; total: number }>>(url);
+        if (!res.success) throw new Error("Failed to load purchases");
         return res.data;
       },
       staleTime: 30_000,
@@ -480,10 +484,6 @@ export default function AllPurchasesPage() {
 
     await refetch();
   };
-
-  // =============================================================
-  // FILTER
-  // =============================================================
 
   const handleFilterChange = (value: string) => {
     setFilter(value);
@@ -645,48 +645,39 @@ export default function AllPurchasesPage() {
         </div>
 
         {/* Filters */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            flexWrap: "wrap",
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           {FILTERS.map((item) => {
             const active = filter === item;
-
             return (
-              <button
-                key={item}
-                type="button"
-                onClick={() =>
-                  handleFilterChange(item)
-                }
+              <button key={item} type="button" onClick={() => handleFilterChange(item)}
                 style={{
-                  border: active
-                    ? "1px solid #F97316"
-                    : "1px solid #E2E8F0",
-                  background: active
-                    ? "#FFF7ED"
-                    : "#fff",
-                  color: active
-                    ? "#EA580C"
-                    : "#64748B",
-                  borderRadius: 7,
-                  padding: "7px 11px",
-                  fontSize: 12,
-                  fontWeight: active ? 700 : 500,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  whiteSpace: "nowrap",
-                }}
-              >
+                  border: active ? "none" : "1px solid #E2E8F0",
+                  background: active ? "#F97316" : "#fff",
+                  color: active ? "#fff" : "#64748B",
+                  borderRadius: 7, padding: "7px 13px",
+                  fontSize: 12, fontWeight: active ? 700 : 500,
+                  cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+                }}>
                 {item}
               </button>
             );
           })}
         </div>
+
+        {/* Custom date pickers */}
+        {filter === "Custom" && (
+          <>
+            <div style={{ width: 1, height: 24, background: "#E2E8F0", flexShrink: 0 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500, whiteSpace: "nowrap" }}>From</span>
+              <input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+                style={dateInp} />
+              <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>To</span>
+              <input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+                style={dateInp} />
+            </div>
+          </>
+        )}
       </div>
 
       {/* =======================================================
@@ -1236,3 +1227,9 @@ const pgBtn = (
     ? "not-allowed"
     : "pointer",
 });
+
+const dateInp: React.CSSProperties = {
+  border: "1px solid #E2E8F0", borderRadius: 8,
+  padding: "6px 10px", fontSize: 13, color: "#1E293B",
+  background: "#fff", outline: "none", fontFamily: "inherit", cursor: "pointer",
+};

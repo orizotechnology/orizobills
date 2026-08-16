@@ -70,7 +70,15 @@ export default function PurchaseEntryPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showPrintMenu]);
 
-  // ── Fetch initial data ───────────────────────────────────────
+  // ── Block browser back when form is dirty ───────────────────
+  useEffect(() => {
+    const isDirty = rows.some((r) => r.item.trim() !== "");
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) { e.preventDefault(); e.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [rows]);
   useEffect(() => {
     http.get<ApiResponse<{ number: string }>>("/purchases/next-number")
       .then((r) => { if (r.success) setBillNo(r.data.number); })
