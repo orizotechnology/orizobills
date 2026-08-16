@@ -305,7 +305,7 @@ export function Sidebar() {
               background: "#F97316", flexShrink: 0, overflow: "hidden",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <img src="/logo.png" alt="Orizo Bills"
+              <img src="/taskbar.png" alt="Orizo Bills"
                 style={{ width: 32, height: 32, objectFit: "contain" }}
                 onError={(e) => {
                   const el = e.currentTarget as HTMLImageElement;

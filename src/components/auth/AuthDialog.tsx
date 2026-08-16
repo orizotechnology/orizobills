@@ -119,7 +119,7 @@ export function AuthDialog() {
       <div style={{ background: "linear-gradient(135deg, #F97316 0%, #EA580C 100%)", padding: "24px 32px 20px", textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
           <div style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-            <img src="/logo.png" alt="Orizo Bills" style={{ width: 38, height: 38, objectFit: "contain" }}
+            <img src="/taskbar.png" alt="Orizo Bills" style={{ width: 34, height: 34, objectFit: "contain" }}
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
           </div>
           <span style={{ color: "#fff", fontWeight: 800, fontSize: 17, letterSpacing: "-0.3px" }}>Orizo Bills</span>

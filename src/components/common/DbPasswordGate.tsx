@@ -173,8 +173,8 @@ export function DbPasswordGate({ children }: Props) {
                 ✕
               </button>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 14 }}>
-                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                  <img src="/logo.png" alt="Orizo Bills" style={{ width: 40, height: 40, objectFit: "contain" }}
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+                  <img src="/taskbar.png" alt="Orizo Bills" style={{ width: 36, height: 36, objectFit: "contain" }}
                     onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
                 </div>
                 <span style={{ color: "#fff", fontWeight: 800, fontSize: 18, letterSpacing: "-0.3px" }}>Orizo Bills</span>
