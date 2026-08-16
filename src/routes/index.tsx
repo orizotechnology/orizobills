@@ -79,7 +79,7 @@ export function AppRoutes() {
 
         {/* Purchase */}
         <Route path="/app/purchase/all"     element={<W><AllPurchasesPage /></W>} />
-        <Route path="/app/purchase/new"     element={<W><PurchaseEntryPage /></W>} />
+        <Route path="/app/purchase/new"     element={<PurchaseEntryPage />} />
         <Route path="/app/purchase/return"  element={<W><PurchaseReturnPage /></W>} />
         <Route path="/app/purchase"         element={<Navigate to="/app/purchase/all" replace />} />
 
