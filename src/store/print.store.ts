@@ -1,4 +1,4 @@
-import { create } from "zustand";
+﻿import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 // =============================================================
@@ -63,6 +63,17 @@ export const usePrintStore = create<PrintState>()(
       updateSettings: (patch) =>
         set((s) => ({ settings: { ...s.settings, ...patch } })),
     }),
-    { name: "orizo-print" }
+    {
+      name: "orizo-print",
+      // Migrate existing users who had A4/A5 stored to Thermal 80mm
+      onRehydrateStorage: () => (state) => {
+        if (state && (state.settings.paperType === "A4" || state.settings.paperType === "A5")) {
+          state.updateSettings({
+            paperType:  "Thermal 80mm",
+            templateId: "th-retail",
+          });
+        }
+      },
+    }
   )
 );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import {
   ChevronDown, ChevronRight, Monitor, Smartphone,
   Copy, Trash2, RefreshCw, Star, Printer,
@@ -8,11 +8,11 @@ import { useBusinessStore } from "@/store/business.store";
 import { usePrintStore } from "@/store/print.store";
 
 // =============================================================
-// BILL DESIGNER PAGE — full rewrite
+// BILL DESIGNER PAGE â€” full rewrite
 // 3-column layout: LEFT=library, CENTER=canvas, RIGHT=properties
 // =============================================================
 
-// ── Types ─────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface Template {
   id: string;
@@ -50,7 +50,7 @@ interface PrintConfig {
 }
 
 const DEFAULT_CONFIG: PrintConfig = {
-  paperType: "A4", orientation: "portrait",
+  paperType: "Thermal 80mm", orientation: "portrait",
   marginTop: 10, marginBottom: 10, marginLeft: 10, marginRight: 10,
   showLogo: true, showSignature: false, showBankDetails: false,
   showQR: true, showTerms: true, showAmountInWords: true,
@@ -66,7 +66,7 @@ const DEFAULT_CONFIG: PrintConfig = {
 };
 
 const TEMPLATES: Template[] = [
-  // ── A4 ────────────────────────────────────────────────────
+  // â”€â”€ A4 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   { id: "modern",      name: "01 Modern",      type: "A4",      color: "#F97316", isDefault: true },
   { id: "elegant",     name: "02 Elegant",     type: "A4",      color: "#6B7280" },
   { id: "premium",     name: "03 Premium",     type: "A4",      color: "#0F172A" },
@@ -77,14 +77,14 @@ const TEMPLATES: Template[] = [
   { id: "wholesale",   name: "08 Wholesale",   type: "A4",      color: "#16A34A" },
   { id: "services",    name: "09 Services",    type: "A4",      color: "#D97706" },
   { id: "minimal",     name: "10 Minimal",     type: "A4",      color: "#1E293B" },
-  // ── Thermal ───────────────────────────────────────────────
+  // â”€â”€ Thermal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   { id: "th-retail",      name: "01 Retail",       type: "Thermal", color: "#1E293B" },
   { id: "th-grocery",     name: "02 Grocery",      type: "Thermal", color: "#16A34A" },
   { id: "th-restaurant",  name: "03 Restaurant",   type: "Thermal", color: "#DC2626" },
   { id: "th-pharmacy",    name: "04 Pharmacy",     type: "Thermal", color: "#0EA5E9" },
   { id: "th-fashion",     name: "05 Fashion",      type: "Thermal", color: "#9333EA" },
   { id: "th-electronics", name: "06 Electronics",  type: "Thermal", color: "#0284C7" },
-  { id: "th-cafe",        name: "07 Café",         type: "Thermal", color: "#92400E" },
+  { id: "th-cafe",        name: "07 CafÃ©",         type: "Thermal", color: "#92400E" },
   { id: "th-hardware",    name: "08 Hardware",     type: "Thermal", color: "#0F766E" },
   { id: "th-services",    name: "09 Services",     type: "Thermal", color: "#D97706" },
   { id: "th-minimal",     name: "10 Minimal",      type: "Thermal", color: "#475569" },
@@ -97,7 +97,7 @@ const FONT_SIZES    = [
   { v: "large",  l: "Large (14px)" },
 ];
 
-// ── Shared style constants ────────────────────────────────────
+// â”€â”€ Shared style constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const sel: React.CSSProperties = {
   border: "1px solid #E2E8F0", borderRadius: 6, padding: "4px 6px",
   fontSize: 12, color: "#1E293B", background: "#F8FAFC", outline: "none",
@@ -116,7 +116,7 @@ const iconBtnS: React.CSSProperties = {
   alignItems: "center", justifyContent: "center", outline: "none",
 };
 
-// ── Small helpers ─────────────────────────────────────────────
+// â”€â”€ Small helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PropSection({ title, icon, children, defaultOpen = false }: {
   title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean;
 }) {
@@ -160,7 +160,7 @@ function PR({ label, children }: { label: string; children: React.ReactNode }) {
   );
 }
 
-// ── TriBtn: 3-option radio-style selector ─────────────────────
+// â”€â”€ TriBtn: 3-option radio-style selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TriBtn<T extends string>({ options, value, onChange }: {
   options: { v: T; l: string }[];
   value: T;
@@ -182,7 +182,7 @@ function TriBtn<T extends string>({ options, value, onChange }: {
   );
 }
 
-// ── Sample data used across all preview renders ───────────────
+// â”€â”€ Sample data used across all preview renders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SAMPLE_ITEMS = [
   { name: "Wireless Mouse",  hsn: "84716060", qty: 1, rate: 850,   disc: 0 },
   { name: "Keyboard",        hsn: "84716040", qty: 1, rate: 1250,  disc: 0 },
@@ -195,7 +195,7 @@ type ProfileArg = {
   logoUrl?: string;
 };
 
-// ── Utility: row background for table style ───────────────────
+// â”€â”€ Utility: row background for table style â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function rowBg(idx: number, tableStyle: PrintConfig["tableStyle"], accent: string): string {
   if (tableStyle === "striped") return idx % 2 === 0 ? "#fff" : "#F8FAFC";
   return "#fff";
@@ -206,12 +206,12 @@ function rowBorder(tableStyle: PrintConfig["tableStyle"], accent: string): strin
   return "1px solid #F1F5F9";
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // A4 TEMPLATE RENDERERS
 // Each returns a JSX element representing the full invoice layout.
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ── 01 Modern: orange left accent bar, header top-right ────────
+// â”€â”€ 01 Modern: orange left accent bar, header top-right â”€â”€â”€â”€â”€â”€â”€â”€
 function TplModern({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   const bnFs = config.businessNameSize === "large" ? fs + 6 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
   const pad = config.layoutStyle === "compact" ? 8 : config.layoutStyle === "spacious" ? 20 : 14;
@@ -272,8 +272,8 @@ function TplModern({ c, fs, config, profile }: { c: string; fs: number; config: 
                 <td style={{ padding: "4px 7px", fontSize: fs - 1 }}>{i + 1}</td>
                 <td style={{ padding: "4px 7px", fontSize: fs - 1 }}>{it.name}</td>
                 <td style={{ padding: "4px 7px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
-                <td style={{ padding: "4px 7px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
-                <td style={{ padding: "4px 7px", fontSize: fs - 1, textAlign: "right" }}>₹{it.qty * it.rate}</td>
+                <td style={{ padding: "4px 7px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.rate}</td>
+                <td style={{ padding: "4px 7px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
               </tr>
             ))}
           </tbody>
@@ -281,14 +281,14 @@ function TplModern({ c, fs, config, profile }: { c: string; fs: number; config: 
         {/* Totals */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
           <div style={{ minWidth: 200 }}>
-            {[["Subtotal","₹2,450"],["GST 18%","₹441"]].map(([k,v]) => (
+            {[["Subtotal","â‚¹2,450"],["GST 18%","â‚¹441"]].map(([k,v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 16, fontSize: fs-1, marginBottom: 2 }}>
                 <span style={{ color: "#64748B" }}>{k}</span><span>{v}</span>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", background: c, color: "#fff",
               padding: "5px 8px", borderRadius: 4, fontWeight: 700, marginTop: 4, fontSize: fs }}>
-              <span>Total</span><span>₹2,891</span>
+              <span>Total</span><span>â‚¹2,891</span>
             </div>
           </div>
         </div>
@@ -304,7 +304,7 @@ function TplModern({ c, fs, config, profile }: { c: string; fs: number; config: 
   );
 }
 
-// ── 02 Elegant: centered header, thin dividers, italic, grey ──
+// â”€â”€ 02 Elegant: centered header, thin dividers, italic, grey â”€â”€
 function TplElegant({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   const bnFs = config.businessNameSize === "large" ? fs + 8 : config.businessNameSize === "small" ? fs + 3 : fs + 5;
   return (
@@ -320,11 +320,11 @@ function TplElegant({ c, fs, config, profile }: { c: string; fs: number; config:
         )}
         <div style={{ fontWeight: 700, fontSize: bnFs, letterSpacing: 2, color: "#1F2937" }}>{(profile.storeName || "YOUR BUSINESS").toUpperCase()}</div>
         <div style={{ fontSize: fs - 1, color: "#9CA3AF", fontStyle: "italic" }}>{profile.address || "123 Main Street, City"}</div>
-        <div style={{ fontSize: fs - 1, color: "#9CA3AF" }}>{profile.phone} · {profile.email}</div>
+        <div style={{ fontSize: fs - 1, color: "#9CA3AF" }}>{profile.phone} Â· {profile.email}</div>
       </div>
       <div style={{ borderTop: "1px solid #E5E7EB", borderBottom: "1px solid #E5E7EB", padding: "4px 0", textAlign: "center", marginBottom: 10 }}>
         <span style={{ fontSize: fs + 1, fontWeight: 700, letterSpacing: 4, color: "#374151" }}>INVOICE</span>
-        <span style={{ fontSize: fs - 1, color: "#9CA3AF", marginLeft: 12 }}>INV-2024-0123 · 24 May 2024</span>
+        <span style={{ fontSize: fs - 1, color: "#9CA3AF", marginLeft: 12 }}>INV-2024-0123 Â· 24 May 2024</span>
       </div>
       {/* Bill To row */}
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, fontSize: fs - 1, borderBottom: "1px solid #E5E7EB", paddingBottom: 8 }}>
@@ -354,8 +354,8 @@ function TplElegant({ c, fs, config, profile }: { c: string; fs: number; config:
             <tr key={i} style={{ borderBottom: "1px solid #F3F4F6", background: rowBg(i, config.tableStyle, c) }}>
               <td style={{ padding: "5px 6px", fontSize: fs - 1, fontStyle: i === 1 ? "italic" : "normal" }}>{it.name}</td>
               <td style={{ padding: "5px 6px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
-              <td style={{ padding: "5px 6px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
-              <td style={{ padding: "5px 6px", fontSize: fs - 1, textAlign: "right" }}>₹{it.qty * it.rate}</td>
+              <td style={{ padding: "5px 6px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.rate}</td>
+              <td style={{ padding: "5px 6px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
@@ -363,7 +363,7 @@ function TplElegant({ c, fs, config, profile }: { c: string; fs: number; config:
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
         <div style={{ minWidth: 180 }}>
           <div style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #E5E7EB", paddingTop: 6, fontWeight: 700, fontSize: fs }}>
-            <span style={{ color: "#374151" }}>Total</span><span style={{ color: c }}>₹2,891</span>
+            <span style={{ color: "#374151" }}>Total</span><span style={{ color: c }}>â‚¹2,891</span>
           </div>
         </div>
       </div>
@@ -373,7 +373,7 @@ function TplElegant({ c, fs, config, profile }: { c: string; fs: number; config:
   );
 }
 
-// ── 03 Premium: dark navy header band, white text, stark contrast ──
+// â”€â”€ 03 Premium: dark navy header band, white text, stark contrast â”€â”€
 function TplPremium({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   const navy = "#0F172A";
   const bnFs = config.businessNameSize === "large" ? fs + 7 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
@@ -432,8 +432,8 @@ function TplPremium({ c, fs, config, profile }: { c: string; fs: number; config:
                 <td style={{ padding: "5px 8px", fontSize: fs - 1 }}>{i + 1}</td>
                 <td style={{ padding: "5px 8px", fontSize: fs - 1 }}>{it.name}</td>
                 <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
-                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
-                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right", fontWeight: 700 }}>₹{it.qty * it.rate}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.rate}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right", fontWeight: 700 }}>â‚¹{it.qty * it.rate}</td>
               </tr>
             ))}
           </tbody>
@@ -441,10 +441,10 @@ function TplPremium({ c, fs, config, profile }: { c: string; fs: number; config:
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <div style={{ background: navy, color: "#fff", borderRadius: 8, padding: "8px 14px", minWidth: 180 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, marginBottom: 2 }}>
-              <span style={{ color: "#94A3B8" }}>Subtotal</span><span>₹2,450</span>
+              <span style={{ color: "#94A3B8" }}>Subtotal</span><span>â‚¹2,450</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, borderTop: "1px solid #334155", paddingTop: 4, fontWeight: 900 }}>
-              <span>TOTAL</span><span style={{ color: c }}>₹2,891</span>
+              <span>TOTAL</span><span style={{ color: c }}>â‚¹2,891</span>
             </div>
           </div>
         </div>
@@ -457,7 +457,7 @@ function TplPremium({ c, fs, config, profile }: { c: string; fs: number; config:
   );
 }
 
-// ── 04 Pharmacy: blue header, 2-column with big INVOICE stamp ──
+// â”€â”€ 04 Pharmacy: blue header, 2-column with big INVOICE stamp â”€â”€
 function TplPharmacy({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   const bnFs = config.businessNameSize === "large" ? fs + 6 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
   return (
@@ -475,7 +475,7 @@ function TplPharmacy({ c, fs, config, profile }: { c: string; fs: number; config
             <div style={{ color: "#fff", fontWeight: 800, fontSize: bnFs }}>
               {profile.storeName || "City Pharmacy"}
             </div>
-            <div style={{ color: "#BAE6FD", fontSize: fs - 2 }}>Licensed Pharmacy · Dl No. 12-AB-345</div>
+            <div style={{ color: "#BAE6FD", fontSize: fs - 2 }}>Licensed Pharmacy Â· Dl No. 12-AB-345</div>
           </div>
         </div>
         <div style={{ textAlign: "right", color: "#fff" }}>
@@ -511,8 +511,8 @@ function TplPharmacy({ c, fs, config, profile }: { c: string; fs: number; config
                 <tr key={i} style={{ borderBottom: rowBorder(config.tableStyle, c), background: rowBg(i, config.tableStyle, c) }}>
                   <td style={{ padding: "4px 6px" }}>{it.name}</td>
                   <td style={{ padding: "4px 6px", textAlign: "right" }}>{it.qty}</td>
-                  <td style={{ padding: "4px 6px", textAlign: "right" }}>₹{it.rate}</td>
-                  <td style={{ padding: "4px 6px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+                  <td style={{ padding: "4px 6px", textAlign: "right" }}>â‚¹{it.rate}</td>
+                  <td style={{ padding: "4px 6px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
                 </tr>
               ))}
             </tbody>
@@ -525,7 +525,7 @@ function TplPharmacy({ c, fs, config, profile }: { c: string; fs: number; config
             <div style={{ fontSize: fs - 2, color: "#64748B" }}>INV-2024-0123</div>
           </div>
           <div style={{ fontSize: fs - 1 }}>
-            {[["Sub","₹535"],["Disc","₹0"],["GST","₹96"],["Total","₹631"]].map(([k,v],idx) => (
+            {[["Sub","â‚¹535"],["Disc","â‚¹0"],["GST","â‚¹96"],["Total","â‚¹631"]].map(([k,v],idx) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", fontWeight: idx === 3 ? 700 : 400,
                 color: idx === 3 ? c : "#374151", borderTop: idx === 3 ? `1px solid ${c}` : "none",
                 paddingTop: idx === 3 ? 4 : 0, marginBottom: 3 }}>
@@ -537,13 +537,13 @@ function TplPharmacy({ c, fs, config, profile }: { c: string; fs: number; config
         </div>
       </div>
       <div style={{ borderTop: `1px solid ${c}`, margin: "0 16px", paddingTop: 6, paddingBottom: 8, fontSize: fs - 1, color: "#64748B", textAlign: "center" }}>
-        {config.footerText} · {config.showTerms && config.termsText.split("\n")[0]}
+        {config.footerText} Â· {config.showTerms && config.termsText.split("\n")[0]}
       </div>
     </div>
   );
 }
 
-// ── 05 Restaurant: red checkered border, centered business name large ──
+// â”€â”€ 05 Restaurant: red checkered border, centered business name large â”€â”€
 function TplRestaurant({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   const bnFs = config.businessNameSize === "large" ? fs + 10 : config.businessNameSize === "small" ? fs + 4 : fs + 7;
   return (
@@ -562,13 +562,13 @@ function TplRestaurant({ c, fs, config, profile }: { c: string; fs: number; conf
           <div style={{ fontWeight: 900, fontSize: bnFs, color: c, letterSpacing: 2 }}>
             {(profile.storeName || "LA BELLA CUCINA").toUpperCase()}
           </div>
-          <div style={{ fontSize: fs - 1, color: "#9CA3AF", letterSpacing: 1 }}>Fine Dining · Est. 2010</div>
-          <div style={{ fontSize: fs - 1, color: "#6B7280" }}>{profile.address} · {profile.phone}</div>
+          <div style={{ fontSize: fs - 1, color: "#9CA3AF", letterSpacing: 1 }}>Fine Dining Â· Est. 2010</div>
+          <div style={{ fontSize: fs - 1, color: "#6B7280" }}>{profile.address} Â· {profile.phone}</div>
         </div>
         {/* Decorative separator */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <div style={{ flex: 1, height: 1, background: c }} />
-          <span style={{ color: c, fontSize: fs + 2 }}>✦</span>
+          <span style={{ color: c, fontSize: fs + 2 }}>âœ¦</span>
           <div style={{ flex: 1, height: 1, background: c }} />
         </div>
         {/* Invoice tag */}
@@ -597,22 +597,22 @@ function TplRestaurant({ c, fs, config, profile }: { c: string; fs: number; conf
               <tr key={i} style={{ background: rowBg(i, config.tableStyle, c), borderBottom: rowBorder(config.tableStyle, c) }}>
                 <td style={{ padding: "5px 8px", fontSize: fs - 1 }}>{it.name}</td>
                 <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
-                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
-                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>₹{it.qty * it.rate}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.rate}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
               </tr>
             ))}
           </tbody>
         </table>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div style={{ minWidth: 200 }}>
-            {[["Subtotal","₹1,680"],["Service Charge (10%)","₹168"],["CGST (2.5%)","₹46"],["SGST (2.5%)","₹46"]].map(([k,v]) => (
+            {[["Subtotal","â‚¹1,680"],["Service Charge (10%)","â‚¹168"],["CGST (2.5%)","â‚¹46"],["SGST (2.5%)","â‚¹46"]].map(([k,v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 16, fontSize: fs - 1, marginBottom: 2 }}>
                 <span style={{ color: "#6B7280" }}>{k}</span><span>{v}</span>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", background: c, color: "#fff",
               padding: "6px 10px", borderRadius: 4, fontWeight: 700, marginTop: 4, fontSize: fs + 1 }}>
-              <span>GRAND TOTAL</span><span>₹1,940</span>
+              <span>GRAND TOTAL</span><span>â‚¹1,940</span>
             </div>
           </div>
         </div>
@@ -629,14 +629,14 @@ function TplRestaurant({ c, fs, config, profile }: { c: string; fs: number; conf
   );
 }
 
-// ── 06 Boutique: purple, decorative header [ Business Name ] ──
+// â”€â”€ 06 Boutique: purple, decorative header [ Business Name ] â”€â”€
 function TplBoutique({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   const bnFs = config.businessNameSize === "large" ? fs + 7 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
   return (
     <div style={{ background: "#FAF5FF", fontFamily: config.fontFamily, minHeight: 560, padding: "16px 20px" }}>
       {/* Decorative header */}
       <div style={{ textAlign: "center", marginBottom: 14 }}>
-        <div style={{ fontSize: fs - 1, color: c, letterSpacing: 3, marginBottom: 4 }}>✦ ✦ ✦</div>
+        <div style={{ fontSize: fs - 1, color: c, letterSpacing: 3, marginBottom: 4 }}>âœ¦ âœ¦ âœ¦</div>
         {config.showLogo && (
           <div style={{ width: 44, height: 44, borderRadius: "50%", background: c, margin: "0 auto 6px",
             display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 20 }}>
@@ -650,8 +650,8 @@ function TplBoutique({ c, fs, config, profile }: { c: string; fs: number; config
           </span>
           <span style={{ color: c, fontSize: bnFs + 2, fontWeight: 300 }}>]</span>
         </div>
-        <div style={{ fontSize: fs - 1, color: "#A78BFA", letterSpacing: 1 }}>Couture · Collections · Craftsmanship</div>
-        <div style={{ fontSize: fs - 1, color: "#9CA3AF" }}>{profile.address} · {profile.phone}</div>
+        <div style={{ fontSize: fs - 1, color: "#A78BFA", letterSpacing: 1 }}>Couture Â· Collections Â· Craftsmanship</div>
+        <div style={{ fontSize: fs - 1, color: "#9CA3AF" }}>{profile.address} Â· {profile.phone}</div>
       </div>
       {/* Thin decorative border */}
       <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${c}, transparent)`, marginBottom: 12 }} />
@@ -683,22 +683,22 @@ function TplBoutique({ c, fs, config, profile }: { c: string; fs: number; config
               <td style={{ padding: "5px 7px", fontSize: fs - 1 }}>{it.name}</td>
               <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right", color: "#9CA3AF" }}>{it.size}</td>
               <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
-              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
-              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right", fontWeight: 600, color: "#4B0082" }}>₹{it.qty * it.rate}</td>
+              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.rate}</td>
+              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right", fontWeight: 600, color: "#4B0082" }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
         <div style={{ minWidth: 190, background: "#fff", border: `1px solid ${c}40`, borderRadius: 8, padding: "8px 12px" }}>
-          {[["Subtotal","₹5,750"],["Member Disc","- ₹575"]].map(([k,v]) => (
+          {[["Subtotal","â‚¹5,750"],["Member Disc","- â‚¹575"]].map(([k,v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, marginBottom: 3 }}>
               <span style={{ color: "#9CA3AF" }}>{k}</span><span>{v}</span>
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, color: "#4B0082",
             borderTop: `1px solid ${c}40`, paddingTop: 5, fontSize: fs }}>
-            <span>Total</span><span>₹5,175</span>
+            <span>Total</span><span>â‚¹5,175</span>
           </div>
         </div>
       </div>
@@ -708,7 +708,7 @@ function TplBoutique({ c, fs, config, profile }: { c: string; fs: number; config
   );
 }
 
-// ── 07 Electronics: dark tech style, monospace font, cyan accent ──
+// â”€â”€ 07 Electronics: dark tech style, monospace font, cyan accent â”€â”€
 function TplElectronics({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   const mono = "'Courier New', 'Courier', monospace";
   const bnFs = config.businessNameSize === "large" ? fs + 6 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
@@ -719,7 +719,7 @@ function TplElectronics({ c, fs, config, profile }: { c: string; fs: number; con
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#FF5F57" }} />
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#FEBC2E" }} />
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#28C840" }} />
-        <div style={{ flex: 1, textAlign: "center", fontSize: fs - 2, color: "#6E7681" }}>invoice.sys — v1.0</div>
+        <div style={{ flex: 1, textAlign: "center", fontSize: fs - 2, color: "#6E7681" }}>invoice.sys â€” v1.0</div>
       </div>
       <div style={{ borderBottom: `1px solid ${c}40`, paddingBottom: 10, marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -758,8 +758,8 @@ function TplElectronics({ c, fs, config, profile }: { c: string; fs: number; con
             <tr key={i} style={{ borderBottom: `1px solid ${c}20`, background: rowBg(i, config.tableStyle, c) === "#F8FAFC" ? "#161B22" : "#0D1117" }}>
               <td style={{ padding: "4px 7px", color: "#E6EDF3" }}>{it.name}</td>
               <td style={{ padding: "4px 7px", textAlign: "right", color: "#79C0FF" }}>{it.qty}</td>
-              <td style={{ padding: "4px 7px", textAlign: "right", color: "#7EE787" }}>₹{it.rate}</td>
-              <td style={{ padding: "4px 7px", textAlign: "right", color: c, fontWeight: 700 }}>₹{it.qty * it.rate}</td>
+              <td style={{ padding: "4px 7px", textAlign: "right", color: "#7EE787" }}>â‚¹{it.rate}</td>
+              <td style={{ padding: "4px 7px", textAlign: "right", color: c, fontWeight: 700 }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
@@ -768,13 +768,13 @@ function TplElectronics({ c, fs, config, profile }: { c: string; fs: number; con
       <div style={{ borderTop: `1px solid ${c}40`, paddingTop: 8, display: "flex", justifyContent: "flex-end" }}>
         <div style={{ fontSize: fs - 1, minWidth: 200 }}>
           <div style={{ display: "flex", justifyContent: "space-between", color: "#6E7681", marginBottom: 2 }}>
-            <span>// subtotal</span><span>₹2,450</span>
+            <span>// subtotal</span><span>â‚¹2,450</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", color: "#6E7681", marginBottom: 4 }}>
-            <span>// gst_18</span><span>₹441</span>
+            <span>// gst_18</span><span>â‚¹441</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, fontSize: fs }}>
-            <span>TOTAL =&gt;</span><span>₹2,891</span>
+            <span>TOTAL =&gt;</span><span>â‚¹2,891</span>
           </div>
         </div>
       </div>
@@ -787,7 +787,7 @@ function TplElectronics({ c, fs, config, profile }: { c: string; fs: number; con
   );
 }
 
-// ── 08 Wholesale: green, condensed columns, table-focused ─────
+// â”€â”€ 08 Wholesale: green, condensed columns, table-focused â”€â”€â”€â”€â”€
 function TplWholesale({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   const bnFs = config.businessNameSize === "large" ? fs + 5 : config.businessNameSize === "small" ? fs + 1 : fs + 3;
   return (
@@ -803,7 +803,7 @@ function TplWholesale({ c, fs, config, profile }: { c: string; fs: number; confi
           )}
           <div>
             <div style={{ color: "#fff", fontWeight: 800, fontSize: bnFs }}>{profile.storeName || "Wholesale Mart"}</div>
-            <div style={{ color: "#BBF7D0", fontSize: fs - 2 }}>Bulk Supplier · GST Registered</div>
+            <div style={{ color: "#BBF7D0", fontSize: fs - 2 }}>Bulk Supplier Â· GST Registered</div>
           </div>
         </div>
         <div style={{ color: "#fff", textAlign: "right", fontSize: fs - 2 }}>
@@ -850,11 +850,11 @@ function TplWholesale({ c, fs, config, profile }: { c: string; fs: number; confi
                 <td style={{ padding: "3px 5px", textAlign: "right" }}>{it.hsn}</td>
                 <td style={{ padding: "3px 5px", textAlign: "right" }}>{it.qty * 10}</td>
                 <td style={{ padding: "3px 5px", textAlign: "right" }}>pcs</td>
-                <td style={{ padding: "3px 5px", textAlign: "right" }}>₹{it.rate}</td>
+                <td style={{ padding: "3px 5px", textAlign: "right" }}>â‚¹{it.rate}</td>
                 <td style={{ padding: "3px 5px", textAlign: "right" }}>0%</td>
-                <td style={{ padding: "3px 5px", textAlign: "right", color: "#64748B" }}>₹{Math.round(it.rate * it.qty * 10 * 0.09)}</td>
-                <td style={{ padding: "3px 5px", textAlign: "right", color: "#64748B" }}>₹{Math.round(it.rate * it.qty * 10 * 0.09)}</td>
-                <td style={{ padding: "3px 5px", textAlign: "right", fontWeight: 700 }}>₹{it.rate * it.qty * 10}</td>
+                <td style={{ padding: "3px 5px", textAlign: "right", color: "#64748B" }}>â‚¹{Math.round(it.rate * it.qty * 10 * 0.09)}</td>
+                <td style={{ padding: "3px 5px", textAlign: "right", color: "#64748B" }}>â‚¹{Math.round(it.rate * it.qty * 10 * 0.09)}</td>
+                <td style={{ padding: "3px 5px", textAlign: "right", fontWeight: 700 }}>â‚¹{it.rate * it.qty * 10}</td>
               </tr>
             ))}
           </tbody>
@@ -862,20 +862,20 @@ function TplWholesale({ c, fs, config, profile }: { c: string; fs: number; confi
         {/* Summary */}
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <div style={{ minWidth: 200, fontSize: fs - 1 }}>
-            {[["Taxable Amt","₹24,500"],["CGST","₹2,205"],["SGST","₹2,205"]].map(([k,v]) => (
+            {[["Taxable Amt","â‚¹24,500"],["CGST","â‚¹2,205"],["SGST","â‚¹2,205"]].map(([k,v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
                 <span style={{ color: "#64748B" }}>{k}</span><span>{v}</span>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", background: c, color: "#fff",
               padding: "4px 8px", borderRadius: 4, fontWeight: 700, marginTop: 4 }}>
-              <span>NET PAYABLE</span><span>₹28,910</span>
+              <span>NET PAYABLE</span><span>â‚¹28,910</span>
             </div>
           </div>
         </div>
         {config.showBankDetails && (
           <div style={{ marginTop: 8, padding: "6px 10px", background: `${c}10`, border: `1px solid ${c}30`, borderRadius: 6, fontSize: fs - 2 }}>
-            <strong style={{ color: c }}>Bank: </strong>SBI · A/C: 1234567890 · IFSC: SBIN0001234
+            <strong style={{ color: c }}>Bank: </strong>SBI Â· A/C: 1234567890 Â· IFSC: SBIN0001234
           </div>
         )}
       </div>
@@ -887,7 +887,7 @@ function TplWholesale({ c, fs, config, profile }: { c: string; fs: number; confi
   );
 }
 
-// ── 09 Services: amber, big invoice number callout, timeline ──
+// â”€â”€ 09 Services: amber, big invoice number callout, timeline â”€â”€
 function TplServices({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   const bnFs = config.businessNameSize === "large" ? fs + 6 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
   return (
@@ -925,7 +925,7 @@ function TplServices({ c, fs, config, profile }: { c: string; fs: number; config
           <div style={{ flex: 1, background: "#fff", border: `2px solid ${c}`, borderRadius: 8, padding: "8px 10px" }}>
             <div style={{ fontWeight: 700, color: c, marginBottom: 3 }}>PROJECT</div>
             <div style={{ fontWeight: 600 }}>Website Redesign</div>
-            <div style={{ color: "#6B7280" }}>Period: May 1–31, 2024</div>
+            <div style={{ color: "#6B7280" }}>Period: May 1â€“31, 2024</div>
             <div style={{ color: "#6B7280" }}>Due: <span style={{ color: c, fontWeight: 600 }}>31 May 2024</span></div>
           </div>
         </div>
@@ -941,27 +941,27 @@ function TplServices({ c, fs, config, profile }: { c: string; fs: number; config
               borderLeft: `3px solid ${i === 2 ? c : `${c}40`}`, fontSize: fs - 1 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600 }}>{s.desc}</div>
-                <div style={{ color: "#6B7280", fontSize: fs - 2 }}>{s.week} · {s.hrs} hrs @ ₹{s.rate}/hr</div>
+                <div style={{ color: "#6B7280", fontSize: fs - 2 }}>{s.week} Â· {s.hrs} hrs @ â‚¹{s.rate}/hr</div>
               </div>
-              <div style={{ fontWeight: 700, color: "#1F2937" }}>₹{s.hrs * s.rate}</div>
+              <div style={{ fontWeight: 700, color: "#1F2937" }}>â‚¹{s.hrs * s.rate}</div>
             </div>
           ))}
         </div>
         {/* Summary */}
         <div style={{ background: "#fff", border: `1px solid ${c}40`, borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}>
-          {[["Subtotal","₹1,00,000"],["Tax (18%)","₹18,000"]].map(([k,v]) => (
+          {[["Subtotal","â‚¹1,00,000"],["Tax (18%)","â‚¹18,000"]].map(([k,v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, marginBottom: 3 }}>
               <span style={{ color: "#6B7280" }}>{k}</span><span>{v}</span>
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: fs + 2,
             color: c, borderTop: `2px solid ${c}`, paddingTop: 6, marginTop: 4 }}>
-            <span>TOTAL DUE</span><span>₹1,18,000</span>
+            <span>TOTAL DUE</span><span>â‚¹1,18,000</span>
           </div>
         </div>
         {config.showBankDetails && (
           <div style={{ fontSize: fs - 1, color: "#6B7280", marginBottom: 6 }}>
-            <strong>Pay via: </strong>Bank Transfer · A/C: 1234567890 · IFSC: ICIC0001234
+            <strong>Pay via: </strong>Bank Transfer Â· A/C: 1234567890 Â· IFSC: ICIC0001234
           </div>
         )}
         {config.showTerms && <div style={{ fontSize: fs - 1, color: "#6B7280", marginBottom: 4 }}>
@@ -973,7 +973,7 @@ function TplServices({ c, fs, config, profile }: { c: string; fs: number; config
   );
 }
 
-// ── 10 Minimal: pure black and white, no color, ultra clean ──
+// â”€â”€ 10 Minimal: pure black and white, no color, ultra clean â”€â”€
 function TplMinimal({ fs, config, profile }: { fs: number; config: PrintConfig; profile: ProfileArg }) {
   const bnFs = config.businessNameSize === "large" ? fs + 7 : config.businessNameSize === "small" ? fs + 2 : fs + 4;
   return (
@@ -1027,8 +1027,8 @@ function TplMinimal({ fs, config, profile }: { fs: number; config: PrintConfig; 
             <tr key={i} style={{ borderBottom: "1px solid #E5E7EB" }}>
               <td style={{ padding: "5px 6px" }}>{it.name}</td>
               <td style={{ padding: "5px 6px", textAlign: "right" }}>{it.qty}</td>
-              <td style={{ padding: "5px 6px", textAlign: "right" }}>₹{it.rate}</td>
-              <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 600 }}>₹{it.qty * it.rate}</td>
+              <td style={{ padding: "5px 6px", textAlign: "right" }}>â‚¹{it.rate}</td>
+              <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 600 }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
@@ -1036,13 +1036,13 @@ function TplMinimal({ fs, config, profile }: { fs: number; config: PrintConfig; 
       {/* Totals */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <div style={{ minWidth: 200, fontSize: fs - 1 }}>
-          {[["Subtotal","₹2,450"],["GST (18%)","₹441"]].map(([k,v]) => (
+          {[["Subtotal","â‚¹2,450"],["GST (18%)","â‚¹441"]].map(([k,v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
               <span style={{ color: "#777" }}>{k}</span><span>{v}</span>
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, borderTop: "2px solid #000", paddingTop: 5, fontSize: fs + 1 }}>
-            <span>TOTAL</span><span>₹2,891</span>
+            <span>TOTAL</span><span>â‚¹2,891</span>
           </div>
         </div>
       </div>
@@ -1057,9 +1057,9 @@ function TplMinimal({ fs, config, profile }: { fs: number; config: PrintConfig; 
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// THERMAL TEMPLATE RENDERERS  (width ≈ 260 px)
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// THERMAL TEMPLATE RENDERERS  (width â‰ˆ 260 px)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
   c: string; fs: number; config: PrintConfig; profile: ProfileArg;
@@ -1140,7 +1140,7 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
             )
           )}
           <div style={{ fontWeight: 900, fontSize: fs + 3, color: c }}>{profile.storeName || "SHOP"}</div>
-          <div style={{ fontSize: fs - 2 }}>{profile.phone} · {profile.address}</div>
+          <div style={{ fontSize: fs - 2 }}>{profile.phone} Â· {profile.address}</div>
         </div>
       )}
       {children}
@@ -1167,8 +1167,8 @@ function ThermalItems({ c, fs, config }: { c: string; fs: number; config: PrintC
           <tr key={i} style={{ borderBottom: rowBorder(config.tableStyle, c) }}>
             <td style={{ padding: "2px 3px" }}>{it.name}</td>
             <td style={{ padding: "2px 3px", textAlign: "right" }}>{it.qty}</td>
-            <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.rate}</td>
-            <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+            <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.rate}</td>
+            <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
           </tr>
         ))}
       </tbody>
@@ -1179,20 +1179,20 @@ function ThermalItems({ c, fs, config }: { c: string; fs: number; config: PrintC
 function ThermalTotals({ c, fs, config }: { c: string; fs: number; config: PrintConfig }) {
   return (
     <div style={{ fontSize: fs - 1, marginBottom: 6 }}>
-      {[["Subtotal","₹2,450"],["GST","₹441"]].map(([k,v]) => (
+      {[["Subtotal","â‚¹2,450"],["GST","â‚¹441"]].map(([k,v]) => (
         <div key={k} style={{ display: "flex", justifyContent: "space-between" }}>
           <span style={{ color: "#64748B" }}>{k}</span><span>{v}</span>
         </div>
       ))}
       <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: fs,
         borderTop: `1px solid ${c}`, paddingTop: 3, marginTop: 2 }}>
-        <span>TOTAL</span><span style={{ color: c }}>₹2,891</span>
+        <span>TOTAL</span><span style={{ color: c }}>â‚¹2,891</span>
       </div>
     </div>
   );
 }
 
-// ── Thermal: th-retail ────────────────────────────────────────
+// â”€â”€ Thermal: th-retail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TplThRetail({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   return (
     <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
@@ -1207,7 +1207,7 @@ function TplThRetail({ c, fs, config, profile }: { c: string; fs: number; config
   );
 }
 
-// ── Thermal: th-grocery ───────────────────────────────────────
+// â”€â”€ Thermal: th-grocery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TplThGrocery({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   return (
     <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed">
@@ -1222,19 +1222,19 @@ function TplThGrocery({ c, fs, config, profile }: { c: string; fs: number; confi
           {[{name:"Rice 1kg",qty:2,rate:55},{name:"Atta 5kg",qty:1,rate:210},{name:"Dal 500g",qty:3,rate:90}].map((it,i) => (
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>{it.qty}×{it.rate}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right", fontWeight: 700, color: c }}>₹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>{it.qty}Ã—{it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right", fontWeight: 700, color: c }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div style={{ fontWeight: 900, fontSize: fs + 1, textAlign: "right", color: c }}>Total: ₹490</div>
-      <div style={{ fontSize: fs - 2, color: "#64748B", textAlign: "center", marginTop: 4 }}>Items: 6 | Savings: ₹24</div>
+      <div style={{ fontWeight: 900, fontSize: fs + 1, textAlign: "right", color: c }}>Total: â‚¹490</div>
+      <div style={{ fontSize: fs - 2, color: "#64748B", textAlign: "center", marginTop: 4 }}>Items: 6 | Savings: â‚¹24</div>
     </ThermalBase>
   );
 }
 
-// ── Thermal: th-restaurant ────────────────────────────────────
+// â”€â”€ Thermal: th-restaurant â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TplThRestaurant({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   return (
     <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
@@ -1244,26 +1244,26 @@ function TplThRestaurant({ c, fs, config, profile }: { c: string; fs: number; co
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
         <tbody>
-          {[{name:"Paneer Butter Masala",qty:1,rate:280},{name:"Garlic Naan ×2",qty:2,rate:45},{name:"Lassi",qty:1,rate:80}].map((it,i) => (
+          {[{name:"Paneer Butter Masala",qty:1,rate:280},{name:"Garlic Naan Ã—2",qty:2,rate:45},{name:"Lassi",qty:1,rate:80}].map((it,i) => (
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
               <td style={{ padding: "2px 3px", textAlign: "right" }}>{it.qty}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ fontSize: fs - 1 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Food</span><span>₹450</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Service (10%)</span><span>₹45</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>₹495</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Food</span><span>â‚¹450</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Service (10%)</span><span>â‚¹45</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>â‚¹495</span></div>
       </div>
       <div style={{ textAlign: "center", fontSize: fs - 2, color: "#64748B", marginTop: 4 }}>GST No: 29ABCDE1234F1Z5</div>
     </ThermalBase>
   );
 }
 
-// ── Thermal: th-pharmacy ──────────────────────────────────────
+// â”€â”€ Thermal: th-pharmacy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TplThPharmacy({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   return (
     <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed">
@@ -1278,24 +1278,24 @@ function TplThPharmacy({ c, fs, config, profile }: { c: string; fs: number; conf
         <tbody>
           {[{name:"Paracetamol 500mg",qty:10,rate:2.5},{name:"Azithromycin 500mg",qty:5,rate:18},{name:"Vitamin C",qty:1,rate:85}].map((it,i) => (
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
-              <td style={{ padding: "2px 3px" }}><div>{it.name}</div><div style={{ fontSize: fs - 3, color: "#94A3B8" }}>Qty: {it.qty} @ ₹{it.rate}</div></td>
-              <td style={{ padding: "2px 3px", textAlign: "right", fontWeight: 700 }}>₹{(it.qty * it.rate).toFixed(0)}</td>
+              <td style={{ padding: "2px 3px" }}><div>{it.name}</div><div style={{ fontSize: fs - 3, color: "#94A3B8" }}>Qty: {it.qty} @ â‚¹{it.rate}</div></td>
+              <td style={{ padding: "2px 3px", textAlign: "right", fontWeight: 700 }}>â‚¹{(it.qty * it.rate).toFixed(0)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs, color: c }}>TOTAL: ₹195</div>
+      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs, color: c }}>TOTAL: â‚¹195</div>
       <div style={{ fontSize: fs - 2, color: "#64748B", marginTop: 4, borderTop: "1px dashed #E2E8F0", paddingTop: 3 }}>Store medicines in cool dry place</div>
     </ThermalBase>
   );
 }
 
-// ── Thermal: th-fashion ───────────────────────────────────────
+// â”€â”€ Thermal: th-fashion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TplThFashion({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   return (
     <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
       <div style={{ textAlign: "center", marginBottom: 6 }}>
-        <div style={{ fontSize: fs - 1, color: c, letterSpacing: 3 }}>— RECEIPT —</div>
+        <div style={{ fontSize: fs - 1, color: c, letterSpacing: 3 }}>â€” RECEIPT â€”</div>
         <div style={{ fontSize: fs - 2, color: "#64748B" }}>Priya Sharma | Member #PM-456</div>
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
@@ -1304,22 +1304,22 @@ function TplThFashion({ c, fs, config, profile }: { c: string; fs: number; confi
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
               <td style={{ padding: "2px 3px", textAlign: "center" }}>{it.qty}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ fontSize: fs - 1 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>MRP</span><span>₹2,350</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Member 10% off</span><span style={{ color: c }}>- ₹235</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>YOU PAY</span><span>₹2,115</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>MRP</span><span>â‚¹2,350</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Member 10% off</span><span style={{ color: c }}>- â‚¹235</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>YOU PAY</span><span>â‚¹2,115</span></div>
       </div>
       <div style={{ textAlign: "center", fontSize: fs - 2, color: "#94A3B8", marginTop: 4, fontStyle: "italic" }}>Exchange within 7 days with receipt</div>
     </ThermalBase>
   );
 }
 
-// ── Thermal: th-electronics ───────────────────────────────────
+// â”€â”€ Thermal: th-electronics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TplThElectronics({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   return (
     <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="leftright">
@@ -1331,27 +1331,27 @@ function TplThElectronics({ c, fs, config, profile }: { c: string; fs: number; c
           {[{name:"Smartphone X12",qty:1,rate:18999},{name:"Screen Guard",qty:2,rate:149},{name:"Cover Case",qty:1,rate:299}].map((it,i) => (
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ fontSize: fs - 1, marginBottom: 4 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Sub</span><span>₹19,596</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>GST</span><span>₹1,727</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>₹21,323</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Sub</span><span>â‚¹19,596</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>GST</span><span>â‚¹1,727</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>â‚¹21,323</span></div>
       </div>
       <div style={{ fontSize: fs - 2, color: "#64748B" }}>Serial: SN-TECH-20240524</div>
     </ThermalBase>
   );
 }
 
-// ── Thermal: th-cafe ──────────────────────────────────────────
+// â”€â”€ Thermal: th-cafe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TplThCafe({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   return (
     <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
       <div style={{ textAlign: "center", fontSize: fs - 1, marginBottom: 4, borderBottom: `1px dashed ${c}`, paddingBottom: 3 }}>
-        <div style={{ fontWeight: 700, color: c }}>☕ ORDER RECEIPT</div>
+        <div style={{ fontWeight: 700, color: c }}>â˜• ORDER RECEIPT</div>
         <div style={{ fontSize: fs - 2, color: "#64748B" }}>Order #456 | Takeaway | 10:30 AM</div>
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
@@ -1360,19 +1360,19 @@ function TplThCafe({ c, fs, config, profile }: { c: string; fs: number; config: 
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
               <td style={{ padding: "2px 3px", textAlign: "center", color: "#64748B" }}>x{it.qty}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs + 1, color: c, marginBottom: 2 }}>₹460</div>
+      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs + 1, color: c, marginBottom: 2 }}>â‚¹460</div>
       <div style={{ textAlign: "center", fontSize: fs - 2, color: "#64748B" }}>Paid: UPI | Txn: 7890XY</div>
-      <div style={{ textAlign: "center", fontSize: fs - 2, marginTop: 4, color: c, fontStyle: "italic" }}>Enjoy your coffee! ☕</div>
+      <div style={{ textAlign: "center", fontSize: fs - 2, marginTop: 4, color: c, fontStyle: "italic" }}>Enjoy your coffee! â˜•</div>
     </ThermalBase>
   );
 }
 
-// ── Thermal: th-hardware ──────────────────────────────────────
+// â”€â”€ Thermal: th-hardware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TplThHardware({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   return (
     <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="leftright">
@@ -1382,25 +1382,25 @@ function TplThHardware({ c, fs, config, profile }: { c: string; fs: number; conf
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 4 }}>
         <tbody>
-          {[{name:"M10 Bolt ×50",qty:1,rate:120},{name:"PVC Pipe 2m",qty:3,rate:85},{name:"Elbow Joint",qty:6,rate:18}].map((it,i) => (
+          {[{name:"M10 Bolt Ã—50",qty:1,rate:120},{name:"PVC Pipe 2m",qty:3,rate:85},{name:"Elbow Joint",qty:6,rate:18}].map((it,i) => (
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ fontSize: fs - 1, marginBottom: 4 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Parts</span><span>₹483</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Labour</span><span>₹200</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>₹683</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Parts</span><span>â‚¹483</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Labour</span><span>â‚¹200</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>â‚¹683</span></div>
       </div>
       <div style={{ fontSize: fs - 2, color: "#64748B" }}>Warranty: Parts 30 days</div>
     </ThermalBase>
   );
 }
 
-// ── Thermal: th-services ──────────────────────────────────────
+// â”€â”€ Thermal: th-services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TplThServices({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   return (
     <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed">
@@ -1415,16 +1415,16 @@ function TplThServices({ c, fs, config, profile }: { c: string; fs: number; conf
       {[{desc:"Repair Labour",amt:800},{desc:"Refrigerant Gas",amt:450},{desc:"Cleaning Charge",amt:250}].map((s,i) => (
         <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, paddingLeft: 8,
           borderLeft: `2px solid ${i < 2 ? `${c}40` : c}`, marginBottom: 4 }}>
-          <span>{s.desc}</span><span>₹{s.amt}</span>
+          <span>{s.desc}</span><span>â‚¹{s.amt}</span>
         </div>
       ))}
-      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs, color: c, borderTop: `1px solid ${c}`, paddingTop: 3, marginTop: 2 }}>TOTAL: ₹1,500</div>
+      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs, color: c, borderTop: `1px solid ${c}`, paddingTop: 3, marginTop: 2 }}>TOTAL: â‚¹1,500</div>
       <div style={{ textAlign: "center", fontSize: fs - 2, color: "#64748B", marginTop: 4 }}>Next service due: 24 Nov 2024</div>
     </ThermalBase>
   );
 }
 
-// ── Thermal: th-minimal ───────────────────────────────────────
+// â”€â”€ Thermal: th-minimal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TplThMinimal({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
   return (
     <div style={{ width: 260, background: "#fff", fontFamily: config.fontFamily, fontSize: fs,
@@ -1444,31 +1444,31 @@ function TplThMinimal({ c, fs, config, profile }: { c: string; fs: number; confi
         )}
         <div style={{ fontWeight: 900, fontSize: fs + 2 }}>{profile.storeName || "STORE"}</div>
       </div>
-      <div style={{ fontSize: fs - 2, color: "#555", marginBottom: 6 }}>{profile.phone} · INV-0123 · 24 May 2024</div>
+      <div style={{ fontSize: fs - 2, color: "#555", marginBottom: 6 }}>{profile.phone} Â· INV-0123 Â· 24 May 2024</div>
       <div style={{ borderTop: "1px solid #000", marginBottom: 6 }} />
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 6 }}>
         <tbody>
           {SAMPLE_ITEMS.map((it, i) => (
             <tr key={i}>
               <td style={{ padding: "2px 0" }}>{it.name}</td>
-              <td style={{ textAlign: "right" }}>{it.qty}×{it.rate}</td>
-              <td style={{ textAlign: "right", fontWeight: 700, paddingLeft: 6 }}>₹{it.qty * it.rate}</td>
+              <td style={{ textAlign: "right" }}>{it.qty}Ã—{it.rate}</td>
+              <td style={{ textAlign: "right", fontWeight: 700, paddingLeft: 6 }}>â‚¹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ borderTop: "1px solid #000", paddingTop: 4, display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: fs + 1 }}>
-        <span>TOTAL</span><span>₹2,891</span>
+        <span>TOTAL</span><span>â‚¹2,891</span>
       </div>
       <div style={{ marginTop: 8, fontSize: fs - 2, color: "#555", textAlign: "center" }}>{config.footerText}</div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // INVOICE PREVIEW DISPATCHER
 // Picks the correct layout based on template.id
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function InvoicePreview({ config, template, profile }: {
   config: PrintConfig;
@@ -1519,9 +1519,9 @@ function InvoicePreview({ config, template, profile }: {
   return <div style={wrapStyle}>{renderContent()}</div>;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SVG THUMBNAILS — each template gets a unique miniature layout
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// SVG THUMBNAILS â€” each template gets a unique miniature layout
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function TemplateThumbnail({ tpl }: { tpl: Template }) {
   const c = tpl.color;
@@ -1663,9 +1663,9 @@ function TemplateThumbnailWrapper({ tpl }: { tpl: Template }) {
   return <TemplateThumbnail tpl={tpl} />;
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 export default function BillDesignerPage() {
   const { profile, updateProfile } = useBusinessStore();
@@ -1778,7 +1778,7 @@ export default function BillDesignerPage() {
   };
 
   const handleSetDefault = () => {
-    setDefaultMsg("Set as default ✓");
+    setDefaultMsg("Set as default âœ“");
     setTimeout(() => setDefaultMsg(""), 2000);
   };
 
@@ -1801,7 +1801,7 @@ export default function BillDesignerPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#F8FAFC", overflow: "hidden" }}>
 
-      {/* ── Full-screen preview overlay ──────────────────── */}
+      {/* â”€â”€ Full-screen preview overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showPreview && (
         <div onClick={() => setShowPreview(false)}
           style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)",
@@ -1812,7 +1812,7 @@ export default function BillDesignerPage() {
               background: "#EF4444", color: "#fff", border: "none", borderRadius: 10,
               padding: "10px 20px", fontSize: 15, fontWeight: 800,
               cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(239,68,68,0.5)" }}>
-            ✕ Exit Preview
+            âœ• Exit Preview
           </button>
           {/* Invoice at actual size */}
           <div onClick={e => e.stopPropagation()}
@@ -1823,7 +1823,7 @@ export default function BillDesignerPage() {
         </div>
       )}
 
-      {/* ── Top bar ──────────────────────────────────────── */}
+      {/* â”€â”€ Top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 20px", height: 52, background: "#fff", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
         <div>
@@ -1846,10 +1846,10 @@ export default function BillDesignerPage() {
         </div>
       </div>
 
-      {/* ── Body: 3 columns ──────────────────────────────── */}
+      {/* â”€â”€ Body: 3 columns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ display: "grid", gridTemplateColumns: "240px 1fr 300px", flex: 1, overflow: "hidden", minHeight: 0 }}>
 
-        {/* ── LEFT: Template library ─────────────────────── */}
+        {/* â”€â”€ LEFT: Template library â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{ background: "#fff", borderRight: "1px solid #E2E8F0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ padding: "12px 14px 8px", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -1895,7 +1895,7 @@ export default function BillDesignerPage() {
                     <div style={{ position: "absolute", top: 4, right: 4, width: 16, height: 16,
                       borderRadius: "50%", background: "#F97316",
                       display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ color: "#fff", fontSize: 9, fontWeight: 800 }}>✓</span>
+                      <span style={{ color: "#fff", fontSize: 9, fontWeight: 800 }}>âœ“</span>
                     </div>
                   )}
                 </div>
@@ -1913,7 +1913,7 @@ export default function BillDesignerPage() {
           </div>
         </div>
 
-        {/* ── CENTER: Preview canvas ──────────────────────── */}
+        {/* â”€â”€ CENTER: Preview canvas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", background: "#F1F5F9" }}>
           {/* Toolbar */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px",
@@ -1925,11 +1925,11 @@ export default function BillDesignerPage() {
               <Smartphone size={15} color={!isDesktop ? "#F97316" : "#94A3B8"} />
             </button>
             <div style={{ width: 1, height: 20, background: "#E2E8F0" }} />
-            <button onClick={() => setZoom(z => Math.max(50, z - 10))} style={iconBtnS}>−</button>
+            <button onClick={() => setZoom(z => Math.max(50, z - 10))} style={iconBtnS}>âˆ’</button>
             <span style={{ fontSize: 12, fontWeight: 600, color: "#475569", minWidth: 44, textAlign: "center" }}>{zoom}%</span>
             <button onClick={() => setZoom(z => Math.min(150, z + 10))} style={iconBtnS}>+</button>
             <div style={{ width: 1, height: 20, background: "#E2E8F0" }} />
-            <button onClick={() => setZoom(100)} style={{ ...iconBtnS, fontSize: 14, color: "#94A3B8" }}>↺</button>
+            <button onClick={() => setZoom(100)} style={{ ...iconBtnS, fontSize: 14, color: "#94A3B8" }}>â†º</button>
             <span style={{ fontSize: 11, color: "#94A3B8", marginLeft: 4 }}>
               {isDesktop ? `Desktop (${previewWidth}px)` : `Mobile (${previewWidth}px)`}
             </span>
@@ -1960,7 +1960,7 @@ export default function BillDesignerPage() {
           </div>
         </div>
 
-        {/* ── RIGHT: Properties panel ─────────────────────── */}
+        {/* â”€â”€ RIGHT: Properties panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{ background: "#fff", borderLeft: "1px solid #E2E8F0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ display: "flex", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
             {(["properties", "arrange"] as const).map(t => (
@@ -1970,7 +1970,7 @@ export default function BillDesignerPage() {
                   background: "none", cursor: "pointer", fontFamily: "inherit", outline: "none",
                   fontSize: 12, fontWeight: rightTab === t ? 700 : 500,
                   color: rightTab === t ? "#F97316" : "#64748B", transition: "all 0.15s" }}>
-                {t === "properties" ? "🎨 Properties" : "Aa Arrange"}
+                {t === "properties" ? "ðŸŽ¨ Properties" : "Aa Arrange"}
               </button>
             ))}
           </div>
@@ -1978,7 +1978,7 @@ export default function BillDesignerPage() {
           <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
             {rightTab === "properties" ? (
               <>
-                <PropSection title="Template Settings" icon={<span>⚙</span>} defaultOpen>
+                <PropSection title="Template Settings" icon={<span>âš™</span>} defaultOpen>
                   <PR label="Paper Size">
                     <select value={config.paperType} onChange={e => C({ paperType: e.target.value as PrintConfig["paperType"] })} style={sel}>
                       <option>A4</option><option>A5</option><option>Thermal 80mm</option><option>Thermal 58mm</option>
@@ -2004,7 +2004,7 @@ export default function BillDesignerPage() {
                   </PR>
                 </PropSection>
 
-                <PropSection title="Layout & Style" icon={<span>🖼</span>} defaultOpen>
+                <PropSection title="Layout & Style" icon={<span>ðŸ–¼</span>} defaultOpen>
                   <div style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>Header Alignment</div>
                     <TriBtn options={[{v:"left",l:"Left"},{v:"center",l:"Center"},{v:"right",l:"Right"}]} value={config.headerAlign} onChange={v => C({ headerAlign: v })} />
@@ -2023,9 +2023,9 @@ export default function BillDesignerPage() {
                   </div>
                 </PropSection>
 
-                <PropSection title="Show / Hide Elements" icon={<span>👁</span>} defaultOpen>
+                <PropSection title="Show / Hide Elements" icon={<span>ðŸ‘</span>} defaultOpen>
                   <PR label="Show Logo">          <Tog value={config.showLogo}          onChange={v => C({ showLogo: v })} /></PR>
-                  {/* Logo upload — shown when Show Logo is on */}
+                  {/* Logo upload â€” shown when Show Logo is on */}
                   {config.showLogo && (
                     <div style={{ padding: "6px 0 8px 0" }}>
                       {profile.logoUrl ? (
@@ -2066,7 +2066,7 @@ export default function BillDesignerPage() {
                   <PR label="Amount in Words">    <Tog value={config.showAmountInWords} onChange={v => C({ showAmountInWords: v })} /></PR>
                 </PropSection>
 
-                <PropSection title="Footer Settings" icon={<span>📝</span>}>
+                <PropSection title="Footer Settings" icon={<span>ðŸ“</span>}>
                   <div style={{ marginBottom: 8 }}>
                     <div style={{ fontSize: 11, color: "#475569", marginBottom: 4 }}>Footer Message</div>
                     <textarea value={config.footerText} onChange={e => C({ footerText: e.target.value })} rows={2}
@@ -2115,7 +2115,7 @@ export default function BillDesignerPage() {
                         background: config.orientation === o ? "#FFF7ED" : "#fff",
                         cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                         outline: "none", fontSize: 14 }}>
-                      {o === "portrait" ? "□" : "▭"}
+                      {o === "portrait" ? "â–¡" : "â–­"}
                     </button>
                   ))}
                 </div>
@@ -2156,7 +2156,7 @@ export default function BillDesignerPage() {
   );
 }
 
-// ── Small button helpers ───────────────────────────────────────
+// â”€â”€ Small button helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TopBtn({ icon, label, onClick, active }: {
   icon: React.ReactNode; label: string; onClick: () => void; active?: boolean;
 }) {
@@ -2186,3 +2186,4 @@ function BotBtn({ icon, label, onClick, danger, orange }: {
     </button>
   );
 }
+

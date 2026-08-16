@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -11,6 +11,7 @@ import {
   Image,
 } from "lucide-react";
 import FlashToast from "@/components/FlashToast"; 
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
 import BillDesignerPage from "./BillDesignerPage";
 
@@ -19,7 +20,7 @@ import BillDesignerPage from "./BillDesignerPage";
 // SETTINGS PAGE
 // =============================================================
 
-// ── Shared helpers ────────────────────────────────────────────
+// â”€â”€ Shared helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SettingRow({
   label,
@@ -170,12 +171,12 @@ function GeneralSettings() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Please upload a valid image file.");
+      toast.error("Please upload a valid image file.");
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Logo size should be less than 2MB.");
+      toast.error("Logo size should be less than 2MB.");
       return;
     }
 
@@ -391,7 +392,7 @@ function GeneralSettings() {
                   color: "#94A3B8",
                 }}
               >
-                PNG, JPG or WEBP • Max 2MB
+                PNG, JPG or WEBP â€¢ Max 2MB
               </span>
             </div>
           </div>
@@ -422,16 +423,16 @@ function GeneralSettings() {
         >
           <select style={inp} defaultValue="INR">
             <option value="INR">
-              INR (₹)
+              INR (â‚¹)
             </option>
             <option value="USD">
               USD ($)
             </option>
             <option value="EUR">
-              EUR (€)
+              EUR (â‚¬)
             </option>
             <option value="GBP">
-              GBP (£)
+              GBP (Â£)
             </option>
           </select>
         </SettingRow>
@@ -446,10 +447,10 @@ function GeneralSettings() {
               English
             </option>
             <option value="ta">
-              தமிழ் (Tamil)
+              à®¤à®®à®¿à®´à¯ (Tamil)
             </option>
             <option value="hi">
-              हिन्दी (Hindi)
+              à¤¹à¤¿à¤¨à¥à¤¦à¥€ (Hindi)
             </option>
           </select>
         </SettingRow>
@@ -461,10 +462,10 @@ function GeneralSettings() {
         >
           <select style={inp} defaultValue="indian">
             <option value="indian">
-              Indian — 1,00,000
+              Indian â€” 1,00,000
             </option>
             <option value="international">
-              International — 100,000
+              International â€” 100,000
             </option>
           </select>
         </SettingRow>
@@ -566,7 +567,7 @@ function TransactionSettings() {
         description="How the total should be rounded"
       >
         <select style={inp} defaultValue="nearest">
-          <option value="nearest">Nearest — 0.5 rounds up</option>
+          <option value="nearest">Nearest â€” 0.5 rounds up</option>
           <option value="up">Always Round Up</option>
           <option value="down">Always Round Down</option>
         </select>
@@ -606,11 +607,11 @@ function PrintSettings() {
     <>
       <Section title="Invoice Print">
         <SettingRow label="Print Size">
-          <select style={inp}>
-            <option>A4</option>
-            <option>A5</option>
+          <select style={inp} defaultValue="Thermal 80mm">
             <option>Thermal 80mm</option>
             <option>Thermal 58mm</option>
+            <option>A4</option>
+            <option>A5</option>
           </select>
         </SettingRow>
 
@@ -732,7 +733,7 @@ function TaxSettings() {
       {/* NEW: E-Way Bill Threshold Amount */}
       <SettingRow
         label="E-Way Bill Threshold Amount"
-        description="Generate e-way bill prompt above this invoice value (₹)"
+        description="Generate e-way bill prompt above this invoice value (â‚¹)"
       >
         <input
           style={inp}
@@ -778,7 +779,7 @@ function MessageSettings() {
             height: 64,
             resize: "none",
           }}
-          placeholder="Dear {name}, your balance is ₹{amount}..."
+          placeholder="Dear {name}, your balance is â‚¹{amount}..."
         />
       </SettingRow>
 
@@ -794,7 +795,7 @@ function MessageSettings() {
             height: 64,
             resize: "none",
           }}
-          placeholder="Dear {name}, your payment of ₹{amount} is overdue since {due_date}. Please clear it at the earliest."
+          placeholder="Dear {name}, your payment of â‚¹{amount} is overdue since {due_date}. Please clear it at the earliest."
         />
       </SettingRow>
 
@@ -809,7 +810,7 @@ function MessageSettings() {
             height: 64,
             resize: "none",
           }}
-          placeholder="Invoice {invoice_no} for ₹{amount} is attached."
+          placeholder="Invoice {invoice_no} for â‚¹{amount} is attached."
         />
       </SettingRow>
 
@@ -825,7 +826,7 @@ function MessageSettings() {
             height: 64,
             resize: "none",
           }}
-          placeholder="Dear {name}, please find your quotation {invoice_no} for ₹{amount} attached."
+          placeholder="Dear {name}, please find your quotation {invoice_no} for â‚¹{amount} attached."
         />
       </SettingRow>
 
@@ -1282,7 +1283,7 @@ function OfficerManagement() {
             color: "#166534",
           }}
         >
-          ✓ {success}
+          âœ“ {success}
         </div>
       )}
 
@@ -1438,7 +1439,7 @@ function OfficerManagement() {
                   padding: "8px 12px",
                 }}
               >
-                ⚠️ {formError}
+                âš ï¸ {formError}
               </div>
             )}
 
@@ -1489,7 +1490,7 @@ function OfficerManagement() {
                 }}
               >
                 {loading
-                  ? "Adding…"
+                  ? "Addingâ€¦"
                   : "Add Officer"}
               </button>
             </div>
@@ -1987,19 +1988,10 @@ const [flash, setFlash] = useState<FlashState | null>(null);
       );
 
       setHasChanges(false);
-
-      alert(
-        "Settings saved successfully."
-      );
+      toast.success("Settings saved successfully.");
     } catch (error) {
-      console.error(
-        "Failed to save settings:",
-        error
-      );
-
-      alert(
-        "Failed to save settings."
-      );
+      console.error("Failed to save settings:", error);
+      toast.error("Failed to save settings.");
     } finally {
       setIsSaving(false);
     }
