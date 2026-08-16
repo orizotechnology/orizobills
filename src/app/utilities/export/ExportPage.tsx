@@ -7,9 +7,10 @@ import {
 } from "lucide-react";
 import { http } from "@/lib/axios";
 import { useBranchStore } from "@/store/branch.store";
+import FlashToast from "@/components/FlashToast";
 
 // =============================================================
-// EXPORT PAGE — per-module data fetch, save animation, open file
+// EXPORT PAGE — single module, animated save, top-right toast
 // =============================================================
 
 type Module =
@@ -37,51 +38,57 @@ const KEYS: Record<Module, string[]> = {
   Payments:  ["paymentNumber","customerName","amount","paymentMethod","paymentDate","reference"],
 };
 
-// ── Per-module fetch — each uses the correct endpoint + extractor ──
+const MODULE_META: {
+  value: Module; label: string; desc: string;
+  icon: React.ReactNode; color: string;
+}[] = [
+  { value: "Products",  label: "Products",      desc: "Full catalogue with pricing & stock",  icon: <Package     size={20} />, color: "#F97316" },
+  { value: "Customers", label: "Customers",      desc: "Customer directory with balances",      icon: <Users       size={20} />, color: "#06B6D4" },
+  { value: "Suppliers", label: "Suppliers",      desc: "Supplier directory with balances",      icon: <Truck       size={20} />, color: "#8B5CF6" },
+  { value: "Expenses",  label: "Expenses",       desc: "All recorded expenses",                 icon: <Receipt     size={20} />, color: "#EF4444" },
+  { value: "Sales",     label: "Sale Invoices",  desc: "All sale invoices",                     icon: <BarChart2   size={20} />, color: "#22C55E" },
+  { value: "Purchases", label: "Purchases",      desc: "All purchase invoices",                 icon: <ShoppingBag size={20} />, color: "#A855F7" },
+  { value: "Payments",  label: "Payments In",    desc: "All customer payments received",        icon: <CreditCard  size={20} />, color: "#F59E0B" },
+];
+
+// ── Per-module fetch ──────────────────────────────────────────
 async function fetchModule(mod: Module): Promise<Record<string, unknown>[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const get = <T,>(ep: string) => http.get<any>(ep) as Promise<T>;
 
   switch (mod) {
     case "Products": {
-      // Returns { data: [...], total }
-      const r = await get<{ data: { data: Record<string,unknown>[] } }>("/products?page=1&pageSize=99999&filter=all");
+      const r = await get<{ data: { data: Record<string, unknown>[] } }>("/products?page=1&pageSize=99999&filter=all");
       return Array.isArray(r?.data?.data) ? r.data.data : [];
     }
     case "Customers": {
-      // Returns plain array
-      const r = await get<{ data: Record<string,unknown>[] }>("/customers");
+      const r = await get<{ data: Record<string, unknown>[] }>("/customers");
       return Array.isArray(r?.data) ? r.data : [];
     }
     case "Suppliers": {
-      // Returns plain array
-      const r = await get<{ data: Record<string,unknown>[] }>("/suppliers");
+      const r = await get<{ data: Record<string, unknown>[] }>("/suppliers");
       return Array.isArray(r?.data) ? r.data : [];
     }
     case "Expenses": {
-      // Returns { data: [...], total }
-      const r = await get<{ data: { data: Record<string,unknown>[] } }>("/expenses?page=1&pageSize=99999");
+      const r = await get<{ data: { data: Record<string, unknown>[] } }>("/expenses?page=1&pageSize=99999");
       return Array.isArray(r?.data?.data) ? r.data.data : [];
     }
     case "Sales": {
-      // Returns { data: [...], total }
-      const r = await get<{ data: { data: Record<string,unknown>[] } }>("/sales?page=1&pageSize=99999");
+      const r = await get<{ data: { data: Record<string, unknown>[] } }>("/sales?page=1&pageSize=99999");
       return Array.isArray(r?.data?.data) ? r.data.data : [];
     }
     case "Purchases": {
-      // Returns { data: [...], total }
-      const r = await get<{ data: { data: Record<string,unknown>[] } }>("/purchases?page=1&pageSize=99999");
+      const r = await get<{ data: { data: Record<string, unknown>[] } }>("/purchases?page=1&pageSize=99999");
       return Array.isArray(r?.data?.data) ? r.data.data : [];
     }
     case "Payments": {
-      // Returns { data: [...], total }
-      const r = await get<{ data: { data: Record<string,unknown>[] } }>("/payments?page=1&pageSize=99999");
+      const r = await get<{ data: { data: Record<string, unknown>[] } }>("/payments?page=1&pageSize=99999");
       return Array.isArray(r?.data?.data) ? r.data.data : [];
     }
   }
 }
 
-// ── Build one worksheet from rows ─────────────────────────────
+// ── Build worksheet ───────────────────────────────────────────
 function buildSheet(rows: Record<string, unknown>[], mod: Module): XLSX.WorkSheet {
   const headers = HEADERS[mod];
   const keys    = KEYS[mod];
@@ -98,129 +105,96 @@ function buildSheet(rows: Record<string, unknown>[], mod: Module): XLSX.WorkShee
   );
   const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
   ws["!cols"] = headers.map(() => ({ wch: 20 }));
-  // Bold header row
-  headers.forEach((_, ci) => {
-    const cellRef = XLSX.utils.encode_cell({ r: 0, c: ci });
-    if (ws[cellRef]) ws[cellRef].s = { font: { bold: true } };
-  });
   return ws;
 }
 
-// ── Open a saved file (Tauri or browser fallback) ─────────────
+// ── Open saved file via Tauri (silently fails in browser) ─────
 async function openFile(path: string): Promise<void> {
   try {
-    // Dynamic import with variable string bypasses Vite static analysis.
-    // Works in Tauri desktop; silently fails in browser.
     const mod = "@tauri-apps/api/opener";
-    const { openPath } = await import(/* @vite-ignore */ mod);
+    const { openPath } = await import(/* @vite-ignore */ mod) as { openPath: (p: string) => Promise<void> };
     await openPath(path);
-  } catch {
-    // Not in Tauri or opener not available — nothing to do in browser
-  }
+  } catch { /* browser / API not available */ }
 }
 
-// ── Module card metadata ──────────────────────────────────────
-const MODULE_META: { value: Module; label: string; desc: string; icon: React.ReactNode; color: string }[] = [
-  { value: "Products",  label: "Products",      desc: "Full catalogue with pricing & stock",   icon: <Package    size={18} />, color: "#F97316" },
-  { value: "Customers", label: "Customers",      desc: "Customer directory with balances",       icon: <Users      size={18} />, color: "#06B6D4" },
-  { value: "Suppliers", label: "Suppliers",      desc: "Supplier directory with balances",       icon: <Truck      size={18} />, color: "#8B5CF6" },
-  { value: "Expenses",  label: "Expenses",       desc: "All recorded expenses",                  icon: <Receipt    size={18} />, color: "#EF4444" },
-  { value: "Sales",     label: "Sale Invoices",  desc: "All sale invoices",                      icon: <BarChart2  size={18} />, color: "#22C55E" },
-  { value: "Purchases", label: "Purchases",      desc: "All purchase invoices",                  icon: <ShoppingBag size={18} />, color: "#A855F7" },
-  { value: "Payments",  label: "Payments In",    desc: "All customer payments received",         icon: <CreditCard size={18} />, color: "#F59E0B" },
-];
-
-// ── Step state per module ─────────────────────────────────────
+// ── Step state ────────────────────────────────────────────────
 type StepStatus = "idle" | "fetching" | "writing" | "done" | "error";
-
-interface StepState {
-  status:  StepStatus;
-  rows:    number;
-  message: string;
-}
+interface StepState { status: StepStatus; rows: number; message: string }
 
 // ── Main component ────────────────────────────────────────────
 export default function ExportPage() {
-  const [selected,   setSelected]   = useState<Set<Module>>(new Set());
-  const [fmt,        setFmt]        = useState<"xlsx" | "csv">("xlsx");
-  const [exporting,  setExporting]  = useState(false);
-  const [steps,      setSteps]      = useState<Record<string, StepState>>({});
-  const [savedPath,  setSavedPath]  = useState<string | null>(null);
-  const [globalErr,  setGlobalErr]  = useState("");
+  const [selected,  setSelected]  = useState<Module | null>(null);
+  const [fmt,       setFmt]       = useState<"xlsx" | "csv">("xlsx");
+  const [exporting, setExporting] = useState(false);
+  const [step,      setStep]      = useState<StepState | null>(null);
+  const [savedPath, setSavedPath] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [error,     setError]     = useState("");
   const { getActiveBranch } = useBranchStore();
   const activeBranch = getActiveBranch();
 
-  const toggle = (m: Module) => {
-    setSelected((p) => {
-      const n = new Set(p);
-      n.has(m) ? n.delete(m) : n.add(m);
-      return n;
-    });
+  const handleSelect = (mod: Module) => {
+    if (exporting) return;
+    setSelected(mod);
     setSavedPath(null);
-    setGlobalErr("");
-    setSteps({});
+    setStep(null);
+    setError("");
   };
 
-  const setStep = (mod: Module, patch: Partial<StepState>) =>
-    setSteps((p) => {
-      const prev = p[mod] ?? { status: "idle" as StepStatus, rows: 0, message: "" };
-      return { ...p, [mod]: { ...prev, ...patch } };
-    });
-
-  const allDone = Object.keys(steps).length > 0 &&
-    Object.values(steps).every((s) => s.status === "done" || s.status === "error");
-
   const handleExport = async () => {
-    if (!selected.size || exporting) return;
+    if (!selected || exporting) return;
     setExporting(true);
     setSavedPath(null);
-    setGlobalErr("");
-    setSteps({});
+    setShowToast(false);
+    setError("");
 
+    // ── Step 1: fetch ─────────────────────────────────────────
+    setStep({ status: "fetching", rows: 0, message: "Fetching data from server…" });
+    let rows: Record<string, unknown>[] = [];
     try {
-      const mods = [...selected] as Module[];
-      const wb   = XLSX.utils.book_new();
-
-      for (const mod of mods) {
-        // ── Step 1: fetching ──────────────────────────────
-        setStep(mod, { status: "fetching", message: "Fetching data…" });
-        let rows: Record<string, unknown>[] = [];
-        try {
-          rows = await fetchModule(mod);
-          setStep(mod, { status: "writing", rows: rows.length, message: `Writing ${rows.length} rows…` });
-        } catch (e) {
-          setStep(mod, { status: "error", message: e instanceof Error ? e.message : "Fetch failed" });
-          continue;
-        }
-
-        // ── Step 2: build sheet ───────────────────────────
-        try {
-          const ws = buildSheet(rows, mod);
-          XLSX.utils.book_append_sheet(wb, ws, mod);
-          setStep(mod, { status: "done", rows: rows.length, message: `${rows.length} rows exported` });
-        } catch (e) {
-          setStep(mod, { status: "error", message: e instanceof Error ? e.message : "Sheet build failed" });
-        }
-      }
-
-      // ── Step 3: write file ────────────────────────────
-      const stamp = new Date().toISOString().slice(0, 10);
-      const fname = `orizo_export_${stamp}.${fmt}`;
-      const isCsv = fmt === "csv" && selected.size === 1;
-      XLSX.writeFile(wb, fname, isCsv ? { bookType: "csv" } : undefined);
-      setSavedPath(fname);
-
+      rows = await fetchModule(selected);
     } catch (e) {
-      setGlobalErr(e instanceof Error ? e.message : "Export failed");
+      setStep({ status: "error", rows: 0, message: e instanceof Error ? e.message : "Fetch failed" });
+      setError(e instanceof Error ? e.message : "Fetch failed");
+      setExporting(false);
+      return;
+    }
+
+    // ── Step 2: build & write ─────────────────────────────────
+    setStep({ status: "writing", rows: rows.length, message: `Building sheet with ${rows.length} rows…` });
+    try {
+      await new Promise((r) => setTimeout(r, 120)); // let UI paint
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, buildSheet(rows, selected), selected);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const fname = `orizo_${selected.toLowerCase()}_${stamp}.${fmt}`;
+      XLSX.writeFile(wb, fname, fmt === "csv" ? { bookType: "csv" } : undefined);
+      setStep({ status: "done", rows: rows.length, message: `${rows.length} rows saved` });
+      setSavedPath(fname);
+      setShowToast(true);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Write failed";
+      setStep({ status: "error", rows: 0, message: msg });
+      setError(msg);
     } finally {
       setExporting(false);
     }
   };
 
-  const hasErrors = Object.values(steps).some((s) => s.status === "error");
+  const meta = MODULE_META.find((m) => m.value === selected);
 
   return (
     <div style={{ padding: "28px 32px", maxWidth: 860, margin: "0 auto" }}>
+
+      {/* ── Top-right toast notification ────────────────────── */}
+      {showToast && savedPath && (
+        <FlashToast
+          type="saved"
+          message={`${selected} exported — ${savedPath}`}
+          duration={3500}
+          onDone={() => setShowToast(false)}
+        />
+      )}
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
@@ -233,87 +207,75 @@ export default function ExportPage() {
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0F172A" }}>Export Data</h1>
           <p style={{ margin: 0, fontSize: 13, color: "#64748B" }}>
             Branch: <strong style={{ color: "#F97316" }}>{activeBranch?.name ?? "current"}</strong>
-            {" · "}Select one or more modules, choose format, then export.
+            {" · "}Select one module to export.
           </p>
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-        {/* ── Module grid ──────────────────────────────────── */}
+        {/* ── Module grid (single-select radio style) ──────── */}
         <div style={{ background: "#fff", border: "1px solid #E2E8F0",
           borderRadius: 12, padding: "20px 24px" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 14 }}>
-            Select Data to Export
+            Select Module to Export
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 10 }}>
             {MODULE_META.map(({ value, label, desc, icon, color }) => {
-              const on    = selected.has(value);
-              const step  = steps[value];
+              const on = selected === value;
               return (
-                <button key={value} onClick={() => !exporting && toggle(value)}
+                <button key={value}
+                  onClick={() => handleSelect(value)}
                   style={{
-                    padding: "12px 14px", borderRadius: 10, cursor: exporting ? "not-allowed" : "pointer",
-                    textAlign: "left", border: `1.5px solid ${on ? color : "#E2E8F0"}`,
-                    background: on ? `${color}0f` : "#fff",
-                    transition: "all 0.14s", position: "relative", outline: "none",
-                    opacity: exporting && !on ? 0.5 : 1,
+                    padding: "14px 14px", borderRadius: 10,
+                    cursor: exporting ? "not-allowed" : "pointer",
+                    textAlign: "left",
+                    border: `2px solid ${on ? color : "#E2E8F0"}`,
+                    background: on ? `${color}10` : "#fff",
+                    transition: "all 0.14s", outline: "none",
+                    opacity: exporting && !on ? 0.45 : 1,
+                    position: "relative",
+                  }}
+                  onMouseEnter={(e) => { if (!on && !exporting) { (e.currentTarget as HTMLButtonElement).style.borderColor = `${color}60`; (e.currentTarget as HTMLButtonElement).style.background = `${color}06`; } }}
+                  onMouseLeave={(e) => { if (!on) { (e.currentTarget as HTMLButtonElement).style.borderColor = "#E2E8F0"; (e.currentTarget as HTMLButtonElement).style.background = "#fff"; } }}
+                >
+                  {/* Radio dot */}
+                  <div style={{
+                    position: "absolute", top: 10, right: 10,
+                    width: 16, height: 16, borderRadius: "50%",
+                    border: `2px solid ${on ? color : "#CBD5E1"}`,
+                    background: on ? color : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.14s",
                   }}>
-                  {/* Status badge */}
-                  {step && (
-                    <div style={{
-                      position: "absolute", top: 8, right: 8,
-                      width: 18, height: 18, borderRadius: "50%",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      {step.status === "fetching" || step.status === "writing"
-                        ? <Loader2 size={14} color={color} style={{ animation: "spin 0.7s linear infinite" }} />
-                        : step.status === "done"
-                        ? <CheckCircle2 size={14} color="#22C55E" />
-                        : step.status === "error"
-                        ? <AlertCircle size={14} color="#EF4444" />
-                        : null}
-                    </div>
-                  )}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                    <span style={{ color: on ? color : "#94A3B8" }}>{icon}</span>
-                    <span style={{ fontSize: 13, fontWeight: on ? 700 : 500,
-                      color: on ? color : "#1E293B" }}>{label}</span>
+                    {on && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />}
                   </div>
-                  <div style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.4 }}>{desc}</div>
-                  {step?.status === "done" && (
-                    <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 600, marginTop: 4 }}>
-                      ✓ {step.rows} rows
-                    </div>
-                  )}
-                  {step?.status === "fetching" && (
-                    <div style={{ fontSize: 11, color: color, marginTop: 4 }}>Fetching…</div>
-                  )}
-                  {step?.status === "writing" && (
-                    <div style={{ fontSize: 11, color: color, marginTop: 4 }}>Writing {step.rows} rows…</div>
-                  )}
-                  {step?.status === "error" && (
-                    <div style={{ fontSize: 11, color: "#EF4444", marginTop: 4 }}>{step.message}</div>
-                  )}
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <span style={{ color: on ? color : "#94A3B8", transition: "color 0.14s" }}>{icon}</span>
+                    <span style={{ fontSize: 13, fontWeight: on ? 700 : 500,
+                      color: on ? color : "#1E293B", transition: "color 0.14s" }}>
+                      {label}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.5, paddingRight: 18 }}>
+                    {desc}
+                  </div>
                 </button>
               );
             })}
           </div>
-          {selected.size > 1 && (
-            <p style={{ margin: "12px 0 0", fontSize: 12, color: "#94A3B8" }}>
-              {selected.size} modules selected → exported as separate sheets in one .xlsx file.
-            </p>
-          )}
         </div>
 
         {/* ── Format selector ──────────────────────────────── */}
         <div style={{ background: "#fff", border: "1px solid #E2E8F0",
-          borderRadius: 12, padding: "18px 24px" }}>
+          borderRadius: 12, padding: "16px 24px" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 10 }}>Format</div>
           <div style={{ display: "flex", gap: 10 }}>
             {(["xlsx", "csv"] as const).map((f) => (
               <button key={f} onClick={() => !exporting && setFmt(f)} style={{
-                padding: "7px 22px", borderRadius: 8, cursor: exporting ? "not-allowed" : "pointer",
+                padding: "7px 22px", borderRadius: 8,
+                cursor: exporting ? "not-allowed" : "pointer",
                 border: `1.5px solid ${fmt === f ? "#F97316" : "#E2E8F0"}`,
                 background: fmt === f ? "rgba(249,115,22,0.07)" : "#fff",
                 color: fmt === f ? "#F97316" : "#475569",
@@ -322,135 +284,119 @@ export default function ExportPage() {
               }}>.{f}</button>
             ))}
           </div>
-          {fmt === "csv" && selected.size > 1 && (
-            <p style={{ margin: "8px 0 0", fontSize: 12, color: "#EAB308" }}>
-              CSV only supports one sheet — select a single module or switch to .xlsx.
-            </p>
-          )}
         </div>
 
-        {/* ── Progress bar strip (shown while exporting) ───── */}
-        {exporting && (
+        {/* ── Progress panel (shown while exporting) ───────── */}
+        {(exporting || (step && step.status !== "idle")) && step && (
           <div style={{ background: "#fff", border: "1px solid #E2E8F0",
             borderRadius: 12, padding: "16px 24px" }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 12 }}>
-              <Loader2 size={14} style={{ animation: "spin 0.7s linear infinite",
-                display: "inline-block", verticalAlign: "middle", marginRight: 6 }} />
-              Exporting…
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              {step.status === "fetching" || step.status === "writing"
+                ? <Loader2 size={15} color="#F97316" style={{ animation: "spin 0.7s linear infinite" }} />
+                : step.status === "done"
+                ? <CheckCircle2 size={15} color="#22C55E" />
+                : <AlertCircle size={15} color="#EF4444" />}
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
+                {step.status === "fetching" ? "Fetching data…"
+                  : step.status === "writing" ? "Building file…"
+                  : step.status === "done"    ? "Export complete"
+                  : "Export failed"}
+              </span>
+              <span style={{ fontSize: 12, color: "#94A3B8", marginLeft: "auto" }}>{step.message}</span>
             </div>
-            {[...selected].map((mod) => {
-              const step = steps[mod];
-              const pct  = !step ? 0
-                : step.status === "fetching" ? 33
-                : step.status === "writing"  ? 66
-                : step.status === "done"     ? 100
-                : step.status === "error"    ? 100 : 0;
-              const barColor = step?.status === "error" ? "#EF4444"
-                : step?.status === "done" ? "#22C55E" : "#F97316";
-              return (
-                <div key={mod} style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between",
-                    fontSize: 12, marginBottom: 4 }}>
-                    <span style={{ fontWeight: 600, color: "#475569" }}>{mod}</span>
-                    <span style={{ color: "#94A3B8" }}>{step?.message ?? "Queued…"}</span>
-                  </div>
-                  <div style={{ height: 5, background: "#F1F5F9", borderRadius: 99 }}>
-                    <div style={{
-                      height: "100%", borderRadius: 99,
-                      background: barColor,
-                      width: `${pct}%`,
-                      transition: "width 0.3s ease",
-                    }} />
-                  </div>
-                </div>
-              );
-            })}
+            {/* Progress bar */}
+            <div style={{ height: 6, background: "#F1F5F9", borderRadius: 99 }}>
+              <div style={{
+                height: "100%", borderRadius: 99,
+                background: step.status === "error" ? "#EF4444"
+                  : step.status === "done" ? "#22C55E" : "#F97316",
+                width: step.status === "fetching" ? "35%"
+                  : step.status === "writing" ? "70%"
+                  : step.status === "done"    ? "100%" : "100%",
+                transition: "width 0.4s ease, background 0.3s",
+              }} />
+            </div>
+            {step.status === "done" && step.rows > 0 && (
+              <div style={{ fontSize: 12, color: "#22C55E", fontWeight: 600, marginTop: 8 }}>
+                ✓ {step.rows.toLocaleString()} rows exported
+              </div>
+            )}
           </div>
         )}
 
         {/* ── Error banner ─────────────────────────────────── */}
-        {globalErr && (
+        {error && (
           <div style={{ background: "rgba(239,68,68,0.06)",
             border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8,
             padding: "10px 14px", fontSize: 13, color: "#EF4444",
             display: "flex", alignItems: "center", gap: 8 }}>
-            <AlertCircle size={15} /> {globalErr}
+            <AlertCircle size={15} /> {error}
           </div>
         )}
 
         {/* ── Export button ─────────────────────────────────── */}
         <button onClick={handleExport}
-          disabled={!selected.size || exporting}
+          disabled={!selected || exporting}
           style={{
             padding: "13px 0", borderRadius: 10, border: "none",
-            background: !selected.size ? "#CBD5E1" : exporting ? "#FED7AA" : "#F97316",
-            color: "#fff", fontSize: 14, fontWeight: 700,
-            cursor: !selected.size || exporting ? "not-allowed" : "pointer",
+            background: !selected ? "#CBD5E1" : exporting ? "#FED7AA" : "#F97316",
+            color: !selected ? "#94A3B8" : "#fff",
+            fontSize: 14, fontWeight: 700,
+            cursor: !selected || exporting ? "not-allowed" : "pointer",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             fontFamily: "inherit", transition: "background 0.15s",
           }}>
           {exporting
-            ? <><Loader2 size={16} style={{ animation: "spin 0.7s linear infinite" }} /> Exporting…</>
-            : allDone && !hasErrors
-            ? <><CheckCircle2 size={16} /> Export Complete</>
+            ? <><Loader2 size={16} style={{ animation: "spin 0.7s linear infinite" }} /> Exporting {selected}…</>
+            : step?.status === "done"
+            ? <><CheckCircle2 size={16} /> Export Again</>
             : <><FileSpreadsheet size={16} />
-                Export {selected.size ? `${selected.size} module${selected.size > 1 ? "s" : ""}` : "— select a module"}
+                {selected ? `Export ${meta?.label}` : "Select a module above"}
               </>
           }
         </button>
 
         {/* ── Success card with Open File ───────────────────── */}
-        {savedPath && allDone && (
+        {savedPath && step?.status === "done" && (
           <div style={{
             background: "rgba(34,197,94,0.05)",
-            border: "1px solid rgba(34,197,94,0.25)",
+            border: "1.5px solid rgba(34,197,94,0.3)",
             borderRadius: 12, padding: "16px 20px",
-            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+            display: "flex", alignItems: "center",
+            justifyContent: "space-between", gap: 12,
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 9,
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 9, flexShrink: 0,
                 background: "rgba(34,197,94,0.12)", display: "flex",
-                alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                alignItems: "center", justifyContent: "center" }}>
                 <CheckCircle2 size={18} color="#22C55E" />
               </div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#166534" }}>
                   File saved successfully
                 </div>
                 <div style={{ fontSize: 12, color: "#64748B", marginTop: 2,
-                  fontFamily: "monospace" }}>{savedPath}</div>
+                  fontFamily: "monospace", overflow: "hidden",
+                  textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {savedPath}
+                </div>
               </div>
             </div>
             <button onClick={() => openFile(savedPath)}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
-                padding: "8px 16px", borderRadius: 8,
+                padding: "9px 18px", borderRadius: 8,
                 border: "1.5px solid #22C55E",
                 background: "#fff", color: "#166534",
                 fontSize: 13, fontWeight: 700,
                 cursor: "pointer", fontFamily: "inherit",
                 flexShrink: 0, whiteSpace: "nowrap",
+                transition: "background 0.13s",
               }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(34,197,94,0.08)"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}>
               <FolderOpen size={14} /> Open File
             </button>
-          </div>
-        )}
-
-        {/* Partial errors summary */}
-        {allDone && hasErrors && (
-          <div style={{ background: "rgba(239,68,68,0.05)",
-            border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10,
-            padding: "12px 16px" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#EF4444", marginBottom: 6 }}>
-              Some modules failed
-            </div>
-            {Object.entries(steps).filter(([,s]) => s.status === "error").map(([mod, s]) => (
-              <div key={mod} style={{ fontSize: 12, color: "#DC2626" }}>
-                <strong>{mod}:</strong> {s.message}
-              </div>
-            ))}
           </div>
         )}
       </div>
