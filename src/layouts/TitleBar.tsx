@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Minus, Square, X, Maximize2 } from "lucide-react";
+import { Minus, X } from "lucide-react";
 
 // =============================================================
 // CUSTOM TITLE BAR
@@ -24,16 +24,21 @@ export function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
   const [inTauri] = useState(isTauri);
 
-  // Track maximized state
+  // Track maximized state — maximize on mount
   useEffect(() => {
     if (!inTauri) return;
     let unlisten: (() => void) | undefined;
     (async () => {
       try {
         const win = await getWin();
-        setIsMaximized(await win.isMaximized());
+        // Always maximize on launch
+        await win.maximize();
+        setIsMaximized(true);
         unlisten = await win.onResized(async () => {
-          setIsMaximized(await win.isMaximized());
+          const maxed = await win.isMaximized();
+          setIsMaximized(maxed);
+          // Re-maximize if user somehow restores
+          if (!maxed) await win.maximize();
         });
       } catch { /* browser */ }
     })();
@@ -42,14 +47,6 @@ export function TitleBar() {
 
   const handleMinimize = async () => {
     try { (await getWin()).minimize(); } catch { /* browser */ }
-  };
-
-  const handleMaximize = async () => {
-    try {
-      const win = await getWin();
-      if (await win.isMaximized()) await win.unmaximize();
-      else await win.maximize();
-    } catch { /* browser */ }
   };
 
   const handleClose = async () => {
@@ -71,16 +68,16 @@ export function TitleBar() {
         zIndex: 1000,
       }}
     >
-      {/* Drag region */}
+      {/* Drag region — only active when not maximized */}
       <div
-        data-tauri-drag-region
+        {...(!isMaximized ? { "data-tauri-drag-region": true } : {})}
         style={{
           flex: 1,
           height: "100%",
           display: "flex",
           alignItems: "center",
           paddingLeft: 14,
-          cursor: "default",
+          cursor: isMaximized ? "default" : "move",
         }}
       >
         <span style={{
@@ -94,17 +91,11 @@ export function TitleBar() {
         </span>
       </div>
 
-      {/* Window controls */}
+      {/* Window controls — no maximize/restore button */}
       {inTauri && (
         <div style={{ display: "flex", alignItems: "center", height: "100%", flexShrink: 0 }}>
           <WinBtn onClick={handleMinimize} label="Minimize" hoverBg="#F1F5F9">
             <Minus size={14} strokeWidth={2} color="currentColor" />
-          </WinBtn>
-          <WinBtn onClick={handleMaximize} label={isMaximized ? "Restore" : "Maximize"} hoverBg="#F1F5F9">
-            {isMaximized
-              ? <Maximize2 size={12} strokeWidth={2} color="currentColor" />
-              : <Square size={11} strokeWidth={2} color="currentColor" />
-            }
           </WinBtn>
           <WinBtn onClick={handleClose} label="Close" hoverBg="#EF4444" isClose>
             <X size={14} strokeWidth={2} color="currentColor" />

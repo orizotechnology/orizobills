@@ -108,13 +108,48 @@ function buildSheet(rows: Record<string, unknown>[], mod: Module): XLSX.WorkShee
   return ws;
 }
 
+// ── Save via Tauri command (writes to Downloads + opens) ─────
+// Falls back to browser download when not in Tauri.
+async function saveAndOpen(
+  filename: string,
+  wb: XLSX.WorkBook,
+  fmt: "xlsx" | "csv",
+): Promise<string> {
+  // Build file bytes in memory
+  const bookType = fmt === "csv" ? "csv" : "xlsx";
+  const buf = XLSX.write(wb, { bookType, type: "array" }) as ArrayBuffer;
+
+  try {
+    // Try Tauri invoke — writes to Downloads folder and opens the file
+    const { invoke } = await import("@tauri-apps/api/core");
+    const fullPath = await invoke<string>("save_and_open_file", {
+      filename,
+      data: Array.from(new Uint8Array(buf)),
+    });
+    return fullPath;
+  } catch {
+    // Browser fallback — trigger <a download>
+    const blob = new Blob([buf], {
+      type: fmt === "csv"
+        ? "text/csv"
+        : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement("a");
+    a.href     = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    return filename; // path unknown in browser
+  }
+}
+
 // ── Open saved file via Tauri (silently fails in browser) ─────
 async function openFile(path: string): Promise<void> {
   try {
-    const mod = "@tauri-apps/api/opener";
-    const { openPath } = await import(/* @vite-ignore */ mod) as { openPath: (p: string) => Promise<void> };
-    await openPath(path);
-  } catch { /* browser / API not available */ }
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("open_file", { path });
+  } catch { /* browser — nothing to do */ }
 }
 
 // ── Step state ────────────────────────────────────────────────
@@ -168,9 +203,9 @@ export default function ExportPage() {
       XLSX.utils.book_append_sheet(wb, buildSheet(rows, selected), selected);
       const stamp = new Date().toISOString().slice(0, 10);
       const fname = `orizo_${selected.toLowerCase()}_${stamp}.${fmt}`;
-      XLSX.writeFile(wb, fname, fmt === "csv" ? { bookType: "csv" } : undefined);
+      const fullPath = await saveAndOpen(fname, wb, fmt);
       setStep({ status: "done", rows: rows.length, message: `${rows.length} rows saved` });
-      setSavedPath(fname);
+      setSavedPath(fullPath);
       setShowToast(true);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Write failed";
