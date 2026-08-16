@@ -419,7 +419,7 @@ export default function ProductsPage() {
 // ── Styles ────────────────────────────────────────────────────
 const primaryBtn: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 6,
-  background: "#F97316", color: "#fff",
+  background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))",
   border: "none", borderRadius: 8, padding: "9px 16px",
   fontSize: 13, fontWeight: 700, cursor: "pointer",
   fontFamily: "inherit", outline: "none",
@@ -427,14 +427,14 @@ const primaryBtn: React.CSSProperties = {
 
 const iconBtn: React.CSSProperties = {
   width: 34, height: 34, borderRadius: 8,
-  border: "1px solid #E2E8F0", background: "#fff",
+  border: "1px solid hsl(var(--border))", background: "hsl(var(--card))",
   display: "flex", alignItems: "center", justifyContent: "center",
   cursor: "pointer", outline: "none",
 };
 
 const rowIconBtn: React.CSSProperties = {
   width: 30, height: 30, borderRadius: 7,
-  border: "none", background: "transparent", color: "#64748B",
+  border: "none", background: "transparent", color: "hsl(var(--muted-foreground))",
   cursor: "pointer", display: "flex",
   alignItems: "center", justifyContent: "center",
   outline: "none",
@@ -442,9 +442,9 @@ const rowIconBtn: React.CSSProperties = {
 
 const pgBtn = (d: boolean): React.CSSProperties => ({
   padding: "6px 14px", borderRadius: 7,
-  border: "1px solid #E2E8F0",
-  background: d ? "#F8FAFC" : "#fff",
-  color: d ? "#CBD5E1" : "#475569",
+  border: "1px solid hsl(var(--border))",
+  background: d ? "hsl(var(--background))" : "hsl(var(--card))",
+  color: d ? "hsl(var(--muted))" : "hsl(var(--foreground))",
   fontSize: 13, cursor: d ? "not-allowed" : "pointer",
   fontFamily: "inherit",
 });
