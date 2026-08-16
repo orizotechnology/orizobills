@@ -300,9 +300,9 @@ export default function SaleOrderPage() {
 }
 
 // ── Styles ────────────────────────────────────────────────────
-const iconBtn:      React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
-const dateInp:      React.CSSProperties = { border: "1px solid #E2E8F0", borderRadius: 8, padding: "6px 10px", fontSize: 13, color: "#1E293B", background: "#fff", outline: "none", fontFamily: "inherit", cursor: "pointer" };
-const thStyle:      React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.04em", whiteSpace: "nowrap" };
+const iconBtn:      React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
+const dateInp:      React.CSSProperties = { border: "1px solid hsl(var(--border))", borderRadius: 8, padding: "6px 10px", fontSize: 13, color: "hsl(var(--foreground))", background: "hsl(var(--card))", outline: "none", fontFamily: "inherit", cursor: "pointer" };
+const thStyle:      React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "hsl(var(--muted-foreground))", letterSpacing: "0.04em", whiteSpace: "nowrap" };
 const tdStyle:      React.CSSProperties = { padding: "12px 14px", fontSize: 13 };
 const chip:         React.CSSProperties = { fontSize: 12, background: "#F1F5F9", borderRadius: 4, padding: "2px 6px", color: "#475569" };
 const badge:        React.CSSProperties = { fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px" };

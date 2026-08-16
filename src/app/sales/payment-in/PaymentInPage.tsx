@@ -425,21 +425,21 @@ function AddPaymentDialog({ onClose, onSaved }: { onClose: () => void; onSaved: 
 
 // ── Styles ────────────────────────────────────────────────────
 const primaryBtn: React.CSSProperties = {
-  display: "flex", alignItems: "center", gap: 6, background: "#F97316",
-  color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px",
+  display: "flex", alignItems: "center", gap: 6, background: "hsl(var(--primary))",
+  color: "hsl(var(--primary-foreground))", border: "none", borderRadius: 8, padding: "9px 16px",
   fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
 };
 const iconBtn: React.CSSProperties = {
-  width: 34, height: 34, borderRadius: 8, border: "1px solid #E2E8F0",
-  background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+  width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))",
+  background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
 };
 const dateInp: React.CSSProperties = {
-  border: "1px solid #E2E8F0", borderRadius: 8, padding: "7px 12px",
-  fontSize: 13, color: "#1E293B", background: "#fff", outline: "none",
+  border: "1px solid hsl(var(--border))", borderRadius: 8, padding: "7px 12px",
+  fontSize: 13, color: "hsl(var(--foreground))", background: "hsl(var(--card))", outline: "none",
   fontFamily: "inherit", cursor: "pointer",
 };
 const lbl: React.CSSProperties = {
-  display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 5,
+  display: "block", fontSize: 12, fontWeight: 600, color: "hsl(var(--foreground))", marginBottom: 5,
 };
 const inp: React.CSSProperties = {
   width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 8, padding: "8px 12px",
