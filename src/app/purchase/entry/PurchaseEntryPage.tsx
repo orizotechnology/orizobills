@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
 import { AnimatePresence } from "framer-motion";
+import { PurchaseTopBar } from "./components/PurchaseTopBar";
 import { Plus, Upload, ChevronDown, AlertCircle, CheckCircle2 } from "lucide-react";
 import { http } from "@/lib/axios";
 import { ItemRow } from "./components/ItemRow";
@@ -213,14 +214,12 @@ export default function PurchaseEntryPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Page header ─────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 18px 8px", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: "#0F172A" }}>Purchase</span>
-        <button
-          onClick={() => navigate("/app/purchase/all")}
-          style={{ width: 26, height: 26, borderRadius: "50%", background: "#EF4444", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, outline: "none" }}
-        >×</button>
-      </div>
+      {/* ── Purchase Top Bar ────────────────────────────── */}
+      <PurchaseTopBar
+        billNo={billNo}
+        billDate={billDate}
+        isDirty={rows.some((r) => r.item.trim() !== "")}
+      />
 
       {/* ── Top fields ──────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "flex-start", padding: "10px 18px 8px", gap: 20, borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
