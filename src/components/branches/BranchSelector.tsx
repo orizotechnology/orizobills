@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Building2, ChevronDown, Check, Plus, MapPin } from "lucide-react";
+import { Building2, ChevronDown, Check, Plus, MapPin, Loader2 } from "lucide-react";
 import { useBranchStore } from "@/store/branch.store";
 import { AddBranchDialog } from "./AddBranchDialog";
+import { useQueryClient } from "@tanstack/react-query";
 
 // =============================================================
 // BRANCH SELECTOR
@@ -13,11 +14,26 @@ import { AddBranchDialog } from "./AddBranchDialog";
 
 export function BranchSelector() {
   const { branches, activeBranchId, setActiveBranch, getActiveBranch } = useBranchStore();
-  const [open, setOpen] = useState(false);
+  const [open,          setOpen]          = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [switching,     setSwitching]     = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const qc  = useQueryClient();
 
   const activeBranch = getActiveBranch();
+
+  // ── Invalidate entire React Query cache when branch changes ──
+  // This ensures every mounted page refetches from the new branch DB.
+  useEffect(() => {
+    if (!activeBranchId) return;
+    // Small delay so the X-Branch-Id header is already in place before refetches fire
+    const t = setTimeout(async () => {
+      await qc.invalidateQueries();
+      setSwitching(false);
+    }, 80);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBranchId]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -57,11 +73,10 @@ export function BranchSelector() {
           }}
         >
           {/* Icon */}
-          <Building2
-            size={15}
-            color={hasBranches ? "#F97316" : "#94A3B8"}
-            style={{ flexShrink: 0 }}
-          />
+          {switching
+            ? <Loader2 size={15} color="#F97316" style={{ flexShrink: 0, animation: "spin 0.6s linear infinite" }} />
+            : <Building2 size={15} color={hasBranches ? "#F97316" : "#94A3B8"} style={{ flexShrink: 0 }} />
+          }
 
           {/* Label */}
           <span
@@ -118,6 +133,8 @@ export function BranchSelector() {
                     <button
                       key={branch.id}
                       onClick={() => {
+                        if (branch.id === activeBranchId) { setOpen(false); return; }
+                        setSwitching(true);
                         setActiveBranch(branch.id);
                         setOpen(false);
                       }}
@@ -253,6 +270,7 @@ export function BranchSelector() {
           <AddBranchDialog onClose={() => setShowAddDialog(false)} />
         )}
       </AnimatePresence>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }
