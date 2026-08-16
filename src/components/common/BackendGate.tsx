@@ -27,15 +27,17 @@ export function BackendGate({ children }: BackendGateProps) {
     return () => clearInterval(t);
   }, [status]);
 
-  // Once backend is online, fetch branches so activeBranchId is set
-  // before any API call is made by child components.
+  // Once backend is online, always re-fetch branches so the store
+  // reflects the latest list from the server. setBranches() preserves
+  // the persisted activeBranchId when it still matches a branch in the
+  // fresh list, and falls back to the default branch otherwise.
   useEffect(() => {
     if (status !== "online") return;
-    if (branches.length > 0) return; // already loaded
     http.get<{ success: boolean; data: typeof branches }>("/branches")
       .then((r) => { if (r.success && r.data?.length) setBranches(r.data); })
       .catch(() => {});
-  }, [status, branches.length, setBranches]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   // Backend is up — render the app
   if (status === "online") return <>{children}</>;
