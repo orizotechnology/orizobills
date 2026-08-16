@@ -38,8 +38,6 @@ export default function PurchaseEntryPage() {
   const [poDate,         setPoDate]         = useState("");
   const [billDate,       setBillDate]       = useState(new Date().toISOString().slice(0, 10));
   const [billNo,         setBillNo]         = useState("PUR0001");
-  const [terms,          setTerms]          = useState("Purchase Bill");
-  const [termsNote,      setTermsNote]      = useState("Thanks for doing business with us!");
   const [payType,        setPayType]        = useState("Cash");
   const [notes,          setNotes]          = useState("");
   const [discPct,        setDiscPct]        = useState("0");
@@ -198,7 +196,7 @@ export default function PurchaseEntryPage() {
       billNumber: billNo, billDate,
       poNumber: poNo || undefined, poDate: poDate || undefined,
       paymentMethod: payType, discountPct: parseFloat(discPct) || 0,
-      taxType, terms: terms || undefined, notes: notes || undefined,
+      taxType, notes: notes || undefined,
       items: validRows.map((r) => ({
         itemName: r.item, itemCode: r.code, quantity: Number(r.qty), unit: r.unit,
         mrp: parseFloat(String(r.mrp)) || 0, unitPrice: parseFloat(String(r.priceUnit)) || 0,
@@ -372,16 +370,8 @@ export default function PurchaseEntryPage() {
       {/* ── Bottom panel ────────────────────────────────── */}
       <div style={{ borderTop: "1px solid #E2E8F0", padding: "12px 20px", display: "flex", alignItems: "flex-start", gap: 20, flexShrink: 0, background: "#FAFAFA" }}>
 
-        {/* Terms & Conditions */}
-        <div style={{ width: 160, flexShrink: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#1E293B", marginBottom: 6 }}>Terms &amp; Conditions</div>
-          <label style={{ ...lbl, marginBottom: 3 }}>Info</label>
-          <input style={{ ...inp, width: "100%", marginBottom: 6, boxSizing: "border-box" }} value={terms} onChange={(e) => setTerms(e.target.value)} />
-          <textarea style={{ ...inp, width: "100%", height: 52, resize: "none", boxSizing: "border-box" } as React.CSSProperties} value={termsNote} onChange={(e) => setTermsNote(e.target.value)} />
-        </div>
-
         {/* Payment Type + Notes */}
-        <div style={{ width: 160, flexShrink: 0 }}>
+        <div style={{ width: 180, flexShrink: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#1E293B", marginBottom: 6 }}>Payment Type</div>
           <select style={{ ...inp, width: "100%", marginBottom: 8, boxSizing: "border-box" }} value={payType} onChange={(e) => setPayType(e.target.value)}>
             <option>Cash</option>
