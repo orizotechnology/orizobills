@@ -37,11 +37,14 @@ export const useBranchStore = create<BranchState>()(
 
       setBranches: (branches) => {
         const current = get().activeBranchId;
-        // If no active branch set, use the default one
-        const defaultBranch = branches.find((b) => b.isDefault) ?? branches[0];
+        const stillValid = current && branches.some((b) => b.id === current);
+        // If the persisted ID is still in the fresh list, keep it.
+        // Otherwise recover to the default branch so the UI and the
+        // X-Branch-Id header always agree on the same branch.
+        const fallback = branches.find((b) => b.isDefault) ?? branches[0];
         set({
           branches,
-          activeBranchId: current ?? defaultBranch?.id ?? null,
+          activeBranchId: stillValid ? current : (fallback?.id ?? null),
         });
       },
 
@@ -57,7 +60,18 @@ export const useBranchStore = create<BranchState>()(
 
       getActiveBranch: () => {
         const { branches, activeBranchId } = get();
-        return branches.find((b) => b.id === activeBranchId) ?? branches[0] ?? null;
+        // Only match by exact ID — never silently fall back to branches[0],
+        // which would show the wrong branch in the UI while sending a
+        // different ID in the X-Branch-Id header.
+        if (!activeBranchId) return branches.find((b) => b.isDefault) ?? branches[0] ?? null;
+        const matched = branches.find((b) => b.id === activeBranchId);
+        if (matched) return matched;
+        // Persisted ID is stale (branch was deleted or not yet loaded).
+        // Recover to the default branch and fix the stored ID so the
+        // header and the UI always agree.
+        const fallback = branches.find((b) => b.isDefault) ?? branches[0] ?? null;
+        if (fallback) set({ activeBranchId: fallback.id });
+        return fallback;
       },
     }),
     {
