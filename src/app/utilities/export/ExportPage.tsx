@@ -16,17 +16,6 @@ type Module =
   | "Products" | "Customers" | "Suppliers" | "Expenses"
   | "Sales" | "Purchases" | "Payments";
 
-interface ModuleCfg {
-  value:    Module;
-  label:    string;
-  desc:     string;
-  icon:     React.ReactNode;
-  color:    string;
-  headers:  string[];
-  keys:     string[];
-  fetch:    () => Promise<Record<string, unknown>[]>;
-}
-
 // ── Column maps ───────────────────────────────────────────────
 const HEADERS: Record<Module, string[]> = {
   Products:  ["Name","Code","HSN","MRP","Sale Price","Purchase Price","Tax %","Tax Rate","Tax Inclusive","Unit","Secondary Unit","Discount Type","Sale Discount","Location","Barcode","Description"],
@@ -51,7 +40,7 @@ const KEYS: Record<Module, string[]> = {
 // ── Per-module fetch — each uses the correct endpoint + extractor ──
 async function fetchModule(mod: Module): Promise<Record<string, unknown>[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const get = <T>(ep: string) => http.get<any>(ep) as Promise<T>;
+  const get = <T,>(ep: string) => http.get<any>(ep) as Promise<T>;
 
   switch (mod) {
     case "Products": {
@@ -120,7 +109,8 @@ function buildSheet(rows: Record<string, unknown>[], mod: Module): XLSX.WorkShee
 // ── Open a saved file (Tauri or browser fallback) ─────────────
 async function openFile(path: string): Promise<void> {
   try {
-    const { open } = await import("@tauri-apps/plugin-opener");
+    // Try Tauri shell open (works in desktop app)
+    const { open } = await import("@tauri-apps/api/shell" as string) as { open: (p: string) => Promise<void> };
     await open(path);
   } catch {
     // Not in Tauri or opener not available — nothing to do in browser
@@ -170,7 +160,10 @@ export default function ExportPage() {
   };
 
   const setStep = (mod: Module, patch: Partial<StepState>) =>
-    setSteps((p) => ({ ...p, [mod]: { status: "idle", rows: 0, message: "", ...p[mod], ...patch } }));
+    setSteps((p) => {
+      const prev = p[mod] ?? { status: "idle" as StepStatus, rows: 0, message: "" };
+      return { ...p, [mod]: { ...prev, ...patch } };
+    });
 
   const allDone = Object.keys(steps).length > 0 &&
     Object.values(steps).every((s) => s.status === "done" || s.status === "error");
