@@ -3,7 +3,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { successResponse, errorResponse } from "../utils/response.util";
 import { HTTP_STATUS, ERROR_CODES } from "../constants/http.constants";
-import { getPrismaForBranch } from "../database/prisma/manager";
+import { getPrismaForBranch, getDefaultPrisma } from "../database/prisma/manager";
 import { getAllRegisteredBranches } from "../database/prisma/manager";
 
 // =============================================================
@@ -22,15 +22,20 @@ import { getAllRegisteredBranches } from "../database/prisma/manager";
 export async function transferRoutes(fastify: FastifyInstance) {
 
   // ── GET /api/transfers/branches ───────────────────────────
-  // Returns all registered branches so the UI can populate the
-  // "Transfer To" dropdown. Excludes the current branch.
+  // Returns all active branches from the DB so the UI can
+  // populate the "Transfer To" dropdown. Excludes the current
+  // branch. Queries the default DB (source of truth) rather
+  // than the file registry so newly-added branches always appear.
   fastify.get("/branches", async (req, reply) => {
     try {
-      const all     = getAllRegisteredBranches();
+      const prisma  = getDefaultPrisma();
       const current = req.branchId;
-      const others  = all
-        .filter((b) => b.branchId !== current)
-        .map((b) => ({ id: b.branchId, name: b.branchName }));
+      const all = await prisma.branch.findMany({
+        where:   { isActive: true },
+        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+        select:  { id: true, name: true },
+      });
+      const others = all.filter((b: { id: string }) => b.id !== current);
       return reply.send(successResponse(others));
     } catch (err) {
       return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(
