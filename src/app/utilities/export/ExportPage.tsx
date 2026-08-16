@@ -109,9 +109,11 @@ function buildSheet(rows: Record<string, unknown>[], mod: Module): XLSX.WorkShee
 // ── Open a saved file (Tauri or browser fallback) ─────────────
 async function openFile(path: string): Promise<void> {
   try {
-    // Try Tauri shell open (works in desktop app)
-    const { open } = await import("@tauri-apps/api/shell" as string) as { open: (p: string) => Promise<void> };
-    await open(path);
+    // Dynamic import with variable string bypasses Vite static analysis.
+    // Works in Tauri desktop; silently fails in browser.
+    const mod = "@tauri-apps/api/opener";
+    const { openPath } = await import(/* @vite-ignore */ mod);
+    await openPath(path);
   } catch {
     // Not in Tauri or opener not available — nothing to do in browser
   }
