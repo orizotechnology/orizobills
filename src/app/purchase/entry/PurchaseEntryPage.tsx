@@ -329,47 +329,85 @@ export default function PurchaseEntryPage() {
         </div>
       </div>
 
-      {/* ── Item table ──────────────────────────────────── */}
-      <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+      {/* ── Item table — scrollable body, fixed TOTAL footer ── */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
         {/* Table header bar with ADD ROW on the right */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "6px 16px 4px", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
           <button onClick={addRow} style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.25)", borderRadius: 7, color: "#F97316", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", outline: "none", padding: "5px 12px" }}>
             <Plus size={13} strokeWidth={2.5} /> ADD ROW
           </button>
         </div>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-          <thead>
-            <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-              {["#","ITEM","ITEM CODE","COUNT","MRP","SIZE","QTY","UNIT","PRICE/UNIT","DISC %","DISC AMT","TAX %","TAX AMT","AMOUNT",""].map((h, i) => (
-                <th key={i} style={{ padding: "8px 6px", textAlign: i === 0 || i === 14 ? "center" : "left", fontSize: 10, fontWeight: 700, color: "#64748B", whiteSpace: "nowrap", position: "sticky", top: 0, background: "#F8FAFC", borderRight: "1px solid #F1F5F9", zIndex: 10 }}>
-                  {h}
-                </th>
+
+        {/* Sticky column headers */}
+        <div style={{ flexShrink: 0, overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: 32 }} /><col style={{ width: "18%" }} /><col style={{ width: "10%" }} />
+              <col style={{ width: 60 }} /><col style={{ width: 70 }} /><col style={{ width: 60 }} />
+              <col style={{ width: 52 }} /><col style={{ width: 90 }} /><col style={{ width: 90 }} />
+              <col style={{ width: 64 }} /><col style={{ width: 72 }} /><col style={{ width: 90 }} />
+              <col style={{ width: 72 }} /><col style={{ width: 80 }} /><col style={{ width: 36 }} />
+            </colgroup>
+            <thead>
+              <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                {["#","ITEM","ITEM CODE","COUNT","MRP","SIZE","QTY","UNIT","PRICE/UNIT","DISC %","DISC AMT","TAX %","TAX AMT","AMOUNT",""].map((h, i) => (
+                  <th key={i} style={{ padding: "8px 6px", textAlign: i === 0 || i === 14 ? "center" : "left", fontSize: 10, fontWeight: 700, color: "#64748B", whiteSpace: "nowrap", borderRight: "1px solid #F1F5F9" }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          </table>
+        </div>
+
+        {/* Scrollable rows only */}
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "auto", minHeight: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: 32 }} /><col style={{ width: "18%" }} /><col style={{ width: "10%" }} />
+              <col style={{ width: 60 }} /><col style={{ width: 70 }} /><col style={{ width: 60 }} />
+              <col style={{ width: 52 }} /><col style={{ width: 90 }} /><col style={{ width: 90 }} />
+              <col style={{ width: 64 }} /><col style={{ width: 72 }} /><col style={{ width: 90 }} />
+              <col style={{ width: 72 }} /><col style={{ width: 80 }} /><col style={{ width: 36 }} />
+            </colgroup>
+            <tbody>
+              {rows.map((row, idx) => (
+                <ItemRow
+                  key={row.id} row={row} index={idx}
+                  isFlash={row.id === "flash"} products={products}
+                  canRemove={rows.length > 1}
+                  onChange={updateRow} onRemove={removeRow} onAddProduct={handleOpenAddProduct}
+                />
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, idx) => (
-              <ItemRow
-                key={row.id} row={row} index={idx}
-                isFlash={row.id === "flash"} products={products}
-                canRemove={rows.length > 1}
-                onChange={updateRow} onRemove={removeRow} onAddProduct={handleOpenAddProduct}
-              />
-            ))}
-            {/* Spacer row + TOTAL row pinned at bottom of table */}
-            <tr style={{ height: 16 }}><td colSpan={15} /></tr>
-            <tr style={{ borderTop: "2px solid #E2E8F0", background: "#F8FAFC", fontWeight: 700 }}>
-              <td colSpan={6} style={{ padding: "9px 8px", fontSize: 12, color: "#1E293B", letterSpacing: "0.05em" }}>TOTAL</td>
-              <td style={{ padding: "9px 6px", textAlign: "right" }}>{totalQty}</td>
-              <td /><td /><td />
-              <td style={{ padding: "9px 8px", textAlign: "right" }}>{totalDisc.toFixed(2)}</td>
-              <td />
-              <td style={{ padding: "9px 8px", textAlign: "right" }}>{totalTax.toFixed(2)}</td>
-              <td style={{ padding: "9px 8px", textAlign: "right", color: "#F97316", fontWeight: 800 }}>{totalAmt.toFixed(2)}</td>
-              <td />
-            </tr>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Fixed TOTAL row — always visible at bottom of table area */}
+        <div style={{ flexShrink: 0, borderTop: "2px solid #E2E8F0", background: "#F8FAFC", overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: 32 }} /><col style={{ width: "18%" }} /><col style={{ width: "10%" }} />
+              <col style={{ width: 60 }} /><col style={{ width: 70 }} /><col style={{ width: 60 }} />
+              <col style={{ width: 52 }} /><col style={{ width: 90 }} /><col style={{ width: 90 }} />
+              <col style={{ width: 64 }} /><col style={{ width: 72 }} /><col style={{ width: 90 }} />
+              <col style={{ width: 72 }} /><col style={{ width: 80 }} /><col style={{ width: 36 }} />
+            </colgroup>
+            <tbody>
+              <tr style={{ fontWeight: 700 }}>
+                <td colSpan={6} style={{ padding: "9px 8px", fontSize: 12, color: "#1E293B", letterSpacing: "0.05em" }}>TOTAL</td>
+                <td style={{ padding: "9px 6px", textAlign: "right" }}>{totalQty}</td>
+                <td /><td /><td />
+                <td style={{ padding: "9px 8px", textAlign: "right" }}>{totalDisc.toFixed(2)}</td>
+                <td />
+                <td style={{ padding: "9px 8px", textAlign: "right" }}>{totalTax.toFixed(2)}</td>
+                <td style={{ padding: "9px 8px", textAlign: "right", color: "#F97316", fontWeight: 800 }}>{totalAmt.toFixed(2)}</td>
+                <td />
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* ── Bottom panel ────────────────────────────────── */}
