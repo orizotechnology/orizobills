@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -52,6 +53,7 @@ function useProducts(search: string, page: number, pageSize: number) {
 
 export default function ProductsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const [search,          setSearch]        = useState("");
   const [debouncedSearch, setDebounced]     = useState("");
@@ -141,7 +143,7 @@ export default function ProductsPage() {
             <RefreshCw size={15} color="#64748B"
               style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
           </button>
-          <button onClick={() => setDialogProduct("new")} style={primaryBtn}>
+          <button onClick={() => navigate("/app/products/new")} style={primaryBtn}>
             <Plus size={15} /> Add Product
           </button>
         </div>
@@ -267,7 +269,7 @@ export default function ProductsPage() {
                       {search ? `No products matching "${search}"` : `No products with status "${STOCK_FILTERS.find(f => f.value === stockFilter)?.label ?? stockFilter}"`}
                     </div>
                     {!search && (
-                      <button onClick={() => setDialogProduct("new")} style={primaryBtn}>
+                      <button onClick={() => navigate("/app/products/new")} style={primaryBtn}>
                         <Plus size={14} /> Add your first product
                       </button>
                     )}
