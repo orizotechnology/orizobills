@@ -1,4 +1,4 @@
-/* =============================================================
+﻿/* =============================================================
    POS PRINT STYLESHEET
    The receipt portal (#pos-print-area) is rendered directly
    into document.body via ReactDOM.createPortal().
@@ -31,10 +31,17 @@
     width:      100% !important;
   }
 
+  /* Default: Thermal 80mm — targets thermal printers */
   @page {
-    margin: 4mm;
-    size:   auto;
+    margin: 2mm 3mm;
+    size:   80mm auto;
   }
+
+  /* A4 override — applied when body has data-paper="A4" or "A5" */
+  body[data-paper="A4"] #pos-print-area ~ * { display: none; }
+  body[data-paper="A4"]  @page { size: A4 portrait;  margin: 10mm; }
+  body[data-paper="A5"]  @page { size: A5 portrait;  margin: 8mm;  }
+  body[data-paper="Thermal 58mm"] @page { size: 58mm auto; margin: 2mm; }
 
   .pos-receipt {
     page-break-inside: avoid;

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+﻿import { useState, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -89,11 +89,14 @@ export default function PosPage() {
   useEffect(() => {
     if (pendingPrintRef.current && printData) {
       pendingPrintRef.current = false;
+      // Set paper size on body so @page CSS targets thermal/A4 correctly
+      document.body.setAttribute("data-paper", printSettings.paperType);
       // Double rAF ensures browser has fully painted the portal before print dialog
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           window.print();
           setPrinting(false);
+          document.body.removeAttribute("data-paper");
         });
       });
     }
@@ -184,9 +187,11 @@ export default function PosPage() {
 
     if (snap === printData) {
       // printData already in DOM — fire directly
+      document.body.setAttribute("data-paper", printSettings.paperType);
       requestAnimationFrame(() => requestAnimationFrame(() => {
         window.print();
         setPrinting(false);
+        document.body.removeAttribute("data-paper");
       }));
     } else {
       // Set flag first, then state — useEffect will fire after render
@@ -496,11 +501,13 @@ export default function PosPage() {
           <BillOverviewModal
             data={printData}
             onPrint={() => {
-              pendingPrintRef.current = true;
+              document.body.setAttribute("data-paper", printSettings.paperType);
               setPrinting(true);
-              // printData already set — trigger directly
-              pendingPrintRef.current = false;
-              setTimeout(() => { window.print(); setPrinting(false); }, 80);
+              requestAnimationFrame(() => requestAnimationFrame(() => {
+                window.print();
+                setPrinting(false);
+                document.body.removeAttribute("data-paper");
+              }));
             }}
             onClose={() => {
               setShowBillOverview(false);
@@ -795,13 +802,13 @@ function BillOverviewModal({
         {/* ── Actions ── */}
         <div style={{ padding: "14px 22px", display: "flex", gap: 10, borderTop: "1px solid #E2E8F0" }}>
           <button onClick={onClose}
-            style={{ flex: 1, padding: "10px 0", border: "1.5px solid #E2E8F0", borderRadius: 10,
+            style={{ width: 110, padding: "10px 0", border: "1.5px solid #E2E8F0", borderRadius: 10,
               background: "#fff", color: "#475569", fontSize: 13, fontWeight: 600,
-              cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
+              cursor: "pointer", fontFamily: "inherit", outline: "none", flexShrink: 0 }}>
             New Bill
           </button>
           <button onClick={onPrint}
-            style={{ flex: 2, padding: "10px 0", border: "none", borderRadius: 10,
+            style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10,
               background: "#F97316", color: "#fff", fontSize: 13, fontWeight: 700,
               cursor: "pointer", fontFamily: "inherit", outline: "none",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
