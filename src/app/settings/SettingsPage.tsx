@@ -392,7 +392,7 @@ function GeneralSettings() {
                   color: "#94A3B8",
                 }}
               >
-                PNG, JPG or WEBP â€¢ Max 2MB
+                PNG, JPG or WEBP • Max 2MB
               </span>
             </div>
           </div>
@@ -423,16 +423,16 @@ function GeneralSettings() {
         >
           <select style={inp} defaultValue="INR">
             <option value="INR">
-              INR (â‚¹)
+              INR (₹)
             </option>
             <option value="USD">
               USD ($)
             </option>
             <option value="EUR">
-              EUR (â‚¬)
+              EUR (€)
             </option>
             <option value="GBP">
-              GBP (Â£)
+              GBP (£)
             </option>
           </select>
         </SettingRow>
@@ -462,10 +462,10 @@ function GeneralSettings() {
         >
           <select style={inp} defaultValue="indian">
             <option value="indian">
-              Indian â€” 1,00,000
+              Indian — 1,00,000
             </option>
             <option value="international">
-              International â€” 100,000
+              International — 100,000
             </option>
           </select>
         </SettingRow>
@@ -567,7 +567,7 @@ function TransactionSettings() {
         description="How the total should be rounded"
       >
         <select style={inp} defaultValue="nearest">
-          <option value="nearest">Nearest â€” 0.5 rounds up</option>
+          <option value="nearest">Nearest — 0.5 rounds up</option>
           <option value="up">Always Round Up</option>
           <option value="down">Always Round Down</option>
         </select>
@@ -733,7 +733,7 @@ function TaxSettings() {
       {/* NEW: E-Way Bill Threshold Amount */}
       <SettingRow
         label="E-Way Bill Threshold Amount"
-        description="Generate e-way bill prompt above this invoice value (â‚¹)"
+        description="Generate e-way bill prompt above this invoice value (₹)"
       >
         <input
           style={inp}
@@ -779,7 +779,7 @@ function MessageSettings() {
             height: 64,
             resize: "none",
           }}
-          placeholder="Dear {name}, your balance is â‚¹{amount}..."
+          placeholder="Dear {name}, your balance is ₹{amount}..."
         />
       </SettingRow>
 
@@ -795,7 +795,7 @@ function MessageSettings() {
             height: 64,
             resize: "none",
           }}
-          placeholder="Dear {name}, your payment of â‚¹{amount} is overdue since {due_date}. Please clear it at the earliest."
+          placeholder="Dear {name}, your payment of ₹{amount} is overdue since {due_date}. Please clear it at the earliest."
         />
       </SettingRow>
 
@@ -810,7 +810,7 @@ function MessageSettings() {
             height: 64,
             resize: "none",
           }}
-          placeholder="Invoice {invoice_no} for â‚¹{amount} is attached."
+          placeholder="Invoice {invoice_no} for ₹{amount} is attached."
         />
       </SettingRow>
 
@@ -826,7 +826,7 @@ function MessageSettings() {
             height: 64,
             resize: "none",
           }}
-          placeholder="Dear {name}, please find your quotation {invoice_no} for â‚¹{amount} attached."
+          placeholder="Dear {name}, please find your quotation {invoice_no} for ₹{amount} attached."
         />
       </SettingRow>
 
@@ -1439,7 +1439,7 @@ function OfficerManagement() {
                   padding: "8px 12px",
                 }}
               >
-                âš ï¸ {formError}
+                ⚠ï¸ {formError}
               </div>
             )}
 
