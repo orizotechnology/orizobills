@@ -128,15 +128,18 @@ export async function productRoutes(fastify: FastifyInstance) {
       secondaryUnit: z.string().optional(),
       conversionRate:z.number().optional(),
       location:      z.string().optional(),
+      openingStock:  z.number().min(0).optional(),
+      lowStockAlert: z.number().min(0).optional(),
     });
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
-      const product = await req.prisma.product.create({ data: parse.data });
-      // Ensure inventory row
+      const { openingStock, lowStockAlert, ...productData } = parse.data;
+      const product = await req.prisma.product.create({ data: productData });
+      // Ensure inventory row with user-supplied opening stock and alert level
       await req.prisma.inventoryItem.upsert({
-        where: { productId: product.id },
-        create: { productId: product.id, openingStock: 0, stockIn: 0, stockOut: 0, lowStockAlert: 5 },
+        where:  { productId: product.id },
+        create: { productId: product.id, openingStock: openingStock ?? 0, stockIn: 0, stockOut: 0, lowStockAlert: lowStockAlert ?? 5 },
         update: {},
       });
       return reply.status(HTTP_STATUS.CREATED).send(successResponse(toResult(product), "Product created"));
