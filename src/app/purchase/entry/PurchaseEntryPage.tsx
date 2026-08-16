@@ -20,7 +20,7 @@ interface ApiResponse<T> { success: boolean; data: T; message?: string; error?: 
 function makeRow(): PurchaseRow {
   return {
     id: nanoid(), productId: "", item: "", code: "", count: "", mrp: 0,
-    size: "", qty: 1, unit: "NONE", priceUnit: 0, discPct: 0, discAmt: 0,
+    size: "", qty: 0, unit: "NONE", priceUnit: 0, discPct: 0, discAmt: 0,
     taxPct: "", taxAmt: 0, amount: 0,
   };
 }
