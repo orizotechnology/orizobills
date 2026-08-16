@@ -46,8 +46,8 @@ export function DbPasswordGate({ children }: Props) {
   // Keep html/body transparent while this gate is active
   useEffect(() => {
     if (step === "skip") return;
-    document.documentElement.style.background = "transparent";
-    document.body.style.background = "transparent";
+    document.documentElement.style.background = "#F8FAFC";
+    document.body.style.background = "#F8FAFC";
   }, [step]);
 
   // On mount: check if DB is already configured
@@ -131,7 +131,7 @@ export function DbPasswordGate({ children }: Props) {
           transition={{ duration: 0.2 }}
           style={{
             position: "fixed", inset: 0,
-            background: "transparent",
+            background: "#F8FAFC",
             display: "flex", alignItems: "center", justifyContent: "center",
             zIndex: 10000,
           }}

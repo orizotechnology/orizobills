@@ -26,10 +26,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
     const body = document.body;
     if (isAuthenticated) {
       html.style.background = "#F8FAFC";
+      html.style.background = "#F8FAFC";
       body.style.background = "#F8FAFC";
     } else {
-      html.style.background = "transparent";
-      body.style.background = "transparent";
+      html.style.background = "#F8FAFC";
+      body.style.background = "#F8FAFC";
     }
   }, [isAuthenticated]);
 
@@ -66,7 +67,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
             transition={{ duration: 0.2 }}
             style={{
               position: "fixed", inset: 0,
-              background: "transparent",
+              background: "#F8FAFC",
               display: "flex", alignItems: "center", justifyContent: "center",
               zIndex: 9999,
             }}

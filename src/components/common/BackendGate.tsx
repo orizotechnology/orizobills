@@ -90,7 +90,7 @@ function Overlay({ children }: { children: React.ReactNode }) {
       position: "fixed", inset: 0,
       display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center",
-      background: "transparent",   // transparent — Tauri window bg shows through
+      background: "#F8FAFC",   // solid — window is no longer transparent
       fontFamily: "system-ui, sans-serif",
       gap: 20,
       zIndex: 9999,

@@ -16,34 +16,50 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  /* Start transparent — AuthGuard sets background to #F8FAFC after login */
-  background: transparent;
+  background: #F8FAFC;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+  /* Disable elastic/rubber-band overscroll — prevents desktop showing through */
+  overscroll-behavior: none;
+  -ms-scroll-chaining: none;
 }
 
 body {
-  /* Background controlled entirely by AuthGuard via inline style.
-     Do NOT set background-color here — it overrides the transparent
-     state needed during the auth/setup screens. */
   color: hsl(var(--foreground));
   font-family: var(--font-sans);
   line-height: 1.5;
-  min-height: 100vh;
-  background: transparent;
+  background: #F8FAFC;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  margin: 0;
+  overscroll-behavior: none;
+  -ms-scroll-chaining: none;
 }
 
 #root {
-  /* Root div must also be transparent so the WebView shows through */
-  background: transparent;
-  min-height: 100vh;
+  background: #F8FAFC;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overscroll-behavior: none;
 }
 
-/* Transparent body when showing auth dialog only */
-body.auth-only {
-  background: transparent !important;
-}
+/* Auth-only background — solid to prevent overscroll bleed */
+body.auth-only,
 body.auth-only html,
 html.auth-only {
-  background: transparent !important;
+  background: #F8FAFC !important;
 }
 
 :focus-visible {
