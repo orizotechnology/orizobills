@@ -192,7 +192,7 @@ export default function PurchaseEntryPage() {
     : suppliers.slice(0, 6);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#fff", fontFamily: "system-ui, sans-serif", fontSize: 13, overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", background: "#fff", fontFamily: "system-ui, sans-serif", fontSize: 13, overflow: "hidden" }}>
 
       {/* ── Feedback toast ──────────────────────────────── */}
       <AnimatePresence>
