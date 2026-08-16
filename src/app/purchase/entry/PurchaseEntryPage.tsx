@@ -371,56 +371,63 @@ export default function PurchaseEntryPage() {
       </div>
 
       {/* ── Bottom panel ────────────────────────────────── */}
-      <div style={{ borderTop: "1px solid #E2E8F0", padding: "12px 20px", display: "flex", alignItems: "flex-start", gap: 24, flexShrink: 0, background: "#FAFAFA" }}>
+      <div style={{ borderTop: "1px solid #E2E8F0", padding: "14px 20px", display: "flex", alignItems: "flex-start", gap: 24, flexShrink: 0, background: "#FAFAFA" }}>
 
-        {/* Left: Bill summary (Discount / Tax / Grand Total) above Payment */}
-        <div style={{ width: 260, flexShrink: 0 }}>
-          {/* Discount */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
-            <span style={{ fontSize: 12, color: "#64748B" }}>Discount</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <input type="number" min={0} max={100} value={discPct}
-                onChange={(e) => setDiscPct(e.target.value)}
-                style={{ ...inp, width: 60, textAlign: "right", padding: "5px 8px" }} />
-              <span style={{ fontSize: 12, color: "#64748B" }}>%</span>
-              <span style={{ fontSize: 12, color: "#EF4444", width: 52, textAlign: "right" }}>
-                {billDisc > 0 ? `(₹${billDisc.toFixed(0)})` : "(0)"}
-              </span>
-            </div>
-          </div>
-          {/* Tax */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
-            <span style={{ fontSize: 12, color: "#64748B" }}>Tax</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <select style={{ ...inp, width: 88, padding: "5px 8px" }} value={taxType} onChange={(e) => setTaxType(e.target.value)}>
-                <option>NONE</option><option>5%</option><option>12%</option><option>18%</option>
-              </select>
-              <span style={{ fontSize: 12, color: "#64748B", width: 52, textAlign: "right" }}>
-                ₹{totalTax.toFixed(0)}
-              </span>
-            </div>
-          </div>
-          {/* Grand Total */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1.5px solid #E2E8F0", paddingTop: 8, marginBottom: 14 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#1E293B" }}>Total</span>
-            <span style={{ fontSize: 18, fontWeight: 800, color: "#F97316" }}>
-              ₹{grandTotal === 0 ? "0" : grandTotal.toFixed(2)}
-            </span>
-          </div>
-
-          {/* Payment Type */}
+        {/* LEFT: Payment Type + Notes */}
+        <div style={{ width: 200, flexShrink: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#1E293B", marginBottom: 6 }}>Payment Type</div>
-          <select style={{ ...inp, width: "100%", marginBottom: 8, boxSizing: "border-box" }} value={payType} onChange={(e) => setPayType(e.target.value)}>
+          <select style={{ ...inp, width: "100%", marginBottom: 8, boxSizing: "border-box" as const }} value={payType} onChange={(e) => setPayType(e.target.value)}>
             <option>Cash</option>
             <option>Bank Transfer</option>
             <option>Cheque</option>
             <option>UPI</option>
             <option>Credit</option>
           </select>
-          <textarea style={{ ...inp, width: "100%", height: 44, resize: "none", boxSizing: "border-box" } as React.CSSProperties} placeholder="Add notes…" value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea
+            style={{ ...inp, width: "100%", height: 52, resize: "none", boxSizing: "border-box" } as React.CSSProperties}
+            placeholder="Add notes…" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 
+        {/* SPACER */}
         <div style={{ flex: 1 }} />
+
+        {/* RIGHT: Discount / Tax / Total */}
+        <div style={{ width: 300, flexShrink: 0 }}>
+          {/* Discount */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: "#64748B", fontWeight: 500 }}>Discount</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input type="number" min={0} max={100} value={discPct}
+                onChange={(e) => setDiscPct(e.target.value)}
+                style={{ ...inp, width: 64, textAlign: "right", padding: "5px 8px" }} />
+              <span style={{ fontSize: 12, color: "#64748B" }}>%</span>
+              <span style={{ fontSize: 12, color: "#EF4444", minWidth: 56, textAlign: "right" }}>
+                {billDisc > 0 ? `(₹${billDisc.toFixed(2)})` : "(0)"}
+              </span>
+            </div>
+          </div>
+
+          {/* Tax */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <span style={{ fontSize: 13, color: "#64748B", fontWeight: 500 }}>Tax</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <select style={{ ...inp, width: 96, padding: "5px 8px" }} value={taxType} onChange={(e) => setTaxType(e.target.value)}>
+                <option>NONE</option><option>5%</option><option>12%</option><option>18%</option>
+              </select>
+              <span style={{ fontSize: 12, color: "#64748B", minWidth: 56, textAlign: "right" }}>
+                ₹{totalTax.toFixed(2)}
+              </span>
+            </div>
+          </div>
+
+          {/* Grand Total */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "2px solid #E2E8F0", paddingTop: 10 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#1E293B" }}>Total</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "#F97316" }}>
+              ₹{grandTotal === 0 ? "0" : grandTotal.toFixed(2)}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ── Footer ──────────────────────────────────────── */}
