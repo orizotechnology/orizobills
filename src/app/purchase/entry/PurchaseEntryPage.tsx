@@ -356,14 +356,16 @@ export default function PurchaseEntryPage() {
                 onChange={updateRow} onRemove={removeRow} onAddProduct={handleOpenAddProduct}
               />
             ))}
+            {/* Spacer row + TOTAL row pinned at bottom of table */}
+            <tr style={{ height: 16 }}><td colSpan={15} /></tr>
             <tr style={{ borderTop: "2px solid #E2E8F0", background: "#F8FAFC", fontWeight: 700 }}>
-              <td colSpan={6} style={{ padding: "7px 8px", fontSize: 12, color: "#1E293B" }}>TOTAL</td>
-              <td style={{ padding: "7px 6px", textAlign: "right" }}>{totalQty}</td>
+              <td colSpan={6} style={{ padding: "9px 8px", fontSize: 12, color: "#1E293B", letterSpacing: "0.05em" }}>TOTAL</td>
+              <td style={{ padding: "9px 6px", textAlign: "right" }}>{totalQty}</td>
               <td /><td /><td />
-              <td style={{ padding: "7px 8px", textAlign: "right" }}>{totalDisc.toFixed(2)}</td>
+              <td style={{ padding: "9px 8px", textAlign: "right" }}>{totalDisc.toFixed(2)}</td>
               <td />
-              <td style={{ padding: "7px 8px", textAlign: "right" }}>{totalTax.toFixed(2)}</td>
-              <td style={{ padding: "7px 8px", textAlign: "right", color: "#F97316", fontWeight: 800 }}>{totalAmt.toFixed(2)}</td>
+              <td style={{ padding: "9px 8px", textAlign: "right" }}>{totalTax.toFixed(2)}</td>
+              <td style={{ padding: "9px 8px", textAlign: "right", color: "#F97316", fontWeight: 800 }}>{totalAmt.toFixed(2)}</td>
               <td />
             </tr>
           </tbody>
