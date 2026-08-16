@@ -19,8 +19,9 @@ interface ApiResponse<T> { success: boolean; data: T; message?: string; error?: 
 
 function makeRow(): PurchaseRow {
   return {
-    id: nanoid(), productId: "", item: "", code: "", count: "", mrp: 0,
-    size: "", qty: 0, unit: "NONE", priceUnit: 0, discPct: 0, discAmt: 0,
+    id: nanoid(), productId: "", item: "", code: "", mrp: 0,
+    size: "", qty: 0, unit: "", secondaryUnit: "", conversionRate: 0, secQty: 0,
+    priceUnit: 0, discPct: 0, discAmt: 0,
     taxPct: "", taxAmt: 0, amount: 0,
   };
 }
@@ -86,7 +87,14 @@ export default function PurchaseEntryPage() {
       .then((r) => {
         if (r.success) {
           const raw = r.data;
-          setProducts(Array.isArray(raw) ? raw : (raw as { data: ProductOption[] }).data ?? []);
+          // Map to include secondaryUnit + conversionRate
+          const list: ProductOption[] = (Array.isArray(raw) ? raw : (raw as { data: ProductOption[] }).data ?? [])
+            .map((p: ProductOption) => ({
+              ...p,
+              secondaryUnit:  (p as ProductOption & { secondaryUnit?: string | null }).secondaryUnit ?? null,
+              conversionRate: (p as ProductOption & { conversionRate?: number | null }).conversionRate ?? null,
+            }));
+          setProducts(list);
         }
       }).catch(() => {});
 
@@ -343,16 +351,16 @@ export default function PurchaseEntryPage() {
         <div style={{ flexShrink: 0, overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: 32 }} /><col style={{ width: "18%" }} /><col style={{ width: "10%" }} />
-              <col style={{ width: 60 }} /><col style={{ width: 70 }} /><col style={{ width: 60 }} />
-              <col style={{ width: 52 }} /><col style={{ width: 90 }} /><col style={{ width: 90 }} />
-              <col style={{ width: 64 }} /><col style={{ width: 72 }} /><col style={{ width: 90 }} />
-              <col style={{ width: 72 }} /><col style={{ width: 80 }} /><col style={{ width: 36 }} />
+              <col style={{ width: 28 }} /><col style={{ width: "17%" }} /><col style={{ width: "9%" }} />
+              <col style={{ width: 64 }} /><col style={{ width: 52 }} /><col style={{ width: 52 }} />
+              <col style={{ width: 72 }} /><col style={{ width: 80 }} /><col style={{ width: 56 }} />
+              <col style={{ width: 80 }} /><col style={{ width: 54 }} /><col style={{ width: 60 }} />
+              <col style={{ width: 72 }} /><col style={{ width: 60 }} /><col style={{ width: 72 }} /><col style={{ width: 28 }} />
             </colgroup>
             <thead>
               <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-                {["#","ITEM","ITEM CODE","COUNT","MRP","SIZE","QTY","UNIT","PRICE/UNIT","DISC %","DISC AMT","TAX %","TAX AMT","AMOUNT",""].map((h, i) => (
-                  <th key={i} style={{ padding: "8px 6px", textAlign: i === 0 || i === 14 ? "center" : "left", fontSize: 10, fontWeight: 700, color: "#64748B", whiteSpace: "nowrap", borderRight: "1px solid #F1F5F9" }}>
+                {["#","ITEM","ITEM CODE","MRP","SIZE","QTY","PRIMARY UNIT","SEC. UNIT","CONV.","PRICE/UNIT","DISC %","DISC AMT","TAX %","TAX AMT","AMOUNT",""].map((h, i) => (
+                  <th key={i} style={{ padding: "8px 6px", textAlign: i === 0 || i === 15 ? "center" : "left", fontSize: 10, fontWeight: 700, color: "#64748B", whiteSpace: "nowrap", borderRight: "1px solid #F1F5F9" }}>
                     {h}
                   </th>
                 ))}
@@ -365,11 +373,11 @@ export default function PurchaseEntryPage() {
         <div style={{ flex: 1, overflowY: "auto", overflowX: "auto", minHeight: 0 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: 32 }} /><col style={{ width: "18%" }} /><col style={{ width: "10%" }} />
-              <col style={{ width: 60 }} /><col style={{ width: 70 }} /><col style={{ width: 60 }} />
-              <col style={{ width: 52 }} /><col style={{ width: 90 }} /><col style={{ width: 90 }} />
-              <col style={{ width: 64 }} /><col style={{ width: 72 }} /><col style={{ width: 90 }} />
-              <col style={{ width: 72 }} /><col style={{ width: 80 }} /><col style={{ width: 36 }} />
+              <col style={{ width: 28 }} /><col style={{ width: "17%" }} /><col style={{ width: "9%" }} />
+              <col style={{ width: 64 }} /><col style={{ width: 52 }} /><col style={{ width: 52 }} />
+              <col style={{ width: 72 }} /><col style={{ width: 80 }} /><col style={{ width: 56 }} />
+              <col style={{ width: 80 }} /><col style={{ width: 54 }} /><col style={{ width: 60 }} />
+              <col style={{ width: 72 }} /><col style={{ width: 60 }} /><col style={{ width: 72 }} /><col style={{ width: 28 }} />
             </colgroup>
             <tbody>
               {rows.map((row, idx) => (
@@ -384,23 +392,23 @@ export default function PurchaseEntryPage() {
           </table>
         </div>
 
-        {/* Fixed TOTAL row — always visible at bottom of table area */}
+        {/* Fixed TOTAL row */}
         <div style={{ flexShrink: 0, borderTop: "2px solid #E2E8F0", background: "#F8FAFC", overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: 32 }} /><col style={{ width: "18%" }} /><col style={{ width: "10%" }} />
-              <col style={{ width: 60 }} /><col style={{ width: 70 }} /><col style={{ width: 60 }} />
-              <col style={{ width: 52 }} /><col style={{ width: 90 }} /><col style={{ width: 90 }} />
-              <col style={{ width: 64 }} /><col style={{ width: 72 }} /><col style={{ width: 90 }} />
-              <col style={{ width: 72 }} /><col style={{ width: 80 }} /><col style={{ width: 36 }} />
+              <col style={{ width: 28 }} /><col style={{ width: "17%" }} /><col style={{ width: "9%" }} />
+              <col style={{ width: 64 }} /><col style={{ width: 52 }} /><col style={{ width: 52 }} />
+              <col style={{ width: 72 }} /><col style={{ width: 80 }} /><col style={{ width: 56 }} />
+              <col style={{ width: 80 }} /><col style={{ width: 54 }} /><col style={{ width: 60 }} />
+              <col style={{ width: 72 }} /><col style={{ width: 60 }} /><col style={{ width: 72 }} /><col style={{ width: 28 }} />
             </colgroup>
             <tbody>
               <tr style={{ fontWeight: 700 }}>
-                <td colSpan={6} style={{ padding: "9px 8px", fontSize: 12, color: "#1E293B", letterSpacing: "0.05em" }}>TOTAL</td>
+                <td colSpan={5} style={{ padding: "9px 8px", fontSize: 12, color: "#1E293B", letterSpacing: "0.05em" }}>TOTAL</td>
                 <td style={{ padding: "9px 6px", textAlign: "right" }}>{totalQty}</td>
                 <td /><td /><td />
                 <td style={{ padding: "9px 8px", textAlign: "right" }}>{totalDisc.toFixed(2)}</td>
-                <td />
+                <td /><td />
                 <td style={{ padding: "9px 8px", textAlign: "right" }}>{totalTax.toFixed(2)}</td>
                 <td style={{ padding: "9px 8px", textAlign: "right", color: "#F97316", fontWeight: 800 }}>{totalAmt.toFixed(2)}</td>
                 <td />

@@ -19,6 +19,8 @@ export interface ProductOption {
   salePrice: number;
   taxPct: number;
   unit: string;
+  secondaryUnit?: string | null;
+  conversionRate?: number | null;
 }
 
 export interface PurchaseRow {
@@ -26,11 +28,13 @@ export interface PurchaseRow {
   productId: string;
   item: string;
   code: string;
-  count: string;
   mrp: number | string;
   size: string;
   qty: number;
-  unit: string;
+  unit: string;             // primary unit
+  secondaryUnit: string;    // secondary unit label
+  conversionRate: number;   // how many secondary = 1 primary
+  secQty: number;           // qty in secondary unit (auto-calculated)
   priceUnit: number | string;
   discPct: number | string;
   discAmt: number;
@@ -67,14 +71,16 @@ export interface PurchasePayload {
 
 // Row calculation
 export function calcRow(r: PurchaseRow): PurchaseRow {
-  const price = parseFloat(String(r.priceUnit)) || 0;
-  const qty   = Number(r.qty) || 0;
-  const discP = parseFloat(String(r.discPct)) || 0;
-  const taxP  = parseFloat(String(r.taxPct)) || 0;
-  const base  = price * qty;
+  const price   = parseFloat(String(r.priceUnit)) || 0;
+  const qty     = Number(r.qty) || 0;
+  const discP   = parseFloat(String(r.discPct)) || 0;
+  const taxP    = parseFloat(String(r.taxPct)) || 0;
+  const conv    = r.conversionRate > 0 ? r.conversionRate : 1;
+  const secQty  = +(qty * conv).toFixed(3);
+  const base    = price * qty;
   const discAmt = +(base * discP / 100).toFixed(2);
   const taxable = +(base - discAmt).toFixed(2);
   const taxAmt  = +(taxable * taxP / 100).toFixed(2);
   const amount  = +(taxable + taxAmt).toFixed(2);
-  return { ...r, discAmt, taxAmt, amount };
+  return { ...r, secQty, discAmt, taxAmt, amount };
 }
