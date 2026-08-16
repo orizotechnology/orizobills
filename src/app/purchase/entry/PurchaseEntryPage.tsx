@@ -72,8 +72,18 @@ export default function PurchaseEntryPage() {
       .catch(() => {});
 
     // Fetch suppliers
-    http.get<ApiResponse<Supplier[]>>("/suppliers")
-      .then((r) => { if (r.success) setSuppliers(r.data); })
+    http.get<ApiResponse<{ data: Supplier[]; total: number }>>("/suppliers")
+      .then((r) => {
+        if (r.success) {
+          const raw = r.data as unknown;
+          // API returns { data: [...], total } shape
+          if (raw && typeof raw === "object" && Array.isArray((raw as { data: Supplier[] }).data)) {
+            setSuppliers((raw as { data: Supplier[] }).data);
+          } else if (Array.isArray(raw)) {
+            setSuppliers(raw as Supplier[]);
+          }
+        }
+      })
       .catch(() => {});
   }, []);
 
