@@ -20,6 +20,7 @@ interface PosState {
 
   addBill: () => void;
   resetAfterSave: () => void;
+  resetStore: () => void;
   closeBill: (id: string) => void;
   setActiveBill: (id: string) => void;
   getActiveBill: () => Bill | undefined;
@@ -99,6 +100,13 @@ export const usePosStore = create<PosState>((set, get) => {
         bills: [...remaining, fresh],
         activeBillId: fresh.id,
       });
+    },
+
+    // Called when user confirms closing the POS — wipes ALL bills,
+    // starts fresh so next open has no leftover data.
+    resetStore: () => {
+      const fresh = makeBill(1);
+      set({ bills: [fresh], activeBillId: fresh.id });
     },
 
     // Close a tab — switch to the nearest neighbour

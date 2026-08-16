@@ -9,7 +9,7 @@ interface PosTopBarProps { invoiceNo: string }
 
 export function PosTopBar({ invoiceNo }: PosTopBarProps) {
   const navigate = useNavigate();
-  const { bills } = usePosStore();
+  const { bills, resetStore } = usePosStore();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -21,7 +21,7 @@ export function PosTopBar({ invoiceNo }: PosTopBarProps) {
   // Enter = confirm close, Escape = stay in POS
   useDialogKeyboard({
     isOpen:    showConfirm,
-    onConfirm: () => { setShowConfirm(false); navigate("/app/dashboard"); },
+    onConfirm: () => { resetStore(); setShowConfirm(false); navigate("/app/dashboard"); },
     onCancel:  () => setShowConfirm(false),
   });
 
@@ -169,7 +169,7 @@ export function PosTopBar({ invoiceNo }: PosTopBarProps) {
                     style={{ flex: 1, padding: "11px 0", border: "1px solid #E2E8F0", borderRadius: 10, background: "#fff", color: "#475569", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
                     Stay in POS
                   </button>
-                  <button onClick={() => { setShowConfirm(false); navigate("/app/dashboard"); }}
+                  <button onClick={() => { resetStore(); setShowConfirm(false); navigate("/app/dashboard"); }}
                     style={{ flex: 1, padding: "11px 0", border: "none", borderRadius: 10, background: "#EF4444", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
                     Yes, Close
                   </button>
