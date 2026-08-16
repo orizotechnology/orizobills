@@ -7,6 +7,8 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  /* Prevent any element from acting as a window drag region */
+  -webkit-app-region: no-drag;
 }
 
 html {

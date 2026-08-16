@@ -50,7 +50,26 @@ fn open_file(path: String) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![save_and_open_file, open_file])
-        .setup(|_app| {
+        .setup(|app| {
+            use tauri::Manager;
+            if let Some(win) = app.get_webview_window("main") {
+                // Lock size: no resizing allowed
+                let _ = win.set_resizable(false);
+                // Always start maximized
+                let _ = win.maximize();
+                // Re-maximize any time the window is somehow moved or un-maximized.
+                // This is the definitive lock: covers drag, title bar double-click,
+                // keyboard shortcuts, and any other OS-level move attempts.
+                let win2 = win.clone();
+                win.on_window_event(move |event| {
+                    match event {
+                        tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
+                            let _ = win2.maximize();
+                        }
+                        _ => {}
+                    }
+                });
+            }
             Ok(())
         })
         .run(tauri::generate_context!())
