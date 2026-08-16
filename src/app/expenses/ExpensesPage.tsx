@@ -204,7 +204,7 @@ function ExpenseDialog({ expense, onClose, onSaved }: { expense: Expense | null;
           </div>
           <div>
             <label style={labelStyle}>Amount (₹) *</label>
-            <input type="number" min={0} step={0.01} value={form.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0.00" style={inputStyle} />
+            <input type="text" inputMode="decimal" min={0} step={0.01} value={form.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0.00" style={inputStyle} />
           </div>
           <div>
             <label style={labelStyle}>Payment Method</label>
@@ -233,14 +233,14 @@ function ExpenseDialog({ expense, onClose, onSaved }: { expense: Expense | null;
   );
 }
 
-const primaryBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "#F97316", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
-const cancelBtn: React.CSSProperties = { flex: 1, padding: "9px 0", border: "1.5px solid #E2E8F0", borderRadius: 8, background: "#fff", color: "#475569", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" };
-const iconBtn: React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
-const thStyle: React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.04em" };
+const primaryBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
+const cancelBtn: React.CSSProperties = { flex: 1, padding: "9px 0", border: "1.5px solid hsl(var(--border))", borderRadius: 8, background: "hsl(var(--card))", color: "hsl(var(--foreground))", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" };
+const iconBtn: React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
+const thStyle: React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "hsl(var(--muted-foreground))", letterSpacing: "0.04em" };
 const tdStyle: React.CSSProperties = { padding: "12px 14px", fontSize: 13 };
-const chip: React.CSSProperties = { fontSize: 12, background: "#F1F5F9", borderRadius: 4, padding: "2px 6px", color: "#475569" };
-const rowIconBtn: React.CSSProperties = { width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: "#64748B", display: "flex", alignItems: "center", justifyContent: "center" };
-const paginationRow: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderTop: "1px solid #F1F5F9" };
-const pgBtn = (d: boolean): React.CSSProperties => ({ padding: "6px 14px", borderRadius: 7, border: "1px solid #E2E8F0", background: d ? "#F8FAFC" : "#fff", color: d ? "#CBD5E1" : "#475569", fontSize: 13, cursor: d ? "not-allowed" : "pointer" });
-const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 5 };
-const inputStyle: React.CSSProperties = { width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#1E293B", outline: "none", fontFamily: "inherit", background: "#F8FAFC", boxSizing: "border-box" as const };
+const chip: React.CSSProperties = { fontSize: 12, background: "hsl(var(--muted))", borderRadius: 4, padding: "2px 6px", color: "hsl(var(--foreground))" };
+const rowIconBtn: React.CSSProperties = { width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: "hsl(var(--muted-foreground))", display: "flex", alignItems: "center", justifyContent: "center" };
+const paginationRow: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderTop: "1px solid hsl(var(--muted))" };
+const pgBtn = (d: boolean): React.CSSProperties => ({ padding: "6px 14px", borderRadius: 7, border: "1px solid hsl(var(--border))", background: d ? "hsl(var(--background))" : "hsl(var(--card))", color: d ? "hsl(var(--muted))" : "hsl(var(--foreground))", fontSize: 13, cursor: d ? "not-allowed" : "pointer" });
+const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "hsl(var(--foreground))", marginBottom: 5 };
+const inputStyle: React.CSSProperties = { width: "100%", border: "1.5px solid hsl(var(--border))", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "hsl(var(--foreground))", outline: "none", fontFamily: "inherit", background: "hsl(var(--background))", boxSizing: "border-box" as const };

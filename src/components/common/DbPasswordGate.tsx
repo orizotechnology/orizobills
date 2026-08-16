@@ -245,7 +245,7 @@ export function DbPasswordGate({ children }: Props) {
                         </div>
                         <div>
                           <label style={lbl}>Port</label>
-                          <input type="number" value={form.port} onChange={e => setField("port", e.target.value)} placeholder="3306" style={advInp} />
+                          <input type="text" inputMode="decimal" value={form.port} onChange={e => setField("port", e.target.value)} placeholder="3306" style={advInp} />
                         </div>
                       </div>
                       <div>

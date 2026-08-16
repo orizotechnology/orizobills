@@ -446,7 +446,7 @@ function AdjustStockDialog({ item, onClose, onSaved }: { item: InventoryItem; on
             ))}
           </div>
           <label style={labelStyle}>Opening Stock ({item.unit})</label>
-          <input type="number" min={0} step={0.001} value={openingStock} onChange={(e) => { setOpeningStock(e.target.value); setError(""); }} style={inputStyle} autoFocus />
+          <input type="text" inputMode="decimal" value={openingStock} onChange={(e) => { setOpeningStock(e.target.value); setError(""); }} style={inputStyle} autoFocus />
           <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 5 }}>
             Current stock will become <strong style={{ color: "#F97316" }}>{newCurrent}</strong> {item.unit}
           </div>
@@ -544,26 +544,26 @@ function CreateProductDialog({ onClose, onSaved }: { onClose: () => void; onSave
             </div>
             <div>
               <label style={labelStyle}>Opening Stock</label>
-              <input type="number" min={0} step={0.001} value={openingStock}
+              <input type="text" inputMode="decimal" value={openingStock}
                 onChange={(e) => { setOpeningStock(e.target.value); setError(""); }} style={inputStyle} />
             </div>
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Low Stock Alert Level</label>
-            <input type="number" min={0} step={0.001} value={lowStockAlert}
+            <input type="text" inputMode="decimal" value={lowStockAlert}
               onChange={(e) => { setLowStockAlert(e.target.value); setError(""); }} style={inputStyle} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 6 }}>
             <div>
               <label style={labelStyle}>Purchase Price (₹)</label>
-              <input type="number" min={0} step={0.01} value={purchasePrice}
+              <input type="text" inputMode="decimal" value={purchasePrice}
                 onChange={(e) => { setPurchasePrice(e.target.value); setError(""); }} placeholder="0.00" style={inputStyle} />
             </div>
             <div>
               <label style={labelStyle}>Selling Price (₹)</label>
-              <input type="number" min={0} step={0.01} value={sellingPrice}
+              <input type="text" inputMode="decimal" value={sellingPrice}
                 onChange={(e) => { setSellingPrice(e.target.value); setError(""); }} placeholder="0.00" style={inputStyle} />
             </div>
           </div>
@@ -582,14 +582,14 @@ function CreateProductDialog({ onClose, onSaved }: { onClose: () => void; onSave
   );
 }
 
-const iconBtn:       React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
-const thStyle:       React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.04em", whiteSpace: "nowrap", background: "#F8FAFC" };
+const iconBtn:       React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
+const thStyle:       React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "hsl(var(--muted-foreground))", letterSpacing: "0.04em", whiteSpace: "nowrap", background: "hsl(var(--background))" };
 const tdStyle:       React.CSSProperties = { padding: "12px 14px", fontSize: 13 };
-const chip:          React.CSSProperties = { fontSize: 12, background: "#F1F5F9", borderRadius: 4, padding: "2px 6px", color: "#475569" };
-const rowIconBtn:    React.CSSProperties = { width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: "#64748B", display: "flex", alignItems: "center", justifyContent: "center" };
-const primaryBtn:    React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "#F97316", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
-const primaryBtnFull:React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "#F97316", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
-const cancelBtn:     React.CSSProperties = { flex: 1, padding: "9px 0", border: "1.5px solid #E2E8F0", borderRadius: 8, background: "#fff", color: "#475569", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" };
-const labelStyle:    React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 5 };
-const inputStyle:    React.CSSProperties = { width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#1E293B", outline: "none", fontFamily: "inherit", background: "#F8FAFC", boxSizing: "border-box" as const };
-const bulkBtn:        React.CSSProperties = { display: "flex", alignItems: "center", gap: 5, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", fontFamily: "inherit" };
+const chip:          React.CSSProperties = { fontSize: 12, background: "hsl(var(--muted))", borderRadius: 4, padding: "2px 6px", color: "hsl(var(--foreground))" };
+const rowIconBtn:    React.CSSProperties = { width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: "hsl(var(--muted-foreground))", display: "flex", alignItems: "center", justifyContent: "center" };
+const primaryBtn:    React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
+const primaryBtnFull:React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
+const cancelBtn:     React.CSSProperties = { flex: 1, padding: "9px 0", border: "1.5px solid hsl(var(--border))", borderRadius: 8, background: "hsl(var(--card))", color: "hsl(var(--foreground))", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" };
+const labelStyle:    React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "hsl(var(--foreground))", marginBottom: 5 };
+const inputStyle:    React.CSSProperties = { width: "100%", border: "1.5px solid hsl(var(--border))", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "hsl(var(--foreground))", outline: "none", fontFamily: "inherit", background: "hsl(var(--background))", boxSizing: "border-box" as const };
+const bulkBtn:        React.CSSProperties = { display: "flex", alignItems: "center", gap: 5, background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 600, color: "hsl(var(--foreground))", cursor: "pointer", fontFamily: "inherit" };

@@ -72,7 +72,7 @@ export default function CashRegisterPage() {
           </div>
           {editOpening && (
             <div style={{ display: "flex", gap: 8 }}>
-              <input style={{ ...inp, flex: 1 }} type="number" min={0} step="0.01" value={openingInput} onChange={e => setOpeningInput(e.target.value)} placeholder="Enter opening balance" />
+              <input style={{ ...inp, flex: 1 }} type="text" inputMode="decimal" value={openingInput} onChange={e => setOpeningInput(e.target.value)} placeholder="Enter opening balance" />
               <button onClick={saveOpening} style={{ padding: "7px 20px", background: "#F97316", color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Set</button>
             </div>
           )}
@@ -83,7 +83,7 @@ export default function CashRegisterPage() {
           {/* Cash In */}
           <div style={{ background: "#fff", border: "1.5px solid #BBF7D0", borderRadius: 12, padding: "16px 18px" }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#16A34A", marginBottom: 12 }}>💰 Cash In</div>
-            <input style={{ ...inp, marginBottom: 8 }} type="number" min={0} step="0.01" placeholder="Amount (₹)" value={inForm.amount} onChange={e => setInForm(p => ({ ...p, amount: e.target.value }))} />
+            <input style={{ ...inp, marginBottom: 8 }} type="text" inputMode="decimal" placeholder="Amount (₹)" value={inForm.amount} onChange={e => setInForm(p => ({ ...p, amount: e.target.value }))} />
             <input style={{ ...inp, marginBottom: 8 }} placeholder="Description" value={inForm.desc} onChange={e => setInForm(p => ({ ...p, desc: e.target.value }))} />
             <input style={{ ...inp, marginBottom: 12 }} type="date" value={inForm.date} onChange={e => setInForm(p => ({ ...p, date: e.target.value }))} />
             <button onClick={() => addEntry("in")} style={{ width: "100%", padding: "9px", background: "#22C55E", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
@@ -93,7 +93,7 @@ export default function CashRegisterPage() {
           {/* Cash Out */}
           <div style={{ background: "#fff", border: "1.5px solid #FECDD3", borderRadius: 12, padding: "16px 18px" }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#DC2626", marginBottom: 12 }}>💸 Cash Out</div>
-            <input style={{ ...inp, marginBottom: 8 }} type="number" min={0} step="0.01" placeholder="Amount (₹)" value={outForm.amount} onChange={e => setOutForm(p => ({ ...p, amount: e.target.value }))} />
+            <input style={{ ...inp, marginBottom: 8 }} type="text" inputMode="decimal" placeholder="Amount (₹)" value={outForm.amount} onChange={e => setOutForm(p => ({ ...p, amount: e.target.value }))} />
             <input style={{ ...inp, marginBottom: 8 }} placeholder="Description" value={outForm.desc} onChange={e => setOutForm(p => ({ ...p, desc: e.target.value }))} />
             <input style={{ ...inp, marginBottom: 12 }} type="date" value={outForm.date} onChange={e => setOutForm(p => ({ ...p, date: e.target.value }))} />
             <button onClick={() => addEntry("out")} style={{ width: "100%", padding: "9px", background: "#EF4444", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>

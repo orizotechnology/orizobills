@@ -166,9 +166,7 @@ export default function ProductTransferPage() {
           {/* Quantity */}
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Quantity to Transfer</label>
-            <input
-              type="number" min={0.001} step={1}
-              value={qty}
+            <input type="text" inputMode="decimal" value={qty}
               onChange={(e) => setQty(e.target.value)}
               placeholder="0"
               style={inp}

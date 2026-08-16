@@ -247,7 +247,7 @@ export function ProductEditDialog({ product, onClose, onSaved }: Props) {
                   <span style={rupeePrefix}>₹</span>
                   <input
                     style={{ ...inputStyle, paddingLeft: 28 }}
-                    type="number" min={0} step={0.01}
+                    type="text" inputMode="decimal"
                     placeholder="0.00"
                     value={form.mrp}
                     onChange={(e) => set("mrp", e.target.value)}
@@ -262,7 +262,7 @@ export function ProductEditDialog({ product, onClose, onSaved }: Props) {
                   <span style={rupeePrefix}>₹</span>
                   <input
                     style={{ ...inputStyle, paddingLeft: 28 }}
-                    type="number" min={0} step={0.01}
+                    type="text" inputMode="decimal"
                     placeholder="0.00"
                     value={form.salePrice}
                     onChange={(e) => set("salePrice", e.target.value)}

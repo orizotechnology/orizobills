@@ -121,8 +121,8 @@ export default function BarcodeGeneratorPage() {
               style={inputStyle}
             />
             <input
-              type="number"
-              min={1}
+              type="text"
+              inputMode="decimal"
               value={entry.qty}
               onChange={(e) => update(entry.id, "qty", Number(e.target.value))}
               style={{ ...inputStyle, textAlign: "center" }}

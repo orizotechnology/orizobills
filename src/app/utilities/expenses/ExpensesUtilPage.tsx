@@ -87,7 +87,7 @@ export default function ExpensesUtilPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div><label style={lbl}>Date</label><input style={inp} type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} /></div>
               <div><label style={lbl}>Category</label><select style={inp} value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></div>
-              <div><label style={lbl}>Amount (₹) *</label><input style={inp} type="number" min={0} step="0.01" placeholder="0.00" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></div>
+              <div><label style={lbl}>Amount (₹) *</label><input style={inp} type="text" inputMode="decimal" placeholder="0.00" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} /></div>
               <div><label style={lbl}>Payment Mode</label><select style={inp} value={form.payment} onChange={e => setForm(p => ({ ...p, payment: e.target.value }))}>{PAYMENTS.map(p => <option key={p}>{p}</option>)}</select></div>
               <div style={{ gridColumn: "2/-1" }}><label style={lbl}>Notes</label><input style={inp} placeholder="Optional notes..." value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
             </div>

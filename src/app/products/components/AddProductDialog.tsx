@@ -199,14 +199,14 @@ export function AddProductDialog({ product, onClose, onSaved }: AddProductDialog
               {/* MRP */}
               <div>
                 <label style={labelStyle}>MRP (₹)</label>
-                <input style={inputStyle} type="number" min={0} step={0.01} placeholder="0.00"
+                <input style={inputStyle} type="text" inputMode="decimal" placeholder="0.00"
                   value={form.mrp} onChange={(e) => set("mrp", e.target.value)} />
               </div>
 
               {/* Sale Price */}
               <div>
                 <label style={labelStyle}>Sale Price (₹) <span style={{ color: "#EF4444" }}>*</span></label>
-                <input style={inputStyle} type="number" min={0} step={0.01} placeholder="0.00"
+                <input style={inputStyle} type="text" inputMode="decimal" placeholder="0.00"
                   value={form.salePrice} onChange={(e) => set("salePrice", e.target.value)} />
               </div>
 
