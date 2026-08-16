@@ -20,17 +20,21 @@ interface AuthGuardProps { children: React.ReactNode; }
 export function AuthGuard({ children }: AuthGuardProps) {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
 
-  // Set background based on auth state
+  // Set background based on auth state:
+  // - Auth dialog open → transparent (native window backgroundColor shows through)
+  // - App open → #F8FAFC (full app bg)
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
+    const root = document.getElementById("root");
     if (isAuthenticated) {
       html.style.background = "#F8FAFC";
-      html.style.background = "#F8FAFC";
       body.style.background = "#F8FAFC";
+      if (root) root.style.background = "#F8FAFC";
     } else {
-      html.style.background = "#F8FAFC";
-      body.style.background = "#F8FAFC";
+      html.style.background = "transparent";
+      body.style.background = "transparent";
+      if (root) root.style.background = "transparent";
     }
   }, [isAuthenticated]);
 
@@ -67,7 +71,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
             transition={{ duration: 0.2 }}
             style={{
               position: "fixed", inset: 0,
-              background: "#F8FAFC",
+              background: "transparent",
               display: "flex", alignItems: "center", justifyContent: "center",
               zIndex: 9999,
             }}

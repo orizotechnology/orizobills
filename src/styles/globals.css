@@ -16,7 +16,9 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  background: #F8FAFC;
+  /* Background managed dynamically by AuthGuard — transparent lets the
+     Tauri window backgroundColor show through when auth dialog is open */
+  background: transparent;
   height: 100%;
   overflow: hidden;
   position: fixed;
@@ -32,7 +34,8 @@ body {
   color: hsl(var(--foreground));
   font-family: var(--font-sans);
   line-height: 1.5;
-  background: #F8FAFC;
+  /* Background managed dynamically by AuthGuard */
+  background: transparent;
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -45,7 +48,8 @@ body {
 }
 
 #root {
-  background: #F8FAFC;
+  /* Background managed dynamically by AuthGuard */
+  background: transparent;
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -53,13 +57,6 @@ body {
   top: 0;
   left: 0;
   overscroll-behavior: none;
-}
-
-/* Auth-only background — solid to prevent overscroll bleed */
-body.auth-only,
-body.auth-only html,
-html.auth-only {
-  background: #F8FAFC !important;
 }
 
 :focus-visible {
