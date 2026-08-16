@@ -24,8 +24,7 @@
         "dragDropEnabled": false,
         "visible": true,
         "shadow": true,
-        "transparent": false,
-        "backgroundColor": "#F8FAFC",
+        "transparent": true,
         "additionalBrowserArgs": "--disable-features=ElasticOverscroll --overscroll-history-navigation=0"
       }
     ],
