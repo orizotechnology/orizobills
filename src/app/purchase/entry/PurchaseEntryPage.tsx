@@ -331,6 +331,12 @@ export default function PurchaseEntryPage() {
 
       {/* ── Item table ──────────────────────────────────── */}
       <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+        {/* Table header bar with ADD ROW on the right */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "6px 16px 4px", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
+          <button onClick={addRow} style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.25)", borderRadius: 7, color: "#F97316", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", outline: "none", padding: "5px 12px" }}>
+            <Plus size={13} strokeWidth={2.5} /> ADD ROW
+          </button>
+        </div>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
@@ -362,16 +368,47 @@ export default function PurchaseEntryPage() {
             </tr>
           </tbody>
         </table>
-        <button onClick={addRow} style={{ display: "flex", alignItems: "center", gap: 5, margin: "8px 16px", background: "none", border: "none", color: "#F97316", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
-          <Plus size={14} strokeWidth={2.5} /> ADD ROW
-        </button>
       </div>
 
       {/* ── Bottom panel ────────────────────────────────── */}
-      <div style={{ borderTop: "1px solid #E2E8F0", padding: "12px 20px", display: "flex", alignItems: "flex-start", gap: 20, flexShrink: 0, background: "#FAFAFA" }}>
+      <div style={{ borderTop: "1px solid #E2E8F0", padding: "12px 20px", display: "flex", alignItems: "flex-start", gap: 24, flexShrink: 0, background: "#FAFAFA" }}>
 
-        {/* Payment Type + Notes */}
-        <div style={{ width: 180, flexShrink: 0 }}>
+        {/* Left: Bill summary (Discount / Tax / Grand Total) above Payment */}
+        <div style={{ width: 260, flexShrink: 0 }}>
+          {/* Discount */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+            <span style={{ fontSize: 12, color: "#64748B" }}>Discount</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input type="number" min={0} max={100} value={discPct}
+                onChange={(e) => setDiscPct(e.target.value)}
+                style={{ ...inp, width: 60, textAlign: "right", padding: "5px 8px" }} />
+              <span style={{ fontSize: 12, color: "#64748B" }}>%</span>
+              <span style={{ fontSize: 12, color: "#EF4444", width: 52, textAlign: "right" }}>
+                {billDisc > 0 ? `(₹${billDisc.toFixed(0)})` : "(0)"}
+              </span>
+            </div>
+          </div>
+          {/* Tax */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+            <span style={{ fontSize: 12, color: "#64748B" }}>Tax</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <select style={{ ...inp, width: 88, padding: "5px 8px" }} value={taxType} onChange={(e) => setTaxType(e.target.value)}>
+                <option>NONE</option><option>5%</option><option>12%</option><option>18%</option>
+              </select>
+              <span style={{ fontSize: 12, color: "#64748B", width: 52, textAlign: "right" }}>
+                ₹{totalTax.toFixed(0)}
+              </span>
+            </div>
+          </div>
+          {/* Grand Total */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1.5px solid #E2E8F0", paddingTop: 8, marginBottom: 14 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1E293B" }}>Total</span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: "#F97316" }}>
+              ₹{grandTotal === 0 ? "0" : grandTotal.toFixed(2)}
+            </span>
+          </div>
+
+          {/* Payment Type */}
           <div style={{ fontSize: 12, fontWeight: 700, color: "#1E293B", marginBottom: 6 }}>Payment Type</div>
           <select style={{ ...inp, width: "100%", marginBottom: 8, boxSizing: "border-box" }} value={payType} onChange={(e) => setPayType(e.target.value)}>
             <option>Cash</option>
@@ -380,46 +417,10 @@ export default function PurchaseEntryPage() {
             <option>UPI</option>
             <option>Credit</option>
           </select>
-          <textarea style={{ ...inp, width: "100%", height: 52, resize: "none", boxSizing: "border-box" } as React.CSSProperties} placeholder="Add notes…" value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea style={{ ...inp, width: "100%", height: 44, resize: "none", boxSizing: "border-box" } as React.CSSProperties} placeholder="Add notes…" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 
         <div style={{ flex: 1 }} />
-
-        {/* Bill summary */}
-        <div style={{ width: 260, flexShrink: 0 }}>
-          {/* Discount row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 12, color: "#64748B" }}>Discount</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <input type="number" min={0} max={100} value={discPct}
-                onChange={(e) => setDiscPct(e.target.value)}
-                style={{ ...inp, width: 60, textAlign: "right" }} />
-              <span style={{ fontSize: 12, color: "#64748B" }}>%</span>
-              <span style={{ fontSize: 12, color: "#EF4444", width: 56, textAlign: "right" }}>
-                ({billDisc > 0 ? `₹${billDisc.toFixed(0)}` : "0"})
-              </span>
-            </div>
-          </div>
-          {/* Tax row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <span style={{ fontSize: 12, color: "#64748B" }}>Tax</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <select style={{ ...inp, width: 88 }} value={taxType} onChange={(e) => setTaxType(e.target.value)}>
-                <option>NONE</option><option>5%</option><option>12%</option><option>18%</option>
-              </select>
-              <span style={{ fontSize: 12, color: "#64748B", width: 56, textAlign: "right" }}>
-                ₹{totalTax.toFixed(0)}
-              </span>
-            </div>
-          </div>
-          {/* Total */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1.5px solid #E2E8F0", paddingTop: 10 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#1E293B" }}>Total</span>
-            <span style={{ fontSize: 18, fontWeight: 800, color: "#F97316" }}>
-              ₹{grandTotal === 0 ? "0" : grandTotal.toFixed(2)}
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* ── Footer ──────────────────────────────────────── */}
