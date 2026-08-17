@@ -5,9 +5,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   X, Package, ScanLine, Tag, IndianRupee,
   CheckCircle2, AlertCircle, Loader2, ArrowLeft,
-  Layers, Percent, Ruler, Hash, BarChart2, Printer,
+  Layers, Percent, Ruler, Hash,
+  Trash2, Plus, AlignLeft, AlignCenter, AlignRight, Bold, Printer, BarChart2, GripVertical,
 } from "lucide-react";
 import { http } from "@/lib/axios";
+import { nanoid } from "nanoid";
 
 // =============================================================
 // ADD PRODUCT PAGE — full-screen, matches PurchaseEntryPage
@@ -43,8 +45,6 @@ type FormState = {
   unit: string; secondaryUnit: string; conversionRate: string;
   // Inventory
   openingStock: string; lowStockAlert: string; location: string;
-  // Barcode label options
-  bcShowName: boolean; bcShowCode: boolean; bcShowPrice: boolean; bcShowMrp: boolean;
 };
 
 const EMPTY: FormState = {
@@ -54,7 +54,6 @@ const EMPTY: FormState = {
   taxPct: "0", taxRate: "", taxInclusive: false,
   unit: "Nos", secondaryUnit: "", conversionRate: "",
   openingStock: "0", lowStockAlert: "5", location: "",
-  bcShowName: true, bcShowCode: true, bcShowPrice: true, bcShowMrp: false,
 };
 
 // ── Simple canvas barcode (Code128-style visual) ──────────────
@@ -426,93 +425,15 @@ export default function AddProductPage() {
             </div>
           </div>
 
-          {/* ══ SECTION 6: Barcode ══════════════════════════ */}
-          <SL icon={<ScanLine size={13} />} title="Barcode" />
-          <div style={{ ...g2, marginBottom: 10 }}>
-            <div>
-              <FL>Barcode Value <Opt /></FL>
-              <input style={inp} type="text"
-                placeholder="EAN-13, UPC, or custom"
-                value={form.barcode} onChange={(e) => set("barcode", e.target.value)}
-                onFocus={fo} onBlur={fb} />
-              <Hint>Leave blank to use Product Code as barcode</Hint>
-            </div>
-            <div>
-              <FL>Label Options</FL>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
-                {([
-                  { key: "bcShowName",  label: "Product Name" },
-                  { key: "bcShowCode",  label: "Code" },
-                  { key: "bcShowPrice", label: "Sale Price" },
-                  { key: "bcShowMrp",   label: "MRP" },
-                ] as { key: keyof FormState; label: string }[]).map(({ key, label }) => (
-                  <button key={key} type="button"
-                    onClick={() => set(key, !form[key])}
-                    style={{
-                      padding: "4px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer",
-                      border: `1.5px solid ${form[key] ? "#F97316" : "#E2E8F0"}`,
-                      background: form[key] ? "rgba(249,115,22,0.08)" : "#fff",
-                      color: form[key] ? "#F97316" : "#64748B",
-                      fontWeight: form[key] ? 600 : 400,
-                      fontFamily: "inherit", outline: "none",
-                    }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Live barcode preview */}
-          <div style={{
-            background: "#F8FAFC", border: "1px solid #E2E8F0",
-            borderRadius: 10, padding: "16px 20px", marginBottom: 24,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", gap: 6 }}>
-                <BarChart2 size={13} color="#F97316" /> Barcode Preview
-              </span>
-              <button
-                type="button"
-                onClick={() => window.print()}
-                style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#64748B", background: "none", border: "1px solid #E2E8F0", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>
-                <Printer size={12} /> Print
-              </button>
-            </div>
-
-            {/* Barcode label card */}
-            <div className="barcode-print-area" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {[1, 2, 3].map((i) => (
-                <div key={i} style={{
-                  background: "#fff", border: "1px solid #E2E8F0",
-                  borderRadius: 7, padding: "10px 14px",
-                  textAlign: "center", minWidth: 130,
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                }}>
-                  <BarcodeVisual value={form.barcode || form.code || "000000000"} height={44} />
-                  <div style={{ fontSize: 10, fontFamily: "monospace", color: "#0F172A", marginTop: 2 }}>
-                    {form.barcode || form.code || "000000000"}
-                  </div>
-                  {form.bcShowName && form.name && (
-                    <div style={{ fontSize: 10, fontWeight: 600, color: "#0F172A", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {form.name}
-                    </div>
-                  )}
-                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    {form.bcShowMrp && mrpNum > 0 && (
-                      <span style={{ fontSize: 9, color: "#94A3B8", textDecoration: "line-through" }}>₹{mrpNum.toFixed(2)}</span>
-                    )}
-                    {form.bcShowPrice && spNum > 0 && (
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#F97316" }}>₹{spNum.toFixed(2)}</span>
-                    )}
-                  </div>
-                  {form.bcShowCode && form.code && (
-                    <div style={{ fontSize: 9, color: "#94A3B8" }}>{form.code}</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* ══ SECTION 6: Barcode Label Designer ══════════ */}
+          <SL icon={<ScanLine size={13} />} title="Barcode Label Designer" />
+          <BarcodeDesigner
+            barcodeValue={form.barcode || form.code}
+            productName={form.name}
+            productCode={form.code}
+            mrp={mrpNum}
+            salePrice={spNum}
+          />
 
         </div>
 
@@ -711,3 +632,362 @@ const pctSuffix: React.CSSProperties = { position: "absolute", right: 10, top: "
 // focus/blur handlers
 const fo = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => { e.currentTarget.style.borderColor = "#F97316"; };
 const fb = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => { e.currentTarget.style.borderColor = "#E2E8F0"; };
+
+// =============================================================
+// =============================================================
+// BARCODE LABEL DESIGNER
+// Full interactive label builder — custom text rows, checkboxes,
+// font controls, size, copies, live preview, print.
+// =============================================================
+
+interface LabelRow {
+  id: string;
+  text: string;          // text content (can use placeholders)
+  enabled: boolean;      // checkbox — show on label
+  fontSize: number;      // 8–18
+  bold: boolean;
+  align: "left" | "center" | "right";
+}
+
+interface DesignerProps {
+  barcodeValue: string;
+  productName: string;
+  productCode: string;
+  mrp: number;
+  salePrice: number;
+}
+
+const DEFAULT_ROWS: LabelRow[] = [
+  { id: "r1", text: "{name}",       enabled: true,  fontSize: 10, bold: true,  align: "center" },
+  { id: "r2", text: "{code}",       enabled: true,  fontSize: 9,  bold: false, align: "center" },
+  { id: "r3", text: "MRP: ₹{mrp}",  enabled: false, fontSize: 9,  bold: false, align: "center" },
+  { id: "r4", text: "₹{price}",     enabled: true,  fontSize: 11, bold: true,  align: "center" },
+];
+
+function resolvePlaceholders(
+  text: string,
+  ctx: { name: string; code: string; mrp: number; price: number; barcode: string }
+): string {
+  return text
+    .replace(/\{name\}/g,    ctx.name    || "—")
+    .replace(/\{code\}/g,    ctx.code    || "—")
+    .replace(/\{mrp\}/g,     ctx.mrp > 0 ? ctx.mrp.toFixed(2) : "—")
+    .replace(/\{price\}/g,   ctx.price > 0 ? ctx.price.toFixed(2) : "—")
+    .replace(/\{barcode\}/g, ctx.barcode || ctx.code || "—");
+}
+
+export function BarcodeDesigner({ barcodeValue, productName, productCode, mrp, salePrice }: DesignerProps) {
+  const [rows,    setRows]    = useState<LabelRow[]>(DEFAULT_ROWS);
+  const [copies,  setCopies]  = useState("1");
+  const [labelW,  setLabelW]  = useState("50");   // mm
+  const [labelH,  setLabelH]  = useState("30");   // mm
+  const [showBar, setShowBar] = useState(true);
+  const [showNum, setShowNum] = useState(true);
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const ctx = {
+    name:    productName,
+    code:    productCode,
+    mrp,
+    price:   salePrice,
+    barcode: barcodeValue,
+  };
+
+  const addRow = () => {
+    setRows((p) => [
+      ...p,
+      { id: nanoid(6), text: "Custom text", enabled: true, fontSize: 10, bold: false, align: "center" },
+    ]);
+  };
+
+  const deleteRow = (id: string) => setRows((p) => p.filter((r) => r.id !== id));
+
+  const updateRow = <K extends keyof LabelRow>(id: string, field: K, value: LabelRow[K]) =>
+    setRows((p) => p.map((r) => r.id === id ? { ...r, [field]: value } : r));
+
+  const handlePrint = () => {
+    if (!printRef.current) return;
+    const html = printRef.current.innerHTML;
+    const w = window.open("", "_blank", "width=900,height=600");
+    if (!w) return;
+    w.document.write(`
+      <html><head><title>Barcode Labels</title>
+      <style>
+        body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }
+        .label-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .label-card { border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 10px;
+                      display: flex; flex-direction: column; align-items: center; gap: 3px;
+                      width: ${labelW}mm; height: ${labelH}mm; overflow: hidden; box-sizing: border-box; }
+        canvas { max-width: 100%; height: auto; display: block; image-rendering: pixelated; }
+      </style></head>
+      <body><div class="label-grid">${html}</div>
+      <script>window.onload=()=>window.print()</script></body></html>
+    `);
+    w.document.close();
+  };
+
+  const copiesNum = Math.max(1, parseInt(copies) || 1);
+
+  return (
+    <div style={{
+      background: "#F8FAFC", border: "1px solid #E2E8F0",
+      borderRadius: 12, overflow: "hidden", marginBottom: 28,
+    }}>
+      {/* ── Header bar ──────────────────────────────────── */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "12px 16px", background: "#fff",
+        borderBottom: "1px solid #E2E8F0",
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", display: "flex", alignItems: "center", gap: 7 }}>
+          <BarChart2 size={14} color="#F97316" /> Label Designer
+        </span>
+        <button
+          type="button" onClick={handlePrint}
+          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#fff", background: "#F97316", border: "none", borderRadius: 7, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit" }}>
+          <Printer size={13} /> Print Labels
+        </button>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 0 }}>
+
+        {/* ── Left: Controls ────────────────────────────── */}
+        <div style={{ padding: "16px 18px", borderRight: "1px solid #E2E8F0" }}>
+
+          {/* Label size + copies row */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 80 }}>
+              <div style={ctrlLabel}>Width (mm)</div>
+              <input style={ctrlInp} type="text" inputMode="decimal"
+                value={labelW} onChange={(e) => setLabelW(e.target.value)} />
+            </div>
+            <div style={{ flex: 1, minWidth: 80 }}>
+              <div style={ctrlLabel}>Height (mm)</div>
+              <input style={ctrlInp} type="text" inputMode="decimal"
+                value={labelH} onChange={(e) => setLabelH(e.target.value)} />
+            </div>
+            <div style={{ flex: 1, minWidth: 80 }}>
+              <div style={ctrlLabel}>Copies</div>
+              <input style={ctrlInp} type="text" inputMode="numeric"
+                value={copies} onChange={(e) => setCopies(e.target.value)} />
+            </div>
+          </div>
+
+          {/* Barcode options */}
+          <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+            <CheckRow
+              checked={showBar}
+              onToggle={() => setShowBar((p) => !p)}
+              label="Show barcode bars"
+            />
+            <CheckRow
+              checked={showNum}
+              onToggle={() => setShowNum((p) => !p)}
+              label="Show barcode number"
+            />
+          </div>
+
+          {/* Text rows */}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 10 }}>
+              Label Rows
+              <span style={{ fontSize: 10, fontWeight: 400, color: "#94A3B8", marginLeft: 6, textTransform: "none" }}>
+                Use {"{name}"}, {"{code}"}, {"{mrp}"}, {"{price}"}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {rows.map((row, idx) => (
+                <div key={row.id} style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  background: "#fff", border: "1px solid #E2E8F0",
+                  borderRadius: 8, padding: "8px 10px",
+                }}>
+                  {/* Drag handle (visual only) */}
+                  <GripVertical size={14} color="#CBD5E1" style={{ flexShrink: 0, cursor: "grab" }} />
+
+                  {/* Enable checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={row.enabled}
+                    onChange={(e) => updateRow(row.id, "enabled", e.target.checked)}
+                    style={{ width: 14, height: 14, cursor: "pointer", flexShrink: 0, accentColor: "#F97316" }}
+                  />
+
+                  {/* Text input */}
+                  <input
+                    type="text"
+                    value={row.text}
+                    onChange={(e) => updateRow(row.id, "text", e.target.value)}
+                    placeholder={`Row ${idx + 1}`}
+                    style={{
+                      flex: 1, border: "1.5px solid #E2E8F0", borderRadius: 6,
+                      padding: "5px 8px", fontSize: 12, color: "#1E293B",
+                      outline: "none", fontFamily: "inherit", background: "#F8FAFC",
+                      opacity: row.enabled ? 1 : 0.4,
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#F97316"; }}
+                    onBlur={(e)  => { e.currentTarget.style.borderColor = "#E2E8F0"; }}
+                  />
+
+                  {/* Font size */}
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={String(row.fontSize)}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value) || 10;
+                      updateRow(row.id, "fontSize", Math.min(18, Math.max(7, v)));
+                    }}
+                    style={{ width: 38, border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "5px 6px", fontSize: 12, color: "#1E293B", outline: "none", fontFamily: "inherit", background: "#F8FAFC", textAlign: "center" }}
+                    title="Font size"
+                  />
+
+                  {/* Bold */}
+                  <button type="button"
+                    onClick={() => updateRow(row.id, "bold", !row.bold)}
+                    title="Bold"
+                    style={{ width: 26, height: 26, borderRadius: 5, border: `1.5px solid ${row.bold ? "#F97316" : "#E2E8F0"}`, background: row.bold ? "rgba(249,115,22,0.08)" : "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Bold size={12} color={row.bold ? "#F97316" : "#94A3B8"} />
+                  </button>
+
+                  {/* Align */}
+                  {(["left", "center", "right"] as const).map((a) => {
+                    const Icon = a === "left" ? AlignLeft : a === "center" ? AlignCenter : AlignRight;
+                    return (
+                      <button key={a} type="button"
+                        onClick={() => updateRow(row.id, "align", a)}
+                        title={a}
+                        style={{ width: 26, height: 26, borderRadius: 5, border: `1.5px solid ${row.align === a ? "#F97316" : "#E2E8F0"}`, background: row.align === a ? "rgba(249,115,22,0.08)" : "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Icon size={11} color={row.align === a ? "#F97316" : "#94A3B8"} />
+                      </button>
+                    );
+                  })}
+
+                  {/* Delete */}
+                  <button type="button" onClick={() => deleteRow(row.id)} title="Delete row"
+                    style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#CBD5E1" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#EF4444"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#CBD5E1"; }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add row */}
+            <button type="button" onClick={addRow}
+              style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#F97316", background: "rgba(249,115,22,0.06)", border: "1.5px dashed rgba(249,115,22,0.3)", borderRadius: 7, padding: "7px 14px", cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
+              <Plus size={13} /> Add Text Row
+            </button>
+          </div>
+        </div>
+
+        {/* ── Right: Live Preview ────────────────────────── */}
+        <div style={{ width: 340, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 4 }}>
+            Preview ({copiesNum} {copiesNum === 1 ? "copy" : "copies"})
+          </div>
+
+          {/* Scrollable preview area */}
+          <div ref={printRef} style={{
+            display: "flex", flexWrap: "wrap", gap: 8,
+            maxHeight: 360, overflowY: "auto",
+            padding: 4,
+          }}>
+            {Array.from({ length: Math.min(copiesNum, 12) }).map((_, i) => (
+              <LabelCard
+                key={i}
+                rows={rows}
+                ctx={ctx}
+                showBar={showBar}
+                showNum={showNum}
+                widthMm={parseFloat(labelW) || 50}
+                heightMm={parseFloat(labelH) || 30}
+              />
+            ))}
+            {copiesNum > 12 && (
+              <div style={{ padding: "8px 12px", fontSize: 11, color: "#94A3B8", fontStyle: "italic", alignSelf: "center" }}>
+                + {copiesNum - 12} more (shown on print)
+              </div>
+            )}
+          </div>
+
+          <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 4 }}>
+            Label size: {labelW} × {labelH} mm &nbsp;·&nbsp; Click "Print Labels" to print
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Single label card ────────────────────────────────────────
+
+function LabelCard({
+  rows, ctx, showBar, showNum, widthMm, heightMm,
+}: {
+  rows: LabelRow[];
+  ctx: { name: string; code: string; mrp: number; price: number; barcode: string };
+  showBar: boolean;
+  showNum: boolean;
+  widthMm: number;
+  heightMm: number;
+}) {
+  // Scale mm → px for preview (1mm ≈ 3.78px at 96dpi, we use 2.2 for compact display)
+  const scale = 2.2;
+  const w = Math.round(widthMm * scale);
+  const h = Math.round(heightMm * scale);
+
+  return (
+    <div style={{
+      width: w, height: h,
+      background: "#fff", border: "1px solid #E2E8F0",
+      borderRadius: 5, padding: "5px 6px",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", gap: 2,
+      overflow: "hidden", flexShrink: 0, boxSizing: "border-box",
+    }}>
+      {showBar && (
+        <BarcodeVisual value={ctx.barcode || ctx.code || "000000000"} height={Math.max(20, Math.round(h * 0.38))} />
+      )}
+      {showNum && (
+        <div style={{ fontSize: 8, fontFamily: "monospace", color: "#0F172A", letterSpacing: "0.02em" }}>
+          {ctx.barcode || ctx.code || "000000000"}
+        </div>
+      )}
+      {rows.filter((r) => r.enabled && r.text.trim()).map((row) => (
+        <div key={row.id} style={{
+          fontSize: row.fontSize,
+          fontWeight: row.bold ? 700 : 400,
+          color: "#0F172A",
+          textAlign: row.align,
+          width: "100%",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          lineHeight: 1.2,
+        }}>
+          {resolvePlaceholders(row.text, ctx)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── CheckRow ─────────────────────────────────────────────────
+function CheckRow({ checked, onToggle, label }: { checked: boolean; onToggle: () => void; label: string }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", userSelect: "none" }}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onToggle}
+        style={{ width: 14, height: 14, cursor: "pointer", accentColor: "#F97316" }}
+      />
+      <span style={{ fontSize: 12, color: "#475569" }}>{label}</span>
+    </label>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────
+const ctrlLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: "#64748B", marginBottom: 4 };
+const ctrlInp:   React.CSSProperties = { width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "6px 8px", fontSize: 12, color: "#1E293B", outline: "none", fontFamily: "inherit", background: "#F8FAFC", boxSizing: "border-box" };
