@@ -19,6 +19,7 @@ const CategoriesPage      = lazy(() => import("@/app/products/CategoriesPage"));
 const LowStockPage        = lazy(() => import("@/app/products/LowStockPage"));
 const ProductTransferPage = lazy(() => import("@/app/products/ProductTransferPage"));
 const AddProductPage      = lazy(() => import("@/app/products/AddProductPage"));
+const EditProductPage     = lazy(() => import("@/app/products/EditProductPage"));
 const TransferPage        = lazy(() => import("@/app/products/transfer/TransferPage"));
 const TransferredPage     = lazy(() => import("@/app/products/transfer/TransferredPage"));
 const ReceivedPage        = lazy(() => import("@/app/products/transfer/ReceivedPage"));
@@ -64,6 +65,7 @@ export function AppRoutes() {
         <Route path="/app/products"                    element={<Navigate to="/app/products/all" replace />} />
         <Route path="/app/products/all"                element={<W><ProductsPage /></W>} />
         <Route path="/app/products/new"                element={<AddProductPage />} />
+        <Route path="/app/products/:id/edit"           element={<EditProductPage />} />
         <Route path="/app/products/categories"         element={<W><CategoriesPage /></W>} />
         <Route path="/app/products/low-stock"          element={<W><LowStockPage /></W>} />
         <Route path="/app/products/transfer"           element={<W><TransferPage /></W>} />
