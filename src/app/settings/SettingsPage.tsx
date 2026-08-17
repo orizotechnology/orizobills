@@ -425,15 +425,6 @@ function GeneralSettings() {
             <option value="INR">
               INR (₹)
             </option>
-            <option value="USD">
-              USD ($)
-            </option>
-            <option value="EUR">
-              EUR (€)
-            </option>
-            <option value="GBP">
-              GBP (£)
-            </option>
           </select>
         </SettingRow>
 
@@ -540,12 +531,7 @@ function TransactionSettings() {
         <Toggle />
       </SettingRow>
 
-      <SettingRow
-        label="Enable Stock Check on Sale"
-        description="Warn when stock falls below minimum"
-      >
-        <Toggle />
-      </SettingRow>
+      
 
       <SettingRow
         label="Allow Negative Stock"
@@ -814,21 +800,7 @@ function MessageSettings() {
         />
       </SettingRow>
 
-      {/* NEW: Estimate / Quotation Message Template */}
-      <SettingRow
-        label="Estimate/Quotation Message Template"
-        description="Sent when sharing an estimate or quotation"
-      >
-        <textarea
-          style={{
-            ...inp,
-            width: 260,
-            height: 64,
-            resize: "none",
-          }}
-          placeholder="Dear {name}, please find your quotation {invoice_no} for ₹{amount} attached."
-        />
-      </SettingRow>
+    
 
       {/* NEW: Send WhatsApp Automatically on Invoice Save */}
       <SettingRow
@@ -899,17 +871,7 @@ function PartySettings() {
         <Toggle />
       </SettingRow>
 
-      {/* NEW: Duplicate Mobile Number Check */}
-      <SettingRow
-        label="Duplicate Mobile Number Check"
-        description="Prevent adding a party with a mobile number already in use"
-      >
-        <Toggle defaultOn />
-      </SettingRow>
-
-      <SettingRow label="Mandatory GSTIN for Business">
-        <Toggle />
-      </SettingRow>
+     
 
       {/* NEW: Allow Opening Balance for New Party */}
       <SettingRow
