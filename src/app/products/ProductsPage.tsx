@@ -7,7 +7,6 @@ import {
   ScanLine, AlertTriangle, RefreshCw, Filter,
 } from "lucide-react";
 import { http } from "@/lib/axios";
-import { ProductEditDialog } from "./components/ProductEditDialog";
 import type { Product } from "./product.types";
 
 export type { Product };
@@ -59,7 +58,6 @@ export default function ProductsPage() {
   const [debouncedSearch, setDebounced]     = useState("");
   const [page,            setPage]          = useState(1);
   const [stockFilter,     setStockFilter]   = useState("all");
-  const [dialogProduct,   setDialogProduct] = useState<Product | null | "new">(null);
 
   const { data, isLoading, isError, isFetching, refetch } =
     useProducts(debouncedSearch, page, PAGE_SIZE);
@@ -118,7 +116,6 @@ export default function ProductsPage() {
   const onSaved = () => {
     qc.invalidateQueries({ queryKey: ["products"] });
     qc.invalidateQueries({ queryKey: ["inventory-map"] });
-    setDialogProduct(null);
   };
 
   const handleRefresh = useCallback(async () => {
@@ -369,7 +366,7 @@ export default function ProductsPage() {
                     {/* Actions */}
                     <td style={{ padding: "12px 14px" }}>
                       <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                        <button onClick={() => setDialogProduct(p)} style={rowIconBtn} title="Edit"
+                        <button onClick={() => navigate(`/app/products/${p.id}/edit`)} style={rowIconBtn} title="Edit"
                           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#F97316"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#64748B"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
                           <Edit2 size={13} />
@@ -401,17 +398,6 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
-
-      {/* Edit / Add Dialog */}
-      <AnimatePresence>
-        {dialogProduct !== null && (
-          <ProductEditDialog
-            product={dialogProduct === "new" ? null : dialogProduct}
-            onClose={() => setDialogProduct(null)}
-            onSaved={onSaved}
-          />
-        )}
-      </AnimatePresence>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
