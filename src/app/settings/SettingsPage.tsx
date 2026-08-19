@@ -1052,16 +1052,17 @@ function AccountingSettings() {
 }
 
 // =============================================================
-// OFFICER MANAGEMENT
-// =============================================================
+// OFFICER MANAGEMENT (with Save Changes / dirty-state tracking)
+// ============================================================
 
 function OfficerManagement() {
   const {
     session,
-    officers,
+    officers,          // source of truth from store (last saved state)
     addOfficer,
-    removeOfficer,
-    toggleOfficer,
+    removeOfficer: removeOfficerInStore,
+    toggleOfficer: toggleOfficerInStore,
+    saveOfficerChanges, // NEW: bulk-save function you add to your store
   } = useAuthStore();
 
   const isAdmin = session?.role === "admin";
@@ -1075,36 +1076,37 @@ function OfficerManagement() {
   const [formError, setFormError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleAdd = async (
-    e: React.FormEvent
-  ) => {
+  // ---- NEW: local pending copy + dirty tracking ----
+  const [localOfficers, setLocalOfficers] = useState(officers);
+  const [isDirty, setIsDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Keep localOfficers in sync whenever the store's officers list
+  // changes from outside (e.g. after Add Officer, or after a
+  // successful Save Changes / initial load).
+  useEffect(() => {
+    setLocalOfficers(officers);
+    setIsDirty(false);
+  }, [officers]);
+
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setFormError("");
     setSuccess("");
 
     if (!name.trim() || name.trim().length < 2) {
-      setFormError(
-        "Name must be at least 2 characters."
-      );
+      setFormError("Name must be at least 2 characters.");
       return;
     }
 
-    if (
-      !/^[6-9]\d{9}$/.test(
-        mobile.replace(/\s/g, "")
-      )
-    ) {
-      setFormError(
-        "Enter a valid 10-digit mobile number."
-      );
+    if (!/^[6-9]\d{9}$/.test(mobile.replace(/\s/g, ""))) {
+      setFormError("Enter a valid 10-digit mobile number.");
       return;
     }
 
     if (!password || password.length < 6) {
-      setFormError(
-        "Password must be at least 6 characters."
-      );
+      setFormError("Password must be at least 6 characters.");
       return;
     }
 
@@ -1119,47 +1121,85 @@ function OfficerManagement() {
     setLoading(false);
 
     if (result.ok) {
-      setSuccess(
-        `Officer "${name.trim()}" added successfully.`
-      );
-
+      setSuccess(`Officer "${name.trim()}" added successfully.`);
       setName("");
       setMobile("");
       setPassword("");
       setShowForm(false);
+      // store's `officers` will update -> useEffect above resyncs localOfficers
     } else {
-      setFormError(
-        result.error ??
-          "Failed to add officer."
-      );
+      setFormError(result.error ?? "Failed to add officer.");
     }
+  };
+
+  // ---- NEW: toggle/remove only affect LOCAL pending state ----
+  const handleToggle = (id: string) => {
+    setLocalOfficers((prev) =>
+      prev.map((o) =>
+        o.id === id ? { ...o, isActive: !o.isActive } : o
+      )
+    );
+    setIsDirty(true);
+    setSuccess("");
+  };
+
+  const handleRemove = (id: string) => {
+    setLocalOfficers((prev) => prev.filter((o) => o.id !== id));
+    setIsDirty(true);
+    setSuccess("");
+  };
+
+  // ---- NEW: commit pending changes to backend/store ----
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    setFormError("");
+
+    try {
+      const removedIds = officers
+        .filter((orig) => !localOfficers.find((l) => l.id === orig.id))
+        .map((o) => o.id);
+
+      const toggledIds = localOfficers
+        .filter((l) => {
+          const orig = officers.find((o) => o.id === l.id);
+          return orig && orig.isActive !== l.isActive;
+        })
+        .map((o) => o.id);
+
+      const result = saveOfficerChanges
+        ? await saveOfficerChanges({ removedIds, toggledIds })
+        : { ok: true };
+
+      if (result?.ok === false) {
+        setFormError(result.error ?? "Failed to save changes.");
+      } else {
+        removedIds.forEach((id) => removeOfficerInStore(id));
+        toggledIds.forEach((id) => toggleOfficerInStore(id));
+
+        setSuccess("Changes saved successfully.");
+        setIsDirty(false);
+      }
+    } catch (err) {
+      setFormError("Something went wrong while saving.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    setLocalOfficers(officers);
+    setIsDirty(false);
+    setFormError("");
+    setSuccess("");
   };
 
   if (!isAdmin) {
     return (
-      <div
-        style={{
-          padding: "32px",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: "#94A3B8",
-          }}
-        >
+      <div style={{ padding: "32px", textAlign: "center" }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#94A3B8" }}>
           Admin access required
         </div>
-
-        <div
-          style={{
-            fontSize: 13,
-            color: "#CBD5E1",
-            marginTop: 4,
-          }}
-        >
+        <div style={{ fontSize: 13, color: "#CBD5E1", marginTop: 4 }}>
           Only the admin can manage officers.
         </div>
       </div>
@@ -1168,7 +1208,23 @@ function OfficerManagement() {
 
   return (
     <div>
-      {/* Header */}
+      {isDirty && !success && (
+        <div
+          style={{
+            background: "rgba(249,115,22,0.08)",
+            border: "1px solid rgba(249,115,22,0.25)",
+            borderRadius: 8,
+            padding: "10px 14px",
+            marginBottom: 18,
+            fontSize: 13,
+            color: "#9A3412",
+          }}
+        >
+          You have unsaved changes. Click "Save Changes" to apply them.
+        </div>
+      )}
+
+      {/* Officers sub-header */}
       <div
         style={{
           display: "flex",
@@ -1178,28 +1234,12 @@ function OfficerManagement() {
         }}
       >
         <div>
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#0F172A",
-            }}
-          >
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>
             Officers
           </div>
-
-          <div
-            style={{
-              fontSize: 12,
-              color: "#94A3B8",
-              marginTop: 2,
-            }}
-          >
-            {officers.length} officer
-            {officers.length !== 1
-              ? "s"
-              : ""}{" "}
-            registered
+          <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+            {localOfficers.length} officer
+            {localOfficers.length !== 1 ? "s" : ""} registered
           </div>
         </div>
 
@@ -1234,10 +1274,8 @@ function OfficerManagement() {
       {success && (
         <div
           style={{
-            background:
-              "rgba(34,197,94,0.08)",
-            border:
-              "1px solid rgba(34,197,94,0.25)",
+            background: "rgba(34,197,94,0.08)",
+            border: "1px solid rgba(34,197,94,0.25)",
             borderRadius: 8,
             padding: "10px 14px",
             marginBottom: 14,
@@ -1245,7 +1283,7 @@ function OfficerManagement() {
             color: "#166534",
           }}
         >
-          âœ“ {success}
+          ✓ {success}
         </div>
       )}
 
@@ -1254,8 +1292,7 @@ function OfficerManagement() {
         <div
           style={{
             background: "#fff",
-            border:
-              "1.5px solid #F97316",
+            border: "1.5px solid #F97316",
             borderRadius: 12,
             padding: "18px 20px",
             marginBottom: 18,
@@ -1272,55 +1309,37 @@ function OfficerManagement() {
               gap: 6,
             }}
           >
-            <UserCog
-              size={15}
-              color="#F97316"
-            />
+            <UserCog size={15} color="#F97316" />
             New Officer
           </div>
 
           <form
             onSubmit={handleAdd}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
+            style={{ display: "flex", flexDirection: "column", gap: 12 }}
           >
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  "1fr 1fr",
+                gridTemplateColumns: "1fr 1fr",
                 gap: 12,
               }}
             >
               <div>
-                <label style={lbl2}>
-                  Full Name
-                </label>
-
+                <label style={lbl2}>Full Name</label>
                 <input
                   value={name}
-                  onChange={(e) =>
-                    setName(e.target.value)
-                  }
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="Officer name"
                   style={inp2}
                 />
               </div>
 
               <div>
-                <label style={lbl2}>
-                  Mobile Number
-                </label>
-
+                <label style={lbl2}>Mobile Number</label>
                 <input
                   type="tel"
                   value={mobile}
-                  onChange={(e) =>
-                    setMobile(e.target.value)
-                  }
+                  onChange={(e) => setMobile(e.target.value)}
                   maxLength={10}
                   placeholder="10-digit mobile"
                   style={inp2}
@@ -1329,50 +1348,28 @@ function OfficerManagement() {
             </div>
 
             <div>
-              <label style={lbl2}>
-                Password
-              </label>
-
-              <div
-                style={{
-                  position: "relative",
-                }}
-              >
+              <label style={lbl2}>Password</label>
+              <div style={{ position: "relative" }}>
                 <input
-                  type={
-                    showPass
-                      ? "text"
-                      : "password"
-                  }
+                  type={showPass ? "text" : "password"}
                   value={password}
-                  onChange={(e) =>
-                    setPassword(
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Min 6 characters"
                   style={{
                     ...inp2,
                     paddingRight: 36,
                     width: "100%",
-                    boxSizing:
-                      "border-box",
+                    boxSizing: "border-box",
                   }}
                 />
-
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowPass(
-                      (p) => !p
-                    )
-                  }
+                  onClick={() => setShowPass((p) => !p)}
                   style={{
                     position: "absolute",
                     right: 10,
                     top: "50%",
-                    transform:
-                      "translateY(-50%)",
+                    transform: "translateY(-50%)",
                     background: "none",
                     border: "none",
                     cursor: "pointer",
@@ -1380,11 +1377,7 @@ function OfficerManagement() {
                     display: "flex",
                   }}
                 >
-                  {showPass ? (
-                    <EyeOff size={14} />
-                  ) : (
-                    <Eye size={14} />
-                  )}
+                  {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
             </div>
@@ -1395,32 +1388,23 @@ function OfficerManagement() {
                   fontSize: 12,
                   color: "#E11D48",
                   background: "#FFF1F2",
-                  border:
-                    "1px solid #FECDD3",
+                  border: "1px solid #FECDD3",
                   borderRadius: 7,
                   padding: "8px 12px",
                 }}
               >
-                ⚠ï¸ {formError}
+                ⚠️ {formError}
               </div>
             )}
 
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-              }}
-            >
+            <div style={{ display: "flex", gap: 10 }}>
               <button
                 type="button"
-                onClick={() =>
-                  setShowForm(false)
-                }
+                onClick={() => setShowForm(false)}
                 style={{
                   flex: 1,
                   padding: "8px 0",
-                  border:
-                    "1.5px solid #E2E8F0",
+                  border: "1.5px solid #E2E8F0",
                   borderRadius: 8,
                   background: "#fff",
                   color: "#475569",
@@ -1446,96 +1430,61 @@ function OfficerManagement() {
                   fontWeight: 700,
                   cursor: "pointer",
                   fontFamily: "inherit",
-                  opacity: loading
-                    ? 0.7
-                    : 1,
+                  opacity: loading ? 0.7 : 1,
                 }}
               >
-                {loading
-                  ? "Addingâ€¦"
-                  : "Add Officer"}
+                {loading ? "Adding…" : "Add Officer"}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Officers List */}
-      {officers.length === 0 ? (
+      {/* Officers List — now reads from localOfficers (pending state) */}
+      {localOfficers.length === 0 ? (
         <div
           style={{
             background: "#fff",
-            border:
-              "1px solid #E2E8F0",
+            border: "1px solid #E2E8F0",
             borderRadius: 10,
             padding: "40px",
             textAlign: "center",
           }}
         >
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "#94A3B8",
-            }}
-          >
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#94A3B8" }}>
             No officers yet
           </div>
-
-          <div
-            style={{
-              fontSize: 12,
-              color: "#CBD5E1",
-              marginTop: 4,
-            }}
-          >
-            Add officers to let staff access
-            the app
+          <div style={{ fontSize: 12, color: "#CBD5E1", marginTop: 4 }}>
+            Add officers to let staff access the app
           </div>
         </div>
       ) : (
         <div
           style={{
             background: "#fff",
-            border:
-              "1px solid #E2E8F0",
+            border: "1px solid #E2E8F0",
             borderRadius: 10,
             overflow: "hidden",
           }}
         >
-          <table
-            style={{
-              width: "100%",
-              borderCollapse:
-                "collapse",
-            }}
-          >
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr
                 style={{
                   background: "#F8FAFC",
-                  borderBottom:
-                    "1px solid #E2E8F0",
+                  borderBottom: "1px solid #E2E8F0",
                 }}
               >
-                {[
-                  "Name",
-                  "Mobile",
-                  "Status",
-                  "Added",
-                  "",
-                ].map((h) => (
+                {["Name", "Mobile", "Status", "Added", ""].map((h) => (
                   <th
                     key={h}
                     style={{
-                      padding:
-                        "10px 14px",
+                      padding: "10px 14px",
                       textAlign: "left",
                       fontSize: 11,
                       fontWeight: 700,
                       color: "#64748B",
-                      letterSpacing:
-                        "0.04em",
+                      letterSpacing: "0.04em",
                     }}
                   >
                     {h}
@@ -1545,22 +1494,26 @@ function OfficerManagement() {
             </thead>
 
             <tbody>
-              {officers.map(
-                (o, idx) => (
+              {localOfficers.map((o, idx) => {
+                const orig = officers.find((x) => x.id === o.id);
+                const rowChanged = orig && orig.isActive !== o.isActive;
+
+                return (
                   <tr
                     key={o.id}
                     style={{
                       borderBottom:
-                        idx <
-                        officers.length - 1
+                        idx < localOfficers.length - 1
                           ? "1px solid #F1F5F9"
                           : "none",
+                      background: rowChanged
+                        ? "rgba(249,115,22,0.04)"
+                        : "transparent",
                     }}
                   >
                     <td
                       style={{
-                        padding:
-                          "12px 14px",
+                        padding: "12px 14px",
                         fontSize: 13,
                         fontWeight: 600,
                         color: "#0F172A",
@@ -1571,8 +1524,7 @@ function OfficerManagement() {
 
                     <td
                       style={{
-                        padding:
-                          "12px 14px",
+                        padding: "12px 14px",
                         fontSize: 13,
                         color: "#64748B",
                       }}
@@ -1580,140 +1532,85 @@ function OfficerManagement() {
                       {o.mobile}
                     </td>
 
-                    <td
-                      style={{
-                        padding:
-                          "12px 14px",
-                      }}
-                    >
+                    <td style={{ padding: "12px 14px" }}>
                       <span
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
                           borderRadius: 20,
-                          padding:
-                            "3px 10px",
-                          background:
-                            o.isActive
-                              ? "rgba(34,197,94,0.1)"
-                              : "rgba(148,163,184,0.15)",
-                          color:
-                            o.isActive
-                              ? "#16A34A"
-                              : "#94A3B8",
+                          padding: "3px 10px",
+                          background: o.isActive
+                            ? "rgba(34,197,94,0.1)"
+                            : "rgba(148,163,184,0.15)",
+                          color: o.isActive ? "#16A34A" : "#94A3B8",
                         }}
                       >
-                        {o.isActive
-                          ? "Active"
-                          : "Inactive"}
+                        {o.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
 
                     <td
                       style={{
-                        padding:
-                          "12px 14px",
+                        padding: "12px 14px",
                         fontSize: 12,
                         color: "#94A3B8",
                       }}
                     >
-                      {new Date(
-                        o.createdAt
-                      ).toLocaleDateString(
-                        "en-IN",
-                        {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        }
-                      )}
+                      {new Date(o.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </td>
 
-                    <td
-                      style={{
-                        padding:
-                          "12px 14px",
-                      }}
-                    >
+                    <td style={{ padding: "12px 14px" }}>
                       <div
                         style={{
-                          display:
-                            "flex",
+                          display: "flex",
                           gap: 6,
-                          justifyContent:
-                            "flex-end",
+                          justifyContent: "flex-end",
                         }}
                       >
                         <button
                           type="button"
-                          onClick={() =>
-                            toggleOfficer(
-                              o.id
-                            )
-                          }
-                          title={
-                            o.isActive
-                              ? "Deactivate"
-                              : "Activate"
-                          }
+                          onClick={() => handleToggle(o.id)}
+                          title={o.isActive ? "Deactivate" : "Activate"}
                           style={{
-                            background:
-                              "none",
-                            border:
-                              "none",
-                            cursor:
-                              "pointer",
-                            color:
-                              o.isActive
-                                ? "#F97316"
-                                : "#94A3B8",
-                            display:
-                              "flex",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: o.isActive ? "#F97316" : "#94A3B8",
+                            display: "flex",
                             padding: 4,
                           }}
                         >
                           {o.isActive ? (
-                            <ToggleRight
-                              size={18}
-                            />
+                            <ToggleRight size={18} />
                           ) : (
-                            <ToggleLeft
-                              size={18}
-                            />
+                            <ToggleLeft size={18} />
                           )}
                         </button>
 
                         <button
                           type="button"
-                          onClick={() =>
-                            removeOfficer(
-                              o.id
-                            )
-                          }
+                          onClick={() => handleRemove(o.id)}
                           title="Remove"
                           style={{
-                            background:
-                              "none",
-                            border:
-                              "none",
-                            cursor:
-                              "pointer",
-                            color:
-                              "#CBD5E1",
-                            display:
-                              "flex",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "#CBD5E1",
+                            display: "flex",
                             padding: 4,
                           }}
                         >
-                          <Trash2
-                            size={15}
-                          />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </td>
                   </tr>
-                )
-              )}
+                );
+              })}
             </tbody>
           </table>
         </div>
