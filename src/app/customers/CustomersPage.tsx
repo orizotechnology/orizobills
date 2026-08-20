@@ -1,7 +1,10 @@
 import { useState, useCallback, useMemo } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Search, Users, UserCheck, TrendingUp, TrendingDown, Edit2, Trash2, RefreshCw, AlertTriangle, X, Loader2, CheckCircle2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Users, UserCheck, TrendingUp, TrendingDown, Edit2, Trash2, RefreshCw, AlertTriangle, X, Loader2, CheckCircle2, ArrowUp, ArrowDown, ArrowUpDown, Download, FileSpreadsheet, FileText } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import { http } from "@/lib/axios";
 import { useInfiniteScroll } from "@/hooks";
 
@@ -47,6 +50,84 @@ function BalanceBadge({ balance }: { balance: number }) {
     </span>
   );
 }
+
+// ── Export helpers ────────────────────────────────────────────
+function exportExcel(filename: string, sheetName: string, headers: string[], rows: (string | number)[][]) {
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws["!cols"] = headers.map((h, i) => {
+    const maxLen = Math.max(h.length, ...rows.map((r) => String(r[i] ?? "").length));
+    return { wch: Math.min(Math.max(maxLen + 3, 12), 40) };
+  });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+  XLSX.writeFile(wb, filename);
+}
+
+function exportPDF(opts: { filename: string; title: string; subtitle: string; headers: string[]; rows: (string | number)[][] }) {
+  const { filename, title, subtitle, headers, rows } = opts;
+  const doc = new jsPDF();
+  doc.setFontSize(16); doc.setTextColor(15, 23, 42); doc.setFont("helvetica", "bold");
+  doc.text("Orizo Bills", 14, 16);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(13); doc.setTextColor(51, 65, 85);
+  doc.text(title, 14, 25);
+  doc.setFontSize(9.5); doc.setTextColor(148, 163, 184);
+  doc.text(subtitle, 14, 31);
+  doc.setDrawColor(226, 232, 240);
+  doc.line(14, 35, doc.internal.pageSize.width - 14, 35);
+
+  autoTable(doc, {
+    startY: 40,
+    head: [headers],
+    body: rows.map((r) => r.map(String)),
+    theme: "striped",
+    headStyles: { fillColor: [249, 115, 22], textColor: 255, fontSize: 9, fontStyle: "bold" },
+    bodyStyles: { fontSize: 8.5, textColor: [51, 65, 85] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setTextColor(148, 163, 184);
+    doc.text(`Generated ${new Date().toLocaleDateString("en-IN")} · Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
+  }
+  doc.save(filename);
+}
+
+const CUSTOMER_HEADERS = ["Name", "Phone", "Email", "Address", "GSTIN", "Balance", "Type"];
+function customerRows(list: Customer[]): (string | number)[][] {
+  return list.map((c) => [
+    c.name, c.phone ?? "", c.email ?? "", c.address ?? "", c.gstin ?? "",
+    Math.abs(c.balance).toFixed(2), c.balance > 0 ? "DR" : c.balance < 0 ? "CR" : "Settled",
+  ]);
+}
+
+function ExportButton({ onExportExcel, onExportPDF, disabled }: { onExportExcel: () => void; onExportPDF: () => void; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <button type="button" onClick={() => setOpen((o) => !o)} disabled={disabled}
+        style={{ ...iconBtn, width: "auto", padding: "0 12px", gap: 6, display: "flex", color: disabled ? "#CBD5E1" : "#475569", cursor: disabled ? "not-allowed" : "pointer" }}>
+        <Download size={14} /> <span style={{ fontSize: 12.5, fontWeight: 600 }}>Export</span>
+      </button>
+      {open && !disabled && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
+          <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 20, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", minWidth: 190, overflow: "hidden" }}>
+            <button onClick={() => { onExportExcel(); setOpen(false); }} style={menuItemStyle}>
+              <FileSpreadsheet size={14} color="#22C55E" /> Download Excel (.xlsx)
+            </button>
+            <button onClick={() => { onExportPDF(); setOpen(false); }} style={{ ...menuItemStyle, borderTop: "1px solid #F1F5F9" }}>
+              <FileText size={14} color="#F97316" /> Download PDF
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+const menuItemStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 13, fontWeight: 500, color: "#334155", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" };
 
 export default function CustomersPage() {
   const qc = useQueryClient();
@@ -144,6 +225,14 @@ export default function CustomersPage() {
     return dir === "asc" ? <ArrowUp size={11} color="#F97316" /> : <ArrowDown size={11} color="#F97316" />;
   };
 
+  // ── Export handlers ─────────────────────────────────────────
+  const handleExportExcel = () => exportExcel("customer-report.xlsx", "Customers", CUSTOMER_HEADERS, customerRows(customers));
+  const handleExportPDF = () => exportPDF({
+    filename: "customer-report.pdf", title: "Customer Report",
+    subtitle: `${customers.length} customer${customers.length !== 1 ? "s" : ""} · as of ${new Date().toLocaleDateString("en-IN")}`,
+    headers: CUSTOMER_HEADERS, rows: customerRows(customers),
+  });
+
   return (
     <div style={{ padding: "24px 28px", height: "100%", display: "flex", flexDirection: "column", background: "#F8FAFC" }}>
       {/* Header */}
@@ -155,6 +244,7 @@ export default function CustomersPage() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <ExportButton onExportExcel={handleExportExcel} onExportPDF={handleExportPDF} disabled={customers.length === 0} />
           <button type="button" onClick={() => void handleRefresh()} style={iconBtn}>
             <RefreshCw size={15} color="#64748B" style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
           </button>
