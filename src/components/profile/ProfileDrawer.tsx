@@ -9,12 +9,12 @@ import {
   Mail,
   CreditCard,
   Globe,
-  CheckCircle2,
   Eye,
   EyeOff,
   LogOut,
   AlertCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
 import { useBusinessStore } from "@/store/business.store";
 
@@ -31,30 +31,27 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
   const { session, admin, updateAdminName, updateAdminPassword, logout } = useAuthStore();
   const { profile, updateProfile } = useBusinessStore();
 
-  const isAdmin  = session?.role === "admin";
-  const userName = session?.name ?? "";
+  const isAdmin    = session?.role === "admin";
+  const userName   = session?.name ?? "";
   const userMobile = session?.mobile ?? "";
 
   // ── Account fields ──────────────────────────────────────────
-  const [name, setName] = useState(userName);
+  const [name,      setName]      = useState(userName);
   const [currentPw, setCurrentPw] = useState("");
-  const [newPw, setNewPw]         = useState("");
+  const [newPw,     setNewPw]     = useState("");
   const [confirmPw, setConfirmPw] = useState("");
-  const [showCur, setShowCur]     = useState(false);
-  const [showNew, setShowNew]     = useState(false);
-  const [showCon, setShowCon]     = useState(false);
-  const [pwError, setPwError]     = useState<string | null>(null);
+  const [showCur,   setShowCur]   = useState(false);
+  const [showNew,   setShowNew]   = useState(false);
+  const [showCon,   setShowCon]   = useState(false);
+  const [pwError,   setPwError]   = useState<string | null>(null);
 
   // ── Business fields ─────────────────────────────────────────
   const [storeName, setStoreName] = useState(profile.storeName);
-  const [address, setAddress]     = useState(profile.address);
-  const [phone, setPhone]         = useState(profile.phone);
-  const [email, setEmail]         = useState(profile.email);
-  const [upiId, setUpiId]         = useState(profile.upiId);
-  const [website, setWebsite]     = useState(profile.website);
-
-  // ── Toast ────────────────────────────────────────────────────
-  const [toast, setToast] = useState<string | null>(null);
+  const [address,   setAddress]   = useState(profile.address);
+  const [phone,     setPhone]     = useState(profile.phone);
+  const [email,     setEmail]     = useState(profile.email);
+  const [upiId,     setUpiId]     = useState(profile.upiId);
+  const [website,   setWebsite]   = useState(profile.website);
 
   // Sync when drawer reopens
   useEffect(() => {
@@ -71,17 +68,12 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
     }
   }, [open]);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2400);
-  };
-
   // ── Save account ─────────────────────────────────────────────
   const saveAccount = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
     if (isAdmin) updateAdminName(trimmed);
-    showToast("Name updated");
+    toast.success("Name updated");
   };
 
   // ── Change password ──────────────────────────────────────────
@@ -94,7 +86,7 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
     const result = await updateAdminPassword(currentPw, newPw);
     if (result.ok) {
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
-      showToast("Password changed");
+      toast.success("Password changed");
     } else {
       setPwError(result.error ?? "Failed");
     }
@@ -103,7 +95,7 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
   // ── Save business ─────────────────────────────────────────────
   const saveBusiness = () => {
     updateProfile({ storeName, address, phone, email, upiId, website });
-    showToast("Business details saved");
+    toast.success("Business details saved");
   };
 
   return (
@@ -214,106 +206,106 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
               {/* ─ Change password ─────────────────────── */}
               <Section icon={<Lock size={14} />} title="Change Password">
                 <form onSubmit={(e) => { e.preventDefault(); void savePassword(); }}>
-                <Field label="Current Password">
-                  <PasswordInput
-                    value={currentPw} onChange={setCurrentPw}
-                    show={showCur} onToggle={() => setShowCur(!showCur)}
-                    placeholder="Current password"
-                  />
-                </Field>
-                <Field label="New Password">
-                  <PasswordInput
-                    value={newPw} onChange={setNewPw}
-                    show={showNew} onToggle={() => setShowNew(!showNew)}
-                    placeholder="Min. 6 characters"
-                  />
-                </Field>
-                <Field label="Confirm New Password">
-                  <PasswordInput
-                    value={confirmPw} onChange={setConfirmPw}
-                    show={showCon} onToggle={() => setShowCon(!showCon)}
-                    placeholder="Re-enter new password"
-                  />
-                </Field>
-                {pwError && (
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    background: "rgba(239,68,68,0.06)",
-                    border: "1px solid rgba(239,68,68,0.2)",
-                    borderRadius: 8, padding: "8px 12px",
-                  }}>
-                    <AlertCircle size={13} color="#EF4444" />
-                    <span style={{ fontSize: 12, color: "#EF4444" }}>{pwError}</span>
-                  </div>
-                )}
-                <button
-                  type="submit"
-                  style={{
-                    width: "100%", padding: "10px 0",
-                    background: "#F97316", border: "none", borderRadius: 8,
-                    color: "#fff", fontSize: 13, fontWeight: 600,
-                    cursor: "pointer", marginTop: 2,
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.9"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
-                >
-                  Update Password
-                </button>
+                  <Field label="Current Password">
+                    <PasswordInput
+                      value={currentPw} onChange={setCurrentPw}
+                      show={showCur} onToggle={() => setShowCur(!showCur)}
+                      placeholder="Current password"
+                    />
+                  </Field>
+                  <Field label="New Password">
+                    <PasswordInput
+                      value={newPw} onChange={setNewPw}
+                      show={showNew} onToggle={() => setShowNew(!showNew)}
+                      placeholder="Min. 6 characters"
+                    />
+                  </Field>
+                  <Field label="Confirm New Password">
+                    <PasswordInput
+                      value={confirmPw} onChange={setConfirmPw}
+                      show={showCon} onToggle={() => setShowCon(!showCon)}
+                      placeholder="Re-enter new password"
+                    />
+                  </Field>
+                  {pwError && (
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      background: "rgba(239,68,68,0.06)",
+                      border: "1px solid rgba(239,68,68,0.2)",
+                      borderRadius: 8, padding: "8px 12px",
+                    }}>
+                      <AlertCircle size={13} color="#EF4444" />
+                      <span style={{ fontSize: 12, color: "#EF4444" }}>{pwError}</span>
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    style={{
+                      width: "100%", padding: "10px 0",
+                      background: "#F97316", border: "none", borderRadius: 8,
+                      color: "#fff", fontSize: 13, fontWeight: 600,
+                      cursor: "pointer", marginTop: 2,
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.9"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
+                  >
+                    Update Password
+                  </button>
                 </form>
               </Section>
 
               {/* ─ Business details ────────────────────── */}
               <Section icon={<Store size={14} />} title="Business Details">
                 <form onSubmit={(e) => { e.preventDefault(); saveBusiness(); }}>
-                <Field label="Store Name">
-                  <input value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="e.g. Orizo Mart" style={inputStyle} />
-                </Field>
-                <Field label="Address">
-                  <textarea
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Street, City, State, PIN"
-                    rows={2}
-                    style={{ ...inputStyle, resize: "none", lineHeight: 1.5 }}
-                  />
-                </Field>
-                <Field label="Phone">
-                  <InputWithIcon icon={<Phone size={13} color="#94A3B8" />}>
-                    <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" style={iconInputStyle} />
-                  </InputWithIcon>
-                </Field>
-                <Field label="Email">
-                  <InputWithIcon icon={<Mail size={13} color="#94A3B8" />}>
-                    <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="store@example.com" style={iconInputStyle} />
-                  </InputWithIcon>
-                </Field>
-                <Field label="UPI ID">
-                  <InputWithIcon icon={<CreditCard size={13} color="#94A3B8" />}>
-                    <input value={upiId} onChange={(e) => setUpiId(e.target.value)} placeholder="storename@upi" style={iconInputStyle} />
-                  </InputWithIcon>
-                </Field>
-                <Field label="Website">
-                  <InputWithIcon icon={<Globe size={13} color="#94A3B8" />}>
-                    <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://yourstore.com" style={iconInputStyle} />
-                  </InputWithIcon>
-                </Field>
-                <button
-                  type="submit"
-                  style={{
-                    width: "100%", padding: "10px 0",
-                    background: "#F97316", border: "none", borderRadius: 8,
-                    color: "#fff", fontSize: 13, fontWeight: 600,
-                    cursor: "pointer", marginTop: 4,
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.9"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
-                >
-                  Save Business Details
-                </button>
+                  <Field label="Store Name">
+                    <input value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="e.g. Orizo Mart" style={inputStyle} />
+                  </Field>
+                  <Field label="Address">
+                    <textarea
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Street, City, State, PIN"
+                      rows={2}
+                      style={{ ...inputStyle, resize: "none", lineHeight: 1.5 }}
+                    />
+                  </Field>
+                  <Field label="Phone">
+                    <InputWithIcon icon={<Phone size={13} color="#94A3B8" />}>
+                      <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" style={iconInputStyle} />
+                    </InputWithIcon>
+                  </Field>
+                  <Field label="Email">
+                    <InputWithIcon icon={<Mail size={13} color="#94A3B8" />}>
+                      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="store@example.com" style={iconInputStyle} />
+                    </InputWithIcon>
+                  </Field>
+                  <Field label="UPI ID">
+                    <InputWithIcon icon={<CreditCard size={13} color="#94A3B8" />}>
+                      <input value={upiId} onChange={(e) => setUpiId(e.target.value)} placeholder="storename@upi" style={iconInputStyle} />
+                    </InputWithIcon>
+                  </Field>
+                  <Field label="Website">
+                    <InputWithIcon icon={<Globe size={13} color="#94A3B8" />}>
+                      <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://yourstore.com" style={iconInputStyle} />
+                    </InputWithIcon>
+                  </Field>
+                  <button
+                    type="submit"
+                    style={{
+                      width: "100%", padding: "10px 0",
+                      background: "#F97316", border: "none", borderRadius: 8,
+                      color: "#fff", fontSize: 13, fontWeight: 600,
+                      cursor: "pointer", marginTop: 4,
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.9"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
+                  >
+                    Save Business Details
+                  </button>
                 </form>
               </Section>
 
-              {/* ─ Address ─────────────────────────────── */}
+              {/* ─ Sign out ─────────────────────────────── */}
               <div style={{ borderTop: "1px solid #F1F5F9", paddingTop: 20 }}>
                 <button
                   onClick={logout}
@@ -333,31 +325,6 @@ export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
                 </button>
               </div>
             </div>
-
-            {/* ── Toast ──────────────────────────────────── */}
-            <AnimatePresence>
-              {toast && (
-                <motion.div
-                  key="toast"
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 16 }}
-                  transition={{ duration: 0.2 }}
-                  style={{
-                    position: "sticky", bottom: 16,
-                    margin: "0 16px",
-                    background: "#0F172A", color: "#fff",
-                    borderRadius: 10, padding: "10px 14px",
-                    display: "flex", alignItems: "center", gap: 8,
-                    fontSize: 13, fontWeight: 500,
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-                  }}
-                >
-                  <CheckCircle2 size={15} color="#22C55E" />
-                  {toast}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </motion.div>
         </>
       )}
@@ -396,7 +363,11 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>
+      <label style={{
+        fontSize: 11, fontWeight: 600, color: "#94A3B8",
+        textTransform: "uppercase", letterSpacing: "0.06em",
+        display: "block", marginBottom: 5,
+      }}>
         {label}
       </label>
       {children}
