@@ -162,7 +162,8 @@ export function BillSummary({
   cgst, sgst, roundingAdj, totalAmount,
   paidAmount, onPaidAmountChange,
   paymentMode, onPaymentModeChange,
-}: BillSummaryProps) {
+  onAddNewProduct,
+}: BillSummaryProps & { onAddNewProduct?: () => void }) {
   const { profile } = useBusinessStore();
   const upiId = profile.upiId.trim();
 
@@ -202,13 +203,15 @@ export function BillSummary({
 
       {/* ── Add New Product to Bill button ─────────────── */}
       <div style={{ padding: "10px 12px 8px", flexShrink: 0 }}>
-        <button style={{
-          width: "100%", background: "#F97316", color: "#fff",
-          border: "none", borderRadius: 8, padding: "9px 0",
-          fontSize: 13, fontWeight: 700, cursor: "pointer",
-          fontFamily: "inherit", display: "flex",
-          alignItems: "center", justifyContent: "center", gap: 6, outline: "none",
-        }}>
+        <button
+          onClick={onAddNewProduct}
+          style={{
+            width: "100%", background: "#F97316", color: "#fff",
+            border: "none", borderRadius: 8, padding: "9px 0",
+            fontSize: 13, fontWeight: 700, cursor: "pointer",
+            fontFamily: "inherit", display: "flex",
+            alignItems: "center", justifyContent: "center", gap: 6, outline: "none",
+          }}>
           + Add New Product to Bill
         </button>
       </div>

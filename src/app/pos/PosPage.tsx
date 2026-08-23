@@ -14,6 +14,7 @@ import { BillTabBar }      from "./components/BillTabBar";
 import { ProductTable }    from "./components/ProductTable";
 import { BillSummary }     from "./components/BillSummary";
 import { PosPrintReceipt } from "./components/PosPrintReceipt";
+import { AddProductToBillDialog } from "./components/AddProductToBillDialog";
 import type { ProductRow } from "./components/ProductTable";
 import { usePosStore }   from "@/store/pos.store";
 import { usePrintStore } from "@/store/print.store";
@@ -34,6 +35,7 @@ export default function PosPage() {
   const [saving,        setSaving]        = useState(false);
   const [feedback,      setFeedback]      = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [showCustDlg,   setShowCustDlg]   = useState(false);
+  const [showAddProdDlg, setShowAddProdDlg] = useState(false);
   const [printing,      setPrinting]      = useState(false);
   // Bill overview shown after save — stays open until user closes
   const [showBillOverview, setShowBillOverview] = useState(false);
@@ -478,6 +480,7 @@ export default function PosPage() {
           onPaidAmountChange={(v) => updateBill(bill.id, { paidAmount: v })}
           paymentMode={payMode}
           onPaymentModeChange={(m) => updateBill(bill.id, { paymentMode: m })}
+          onAddNewProduct={() => setShowAddProdDlg(true)}
         />
       </div>
 
@@ -490,6 +493,20 @@ export default function PosPage() {
             onSaved={(name) => {
               updateBill(bill.id, { customer: name });
               setShowCustDlg(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* + Add New Product to Bill dialog */}
+      <AnimatePresence>
+        {showAddProdDlg && (
+          <AddProductToBillDialog
+            onClose={() => setShowAddProdDlg(false)}
+            onAdded={(row) => {
+              if (activeBillId) addRowToBill(activeBillId, row);
+              setFeedback({ type: "success", msg: `"${row.product}" added to bill` });
+              setTimeout(() => setFeedback(null), 3000);
             }}
           />
         )}
