@@ -495,18 +495,33 @@ function CreateProductDialog({ onClose, onSaved }: { onClose: () => void; onSave
 
     setLoading(true);
     try {
-      const res = await http.post<{ success: boolean }>("/products", {
-        productName: productName.trim(),
-        productCode: productCode.trim(),
+      // ⚠️ FIX: field names now match the Prisma `Product` model
+      // (name / code / salePrice) instead of productName / productCode /
+      // sellingPrice. That mismatch is what made the backend see the
+      // required fields as missing and return "Required".
+      const res = await http.post<{ success: boolean; message?: string }>("/products", {
+        name: productName.trim(),
+        code: productCode.trim(),
         unit,
         openingStock: opening,
         lowStockAlert: low,
         purchasePrice: cost,
-        sellingPrice: sell,
+        salePrice: sell,
       });
-      if (res.success) onSaved(); else setError("Failed to create product.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create product.");
+      if (res.success) {
+        onSaved();
+      } else {
+        setError(res.message || "Failed to create product.");
+      }
+    } catch (err: any) {
+      // FIX: surface the REAL backend message instead of a generic string,
+      // so if this ever fails again you see exactly which field it wants.
+      const backendMsg =
+        err?.response?.data?.message ??
+        err?.response?.data?.error ??
+        (err instanceof Error ? err.message : "Failed to create product.");
+      setError(backendMsg);
+      console.error("Create product failed:", err?.response?.data ?? err);
     } finally {
       setLoading(false);
     }
