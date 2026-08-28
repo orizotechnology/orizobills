@@ -25,13 +25,23 @@ interface Customer {
   createdAt: string;
 }
 
+/* ---------------- Single orange palette (no green/purple/red/blue/yellow) ---------------- */
+const ORANGE = {
+  base:   "#F97316",
+  dark:   "#EA580C",
+  darker: "#C2410C",
+  light:  "#FB923C",
+  pale:   "#FDBA74",
+  amber:  "#D97706",
+};
+
 const CARDS = [
-  { key: "sales"     as ReportKey, icon: TrendingUp,  color: "#F97316", title: "Sale Summary",     desc: "Total sales, returns & net revenue" },
-  { key: "purchases" as ReportKey, icon: ShoppingBag, color: "#8B5CF6", title: "Purchase Summary", desc: "Total purchases & net spend" },
-  { key: "stock"     as ReportKey, icon: Package,     color: "#22C55E", title: "Stock Report",      desc: "Current stock levels & valuation" },
-  { key: "customers" as ReportKey, icon: Users,       color: "#06B6D4", title: "Customer Report",   desc: "Customer-wise outstanding & sales" },
-  { key: "pnl"       as ReportKey, icon: BarChart2,   color: "#EF4444", title: "Profit & Loss",     desc: "Net profit, expenses & GST summary" },
-  { key: "gst"       as ReportKey, icon: FileText,    color: "#F59E0B", title: "GST Reports",       desc: "GSTR-1, GSTR-3B and HSN summary" },
+  { key: "sales"     as ReportKey, icon: TrendingUp,  color: ORANGE.base,   title: "Sale Summary",     desc: "Total sales, returns & net revenue" },
+  { key: "purchases" as ReportKey, icon: ShoppingBag, color: ORANGE.dark,   title: "Purchase Summary", desc: "Total purchases & net spend" },
+  { key: "stock"     as ReportKey, icon: Package,     color: ORANGE.light,  title: "Stock Report",      desc: "Current stock levels & valuation" },
+  { key: "customers" as ReportKey, icon: Users,       color: ORANGE.darker, title: "Customer Report",   desc: "Customer-wise outstanding & sales" },
+  { key: "pnl"       as ReportKey, icon: BarChart2,   color: ORANGE.amber,  title: "Profit & Loss",     desc: "Net profit, expenses & GST summary" },
+  { key: "gst"       as ReportKey, icon: FileText,    color: ORANGE.pale,   title: "GST Reports",       desc: "GSTR-1, GSTR-3B and HSN summary" },
 ];
 
 // All first, then date presets, custom last
@@ -121,15 +131,13 @@ function exportPDF(opts: {
   doc.setFontSize(9.5);
   doc.setTextColor(148, 163, 184);
   doc.text(subtitle, 14, 31);
-  doc.setDrawColor(226, 232, 240);
-  doc.line(14, 35, doc.internal.pageSize.width - 14, 35);
 
   autoTable(doc, {
-    startY: 40,
+    startY: 38,
     head: [headers],
     body: rows.map((r) => r.map(String)),
     theme: "striped",
-    headStyles: { fillColor: [249, 115, 22], textColor: 255, fontSize: 9, fontStyle: "bold" },
+    headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontSize: 9, fontStyle: "bold" },
     bodyStyles: { fontSize: 8.5, textColor: [51, 65, 85] },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     margin: { left: 14, right: 14 },
@@ -181,10 +189,10 @@ function ExportButton({
             boxShadow: "0 8px 24px rgba(0,0,0,0.1)", minWidth: 190, overflow: "hidden",
           }}>
             <button onClick={() => { onExportExcel(); setOpen(false); }} style={menuItemStyle}>
-              <FileSpreadsheet size={14} color="#22C55E" /> Download Excel (.xlsx)
+              <FileSpreadsheet size={14} color={ORANGE.base} /> Download Excel (.xlsx)
             </button>
             <button onClick={() => { onExportPDF(); setOpen(false); }} style={{ ...menuItemStyle, borderTop: "1px solid #F1F5F9" }}>
-              <FileText size={14} color="#F97316" /> Download PDF
+              <FileText size={14} color={ORANGE.dark} /> Download PDF
             </button>
             <button onClick={() => { setOpen(false); window.print(); }} style={{ ...menuItemStyle, borderTop: "1px solid #F1F5F9" }}>
               <Printer size={14} color="#64748B" /> Print
@@ -223,7 +231,7 @@ function TrendBadge({ current, previous }: { current: number; previous: number }
   return (
     <div style={{
       display: "inline-flex", alignItems: "center", gap: 3, marginTop: 6,
-      fontSize: 11.5, fontWeight: 700, color: up ? "#16A34A" : "#DC2626",
+      fontSize: 11.5, fontWeight: 700, color: up ? ORANGE.base : ORANGE.darker,
     }}>
       {up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
       {Math.abs(pct).toFixed(1)}% vs previous period
@@ -295,7 +303,7 @@ function DateFilterBar({
             <button key={f.key} onClick={() => onChange(f.key)}
               style={{ border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5,
                 fontWeight: 600, padding: "7px 14px", borderRadius: 7, whiteSpace: "nowrap",
-                background: active ? "#F97316" : "transparent",
+                background: active ? ORANGE.base : "transparent",
                 color: active ? "#fff" : "#64748B",
                 transition: "background 0.15s, color 0.15s" }}
               onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = "#F8FAFC"; }}
@@ -370,10 +378,10 @@ function SalesSummaryReport({ dateRange, prevDateRange, isAllTime }: { dateRange
   });
 
   const rows: { label: string; value: number; formatted: string; color: string; trend?: boolean }[] = [
-    { label: "Total Revenue",   value: s?.totalSales ?? 0,    formatted: fmt(s?.totalSales ?? 0),    color: "#F97316", trend: true },
-    { label: "Total Purchases", value: s?.totalPurchases ?? 0, formatted: fmt(s?.totalPurchases ?? 0), color: "#8B5CF6" },
-    { label: "Net Profit",      value: s?.totalProfit ?? 0,    formatted: fmt(s?.totalProfit ?? 0),    color: "#22C55E", trend: true },
-    { label: "Outstanding Due", value: s?.outstanding ?? 0,    formatted: fmt(s?.outstanding ?? 0),    color: "#EF4444" },
+    { label: "Total Revenue",   value: s?.totalSales ?? 0,    formatted: fmt(s?.totalSales ?? 0),    color: ORANGE.base,   trend: true },
+    { label: "Total Purchases", value: s?.totalPurchases ?? 0, formatted: fmt(s?.totalPurchases ?? 0), color: ORANGE.dark },
+    { label: "Net Profit",      value: s?.totalProfit ?? 0,    formatted: fmt(s?.totalProfit ?? 0),    color: ORANGE.light,  trend: true },
+    { label: "Outstanding Due", value: s?.outstanding ?? 0,    formatted: fmt(s?.outstanding ?? 0),    color: ORANGE.darker },
   ];
 
   return (
@@ -449,11 +457,11 @@ function PurchaseSummaryReport({ dateRange }: { dateRange: DateRange }) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
           {[
-            { label: "Total Bills",    value: String(rows.length), color: "#8B5CF6" },
+            { label: "Total Bills",    value: String(rows.length), color: ORANGE.dark },
             { label: "Total Amount",   value: fmt(total),          color: "#0F172A" },
-            { label: "Total Tax Paid", value: fmt(tax),            color: "#F97316" },
-            { label: "Total Discount", value: fmt(discount),       color: "#22C55E" },
-            { label: "Avg Bill Value", value: fmt(avg),            color: "#06B6D4" },
+            { label: "Total Tax Paid", value: fmt(tax),            color: ORANGE.base },
+            { label: "Total Discount", value: fmt(discount),       color: ORANGE.light },
+            { label: "Avg Bill Value", value: fmt(avg),            color: ORANGE.darker },
           ].map((r) => (
             <div key={r.label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "20px 22px" }}>
               <div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600, marginBottom: 8 }}>{r.label}</div>
@@ -509,10 +517,10 @@ function StockReport() {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Total Products", value: String(summary?.total    ?? 0), color: "#F97316" },
-          { label: "In Stock",       value: String(summary?.inStock  ?? 0), color: "#22C55E" },
-          { label: "Low Stock",      value: String(summary?.lowStock ?? 0), color: "#EAB308" },
-          { label: "Stock Value",    value: fmt(summary?.totalValue  ?? 0), color: "#8B5CF6" },
+          { label: "Total Products", value: String(summary?.total    ?? 0), color: ORANGE.base   },
+          { label: "In Stock",       value: String(summary?.inStock  ?? 0), color: ORANGE.light  },
+          { label: "Low Stock",      value: String(summary?.lowStock ?? 0), color: ORANGE.amber  },
+          { label: "Stock Value",    value: fmt(summary?.totalValue  ?? 0), color: ORANGE.darker },
         ].map((r) => (
           <div key={r.label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "14px 16px" }}>
             <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, marginBottom: 6 }}>{r.label}</div>
@@ -541,12 +549,12 @@ function StockReport() {
                     <code style={{ background: "#F1F5F9", borderRadius: 4, padding: "2px 6px", fontSize: 12 }}>{item.productCode}</code>
                   </td>
                   <td style={{ padding: "10px 14px", color: "#64748B" }}>{item.unit}</td>
-                  <td style={{ padding: "10px 14px", fontWeight: 700, color: item.currentStock <= 0 ? "#EF4444" : item.status === "LOW_STOCK" ? "#EAB308" : "#0F172A" }}>{item.currentStock}</td>
+                  <td style={{ padding: "10px 14px", fontWeight: 700, color: item.currentStock <= 0 ? ORANGE.darker : item.status === "LOW_STOCK" ? ORANGE.amber : "#0F172A" }}>{item.currentStock}</td>
                   <td style={{ padding: "10px 14px", color: "#475569" }}>₹{item.stockValue.toFixed(2)}</td>
                   <td style={{ padding: "10px 14px" }}>
                     <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "2px 8px",
-                      background: item.status === "IN_STOCK" ? "rgba(34,197,94,0.1)" : item.status === "LOW_STOCK" ? "rgba(234,179,8,0.1)" : "rgba(239,68,68,0.1)",
-                      color:      item.status === "IN_STOCK" ? "#16A34A"             : item.status === "LOW_STOCK" ? "#A16207"              : "#DC2626" }}>
+                      background: item.status === "IN_STOCK" ? "rgba(249,115,22,0.08)" : item.status === "LOW_STOCK" ? "rgba(249,115,22,0.12)" : "rgba(249,115,22,0.16)",
+                      color:      item.status === "IN_STOCK" ? ORANGE.base            : item.status === "LOW_STOCK" ? ORANGE.amber            : ORANGE.darker }}>
                       {item.status.replace("_", " ")}
                     </span>
                   </td>
@@ -601,9 +609,9 @@ function CustomerReport() {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Total Customers",   value: String(customers.length),                              color: "#06B6D4" },
-          { label: "With Outstanding",  value: String(customers.filter((c) => c.balance > 0).length), color: "#EF4444" },
-          { label: "Total Outstanding", value: `₹${totalOutstanding.toFixed(2)}`,                      color: "#F97316" },
+          { label: "Total Customers",   value: String(customers.length),                              color: ORANGE.darker },
+          { label: "With Outstanding",  value: String(customers.filter((c) => c.balance > 0).length), color: ORANGE.dark   },
+          { label: "Total Outstanding", value: `₹${totalOutstanding.toFixed(2)}`,                      color: ORANGE.base   },
         ].map((r) => (
           <div key={r.label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "14px 16px" }}>
             <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, marginBottom: 6 }}>{r.label}</div>
@@ -629,7 +637,7 @@ function CustomerReport() {
                 <tr key={i} style={{ borderBottom: "1px solid #F1F5F9" }}>
                   <td style={{ padding: "10px 14px", fontWeight: 600 }}>{c.name}</td>
                   <td style={{ padding: "10px 14px", color: "#64748B" }}>{c.phone ?? "—"}</td>
-                  <td style={{ padding: "10px 14px", fontWeight: 700, color: c.balance > 0 ? "#EF4444" : "#94A3B8" }}>
+                  <td style={{ padding: "10px 14px", fontWeight: 700, color: c.balance > 0 ? ORANGE.darker : "#94A3B8" }}>
                     {c.balance !== 0 ? `₹${Math.abs(c.balance).toFixed(2)} ${c.balance > 0 ? "DR" : "CR"}` : "—"}
                   </td>
                   <td style={{ padding: "10px 14px", color: "#94A3B8", fontSize: 12 }}>
@@ -679,10 +687,10 @@ function PnLReport({ dateRange }: { dateRange: DateRange }) {
   const netProfit = (s?.totalSales ?? 0) - (s?.totalPurchases ?? 0) - totalExp;
   const fmt = (v: number) => `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
   const rows = [
-    { label: "Total Revenue",       value: fmt(s?.totalSales ?? 0),            color: "#22C55E", bold: false },
-    { label: "Cost of Purchases",   value: `(${fmt(s?.totalPurchases ?? 0)})`, color: "#EF4444", bold: false },
-    { label: "Total Expenses",      value: `(${fmt(totalExp)})`,               color: "#EF4444", bold: false },
-    { label: "Net Profit / (Loss)", value: fmt(Math.abs(netProfit)),           color: netProfit >= 0 ? "#16A34A" : "#EF4444", bold: true },
+    { label: "Total Revenue",       value: fmt(s?.totalSales ?? 0),            color: ORANGE.base,   bold: false },
+    { label: "Cost of Purchases",   value: `(${fmt(s?.totalPurchases ?? 0)})`, color: ORANGE.darker, bold: false },
+    { label: "Total Expenses",      value: `(${fmt(totalExp)})`,               color: ORANGE.darker, bold: false },
+    { label: "Net Profit / (Loss)", value: fmt(Math.abs(netProfit)),           color: netProfit >= 0 ? ORANGE.base : ORANGE.darker, bold: true },
   ];
 
   const headers = ["Line Item", "Amount"];
@@ -768,9 +776,9 @@ function GstReport({ dateRange }: { dateRange: DateRange }) {
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
             {[
-              { label: "Total CGST", value: fmt(totalCgst),             color: "#F59E0B" },
-              { label: "Total SGST", value: fmt(totalSgst),             color: "#F97316" },
-              { label: "Total GST",  value: fmt(totalCgst + totalSgst), color: "#EF4444" },
+              { label: "Total CGST", value: fmt(totalCgst),             color: ORANGE.amber  },
+              { label: "Total SGST", value: fmt(totalSgst),             color: ORANGE.base   },
+              { label: "Total GST",  value: fmt(totalCgst + totalSgst), color: ORANGE.darker },
             ].map((r) => (
               <div key={r.label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "14px 16px" }}>
                 <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, marginBottom: 6 }}>{r.label}</div>

@@ -41,10 +41,11 @@ export default function CashRegisterPage() {
 
   const saveOpening = () => { const v = parseFloat(openingInput) || 0; setOpeningState(v); localStorage.setItem(OPENING_KEY, String(v)); setEditOpening(false); };
 
-  const CardStat = ({ label, value, color }: { label: string; value: string; color: string }) => (
+  // Values are now always black — color prop kept only for the label accent bar (unused visually) but text stays neutral
+  const CardStat = ({ label, value }: { label: string; value: string }) => (
     <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "14px 18px" }}>
       <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 5 }}>{label}</div>
-      <div style={{ fontSize: 20, fontWeight: 800, color }}>{value}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: "#0F172A" }}>{value}</div>
     </div>
   );
 
@@ -56,12 +57,12 @@ export default function CashRegisterPage() {
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>
-        {/* Summary cards */}
+        {/* Summary cards — values all black now */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
-          <CardStat label="Opening Balance" value={`₹${opening.toFixed(2)}`} color="#64748B" />
-          <CardStat label="Total Cash In" value={`₹${totalIn.toFixed(2)}`} color="#22C55E" />
-          <CardStat label="Total Cash Out" value={`₹${totalOut.toFixed(2)}`} color="#EF4444" />
-          <CardStat label="Closing Balance" value={`₹${closing.toFixed(2)}`} color="#F97316" />
+          <CardStat label="Opening Balance" value={`₹${opening.toFixed(2)}`} />
+          <CardStat label="Total Cash In" value={`₹${totalIn.toFixed(2)}`} />
+          <CardStat label="Total Cash Out" value={`₹${totalOut.toFixed(2)}`} />
+          <CardStat label="Closing Balance" value={`₹${closing.toFixed(2)}`} />
         </div>
 
         {/* Opening balance */}

@@ -38,17 +38,25 @@ const KEYS: Record<Module, string[]> = {
   Payments:  ["paymentNumber","customerName","amount","paymentMethod","paymentDate","reference"],
 };
 
+// Single, unambiguously-orange palette — no shade dark enough to read as red/maroon
+const ORANGE = {
+  base:  "#F97316", // primary orange
+  dark:  "#EA580C", // deeper orange (still clearly orange, not brown/red)
+  light: "#FB923C", // lighter orange
+  pale:  "#f7a752", // pale orange
+};
+
 const MODULE_META: {
   value: Module; label: string; desc: string;
   icon: React.ReactNode; color: string;
 }[] = [
-  { value: "Products",  label: "Products",      desc: "Full catalogue with pricing & stock",  icon: <Package     size={20} />, color: "#F97316" },
-  { value: "Customers", label: "Customers",      desc: "Customer directory with balances",      icon: <Users       size={20} />, color: "#06B6D4" },
-  { value: "Suppliers", label: "Suppliers",      desc: "Supplier directory with balances",      icon: <Truck       size={20} />, color: "#8B5CF6" },
-  { value: "Expenses",  label: "Expenses",       desc: "All recorded expenses",                 icon: <Receipt     size={20} />, color: "#EF4444" },
-  { value: "Sales",     label: "Sale Invoices",  desc: "All sale invoices",                     icon: <BarChart2   size={20} />, color: "#22C55E" },
-  { value: "Purchases", label: "Purchases",      desc: "All purchase invoices",                 icon: <ShoppingBag size={20} />, color: "#A855F7" },
-  { value: "Payments",  label: "Payments In",    desc: "All customer payments received",        icon: <CreditCard  size={20} />, color: "#F59E0B" },
+  { value: "Products",  label: "Products",      desc: "Full catalogue with pricing & stock",  icon: <Package     size={20} />, color: ORANGE.base  },
+  { value: "Customers", label: "Customers",      desc: "Customer directory with balances",      icon: <Users       size={20} />, color: ORANGE.dark  },
+  { value: "Suppliers", label: "Suppliers",      desc: "Supplier directory with balances",      icon: <Truck       size={20} />, color: ORANGE.light },
+  { value: "Expenses",  label: "Expenses",       desc: "All recorded expenses",                 icon: <Receipt     size={20} />, color: ORANGE.base  },
+  { value: "Sales",     label: "Sale Invoices",  desc: "All sale invoices",                     icon: <BarChart2   size={20} />, color: ORANGE.dark  },
+  { value: "Purchases", label: "Purchases",      desc: "All purchase invoices",                 icon: <ShoppingBag size={20} />, color: ORANGE.light },
+  { value: "Payments",  label: "Payments In",    desc: "All customer payments received",        icon: <CreditCard  size={20} />, color: ORANGE.pale  },
 ];
 
 // ── Per-module fetch ──────────────────────────────────────────
@@ -236,12 +244,12 @@ export default function ExportPage() {
         <div style={{ width: 42, height: 42, borderRadius: 10,
           background: "rgba(249,115,22,0.1)", display: "flex",
           alignItems: "center", justifyContent: "center" }}>
-          <Download size={20} color="#F97316" />
+          <Download size={20} color={ORANGE.base} />
         </div>
         <div>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0F172A" }}>Export Data</h1>
           <p style={{ margin: 0, fontSize: 13, color: "#64748B" }}>
-            Branch: <strong style={{ color: "#F97316" }}>{activeBranch?.name ?? "current"}</strong>
+            Branch: <strong style={{ color: ORANGE.base }}>{activeBranch?.name ?? "current"}</strong>
             {" · "}Select one module to export.
           </p>
         </div>
@@ -311,9 +319,9 @@ export default function ExportPage() {
               <button key={f} onClick={() => !exporting && setFmt(f)} style={{
                 padding: "7px 22px", borderRadius: 8,
                 cursor: exporting ? "not-allowed" : "pointer",
-                border: `1.5px solid ${fmt === f ? "#F97316" : "#E2E8F0"}`,
+                border: `1.5px solid ${fmt === f ? ORANGE.base : "#E2E8F0"}`,
                 background: fmt === f ? "rgba(249,115,22,0.07)" : "#fff",
-                color: fmt === f ? "#F97316" : "#475569",
+                color: fmt === f ? ORANGE.base : "#475569",
                 fontWeight: fmt === f ? 700 : 400,
                 fontSize: 13, textTransform: "uppercase", fontFamily: "inherit",
               }}>.{f}</button>
@@ -327,10 +335,10 @@ export default function ExportPage() {
             borderRadius: 12, padding: "16px 24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
               {step.status === "fetching" || step.status === "writing"
-                ? <Loader2 size={15} color="#F97316" style={{ animation: "spin 0.7s linear infinite" }} />
+                ? <Loader2 size={15} color={ORANGE.base} style={{ animation: "spin 0.7s linear infinite" }} />
                 : step.status === "done"
-                ? <CheckCircle2 size={15} color="#22C55E" />
-                : <AlertCircle size={15} color="#EF4444" />}
+                ? <CheckCircle2 size={15} color={ORANGE.base} />
+                : <AlertCircle size={15} color={ORANGE.dark} />}
               <span style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
                 {step.status === "fetching" ? "Fetching data…"
                   : step.status === "writing" ? "Building file…"
@@ -343,8 +351,8 @@ export default function ExportPage() {
             <div style={{ height: 6, background: "#F1F5F9", borderRadius: 99 }}>
               <div style={{
                 height: "100%", borderRadius: 99,
-                background: step.status === "error" ? "#EF4444"
-                  : step.status === "done" ? "#22C55E" : "#F97316",
+                background: step.status === "error" ? ORANGE.dark
+                  : step.status === "done" ? ORANGE.base : ORANGE.light,
                 width: step.status === "fetching" ? "35%"
                   : step.status === "writing" ? "70%"
                   : step.status === "done"    ? "100%" : "100%",
@@ -352,7 +360,7 @@ export default function ExportPage() {
               }} />
             </div>
             {step.status === "done" && step.rows > 0 && (
-              <div style={{ fontSize: 12, color: "#22C55E", fontWeight: 600, marginTop: 8 }}>
+              <div style={{ fontSize: 12, color: ORANGE.base, fontWeight: 600, marginTop: 8 }}>
                 ✓ {step.rows.toLocaleString()} rows exported
               </div>
             )}
@@ -361,9 +369,9 @@ export default function ExportPage() {
 
         {/* ── Error banner ─────────────────────────────────── */}
         {error && (
-          <div style={{ background: "rgba(239,68,68,0.06)",
-            border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8,
-            padding: "10px 14px", fontSize: 13, color: "#EF4444",
+          <div style={{ background: "rgba(249,115,22,0.06)",
+            border: `1px solid ${ORANGE.base}33`, borderRadius: 8,
+            padding: "10px 14px", fontSize: 13, color: ORANGE.dark,
             display: "flex", alignItems: "center", gap: 8 }}>
             <AlertCircle size={15} /> {error}
           </div>
@@ -374,7 +382,7 @@ export default function ExportPage() {
           disabled={!selected || exporting}
           style={{
             padding: "13px 0", borderRadius: 10, border: "none",
-            background: !selected ? "#CBD5E1" : exporting ? "#FED7AA" : "#F97316",
+            background: !selected ? "#CBD5E1" : exporting ? "#FED7AA" : ORANGE.base,
             color: !selected ? "#94A3B8" : "#fff",
             fontSize: 14, fontWeight: 700,
             cursor: !selected || exporting ? "not-allowed" : "pointer",
@@ -394,20 +402,20 @@ export default function ExportPage() {
         {/* ── Success card with Open File ───────────────────── */}
         {savedPath && step?.status === "done" && (
           <div style={{
-            background: "rgba(34,197,94,0.05)",
-            border: "1.5px solid rgba(34,197,94,0.3)",
+            background: "rgba(249,115,22,0.05)",
+            border: `1.5px solid ${ORANGE.base}4D`,
             borderRadius: 12, padding: "16px 20px",
             display: "flex", alignItems: "center",
             justifyContent: "space-between", gap: 12,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
               <div style={{ width: 38, height: 38, borderRadius: 9, flexShrink: 0,
-                background: "rgba(34,197,94,0.12)", display: "flex",
+                background: "rgba(249,115,22,0.12)", display: "flex",
                 alignItems: "center", justifyContent: "center" }}>
-                <CheckCircle2 size={18} color="#22C55E" />
+                <CheckCircle2 size={18} color={ORANGE.base} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#166534" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: ORANGE.dark }}>
                   File saved successfully
                 </div>
                 <div style={{ fontSize: 12, color: "#64748B", marginTop: 2,
@@ -421,14 +429,14 @@ export default function ExportPage() {
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "9px 18px", borderRadius: 8,
-                border: "1.5px solid #22C55E",
-                background: "#fff", color: "#166534",
+                border: `1.5px solid ${ORANGE.base}`,
+                background: "#fff", color: ORANGE.dark,
                 fontSize: 13, fontWeight: 700,
                 cursor: "pointer", fontFamily: "inherit",
                 flexShrink: 0, whiteSpace: "nowrap",
                 transition: "background 0.13s",
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(34,197,94,0.08)"; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(249,115,22,0.08)"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}>
               <FolderOpen size={14} /> Open File
             </button>

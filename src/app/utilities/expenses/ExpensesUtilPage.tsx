@@ -66,16 +66,16 @@ export default function ExpensesUtilPage() {
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>
-        {/* Summary cards */}
+        {/* Summary cards — values all black now */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
           {[
-            { label: "Today's Total", value: `₹${todayTotal.toFixed(2)}`, color: "#F97316" },
-            { label: "This Month", value: `₹${monthTotal.toFixed(2)}`, color: "#8B5CF6" },
-            { label: "Total Entries", value: expenses.length, color: "#0EA5E9" },
+            { label: "Today's Total", value: `₹${todayTotal.toFixed(2)}` },
+            { label: "This Month", value: `₹${monthTotal.toFixed(2)}` },
+            { label: "Total Entries", value: expenses.length },
           ].map(c => (
             <div key={c.label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "16px 18px" }}>
               <div style={{ fontSize: 12, color: "#94A3B8", marginBottom: 6 }}>{c.label}</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: c.color }}>{c.value}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#0F172A" }}>{c.value}</div>
             </div>
           ))}
         </div>

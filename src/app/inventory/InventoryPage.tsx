@@ -16,10 +16,21 @@ interface InventorySummary {
 }
 interface ApiResponse<T> { success: boolean; data: T; }
 
+/* ---------------- Single orange palette (no green/yellow/red/blue) ---------------- */
+const ORANGE = {
+  base:      "#F97316", // primary orange
+  dark:      "#C2410C", // darker orange (for emphasis / "danger" states)
+  darker:    "#9A3412", // darkest, used for strong text
+  light:     "#FB923C", // lighter orange (secondary emphasis)
+  bgSoft:    "rgba(249,115,22,0.10)",
+  bgSofter:  "rgba(249,115,22,0.06)",
+  border:    "#FDBA74",
+};
+
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  IN_STOCK:     { bg: "rgba(34,197,94,0.1)",  color: "#16A34A", label: "In Stock"    },
-  LOW_STOCK:    { bg: "rgba(234,179,8,0.1)",  color: "#A16207", label: "Low Stock"   },
-  OUT_OF_STOCK: { bg: "rgba(239,68,68,0.1)",  color: "#DC2626", label: "Out of Stock" },
+  IN_STOCK:     { bg: ORANGE.bgSofter, color: ORANGE.base,  label: "In Stock"     },
+  LOW_STOCK:    { bg: ORANGE.bgSoft,   color: ORANGE.light,  label: "Low Stock"    },
+  OUT_OF_STOCK: { bg: ORANGE.bgSoft,   color: ORANGE.dark,  label: "Out of Stock" },
 };
 
 const UNIT_OPTIONS = ["PIECES", "METERS", "KG", "BOX", "DOZEN", "PAIR"];
@@ -228,12 +239,12 @@ export default function InventoryPage() {
           <div style={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>Inventory</div>
           <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 2 }}>
             Real-time stock levels · Total value:{" "}
-            <strong style={{ color: "#F97316" }}>₹{summary.totalValue.toFixed(2)}</strong>
+            <strong style={{ color: ORANGE.base }}>₹{summary.totalValue.toFixed(2)}</strong>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button type="button" onClick={() => void handleRefresh()} style={iconBtn} title="Refresh">
-            <RefreshCw size={15} color="#64748B" style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
+            <RefreshCw size={15} color={ORANGE.dark} style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
           </button>
           <button type="button" onClick={() => setShowCreate(true)} style={primaryBtn}>
             <Plus size={15} /> Add Product
@@ -241,20 +252,23 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Summary cards */}
+      {/* Summary cards — all orange now, only intensity varies */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16, flexShrink: 0 }}>
         {[
-          { icon: <Package size={20} color="#F97316" />,       label: "Total Products", value: summary.total,      color: "#F97316", f: "ALL"          },
-          { icon: <TrendingUp size={20} color="#22C55E" />,    label: "In Stock",       value: summary.inStock,    color: "#22C55E", f: "IN_STOCK"     },
-          { icon: <AlertTriangle size={20} color="#EAB308" />, label: "Low Stock",      value: summary.lowStock,   color: "#EAB308", f: "LOW_STOCK"    },
-          { icon: <TrendingDown size={20} color="#EF4444" />,  label: "Out of Stock",   value: summary.outOfStock, color: "#EF4444", f: "OUT_OF_STOCK" },
+          { icon: <Package size={20} color={ORANGE.base} />,       label: "Total Products", value: summary.total,      color: ORANGE.base,  f: "ALL"          },
+          { icon: <TrendingUp size={20} color={ORANGE.base} />,    label: "In Stock",       value: summary.inStock,    color: ORANGE.base,  f: "IN_STOCK"     },
+          { icon: <AlertTriangle size={20} color={ORANGE.light} />, label: "Low Stock",      value: summary.lowStock,   color: ORANGE.light, f: "LOW_STOCK"    },
+          { icon: <TrendingDown size={20} color={ORANGE.dark} />,  label: "Out of Stock",   value: summary.outOfStock, color: ORANGE.dark,  f: "OUT_OF_STOCK" },
         ].map((c) => (
           <button key={c.label} onClick={() => setFilter(c.f as typeof filter)} style={{
             background: "#fff", border: `1.5px solid ${filter === c.f ? c.color : "#E2E8F0"}`,
             borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12,
             cursor: "pointer", textAlign: "left",
             boxShadow: filter === c.f ? `0 0 0 3px ${c.color}22` : "none", transition: "all 0.15s",
-          }}>
+          }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = ORANGE.base; (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 0 3px ${ORANGE.base}22`; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = filter === c.f ? c.color : "#E2E8F0"; (e.currentTarget as HTMLButtonElement).style.boxShadow = filter === c.f ? `0 0 0 3px ${c.color}22` : "none"; }}
+          >
             <div style={{ width: 40, height: 40, borderRadius: 10, background: `${c.color}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>{c.icon}</div>
             <div>
               <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>{c.label}</div>
@@ -276,9 +290,13 @@ export default function InventoryPage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by product name or code..."
             style={{ ...inputStyle, paddingLeft: 34, background: "#fff" }}
+            onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
+            onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }}
           />
           {search && (
-            <button onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94A3B8", padding: 2 }}>
+            <button onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94A3B8", padding: 2 }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = ORANGE.base; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#94A3B8"; }}>
               <X size={14} />
             </button>
           )}
@@ -288,16 +306,20 @@ export default function InventoryPage() {
           {selected.size > 0 && (
             <motion.div
               initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
-              style={{ display: "flex", alignItems: "center", gap: 10, background: "#FFF7ED", border: "1px solid #FDBA74", borderRadius: 8, padding: "6px 12px" }}
+              style={{ display: "flex", alignItems: "center", gap: 10, background: "#FFF7ED", border: `1px solid ${ORANGE.border}`, borderRadius: 8, padding: "6px 12px" }}
             >
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#9A3412" }}>{selected.size} selected</span>
-              <button onClick={handleExportSelected} style={bulkBtn} title="Export selected as CSV">
+              <span style={{ fontSize: 13, fontWeight: 600, color: ORANGE.darker }}>{selected.size} selected</span>
+              <button onClick={handleExportSelected} style={bulkBtn} title="Export selected as CSV"
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = ORANGE.base; (e.currentTarget as HTMLButtonElement).style.color = ORANGE.base; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(var(--border))"; (e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--foreground))"; }}>
                 <Download size={13} /> Export
               </button>
-              <button onClick={() => void handleBulkDelete()} disabled={bulkDeleting} style={{ ...bulkBtn, color: "#DC2626", borderColor: "#FCA5A5" }} title="Delete selected">
+              <button onClick={() => void handleBulkDelete()} disabled={bulkDeleting} style={{ ...bulkBtn, color: ORANGE.dark, borderColor: ORANGE.border }} title="Delete selected"
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = ORANGE.bgSoft; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "hsl(var(--card))"; }}>
                 {bulkDeleting ? <Loader2 size={13} style={{ animation: "spin 0.7s linear infinite" }} /> : <Trash2 size={13} />} Delete
               </button>
-              <button onClick={clearSelection} style={{ background: "none", border: "none", cursor: "pointer", color: "#9A3412" }}>
+              <button onClick={clearSelection} style={{ background: "none", border: "none", cursor: "pointer", color: ORANGE.darker }}>
                 <X size={14} />
               </button>
             </motion.div>
@@ -316,7 +338,7 @@ export default function InventoryPage() {
             <thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
               <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
                 <th style={{ ...thStyle, width: 36 }}>
-                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} style={{ cursor: "pointer" }} />
+                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} style={{ cursor: "pointer", accentColor: ORANGE.base }} />
                 </th>
                 {["Product","Code","Unit","Opening","Stock In","Stock Out","Current Stock","Stock Value","Status",""].map((h) => (
                   <th key={h} style={thStyle}>{h}</th>
@@ -326,11 +348,11 @@ export default function InventoryPage() {
             <tbody>
               {isLoading && <tr><td colSpan={11} style={{ padding: "48px", textAlign: "center" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 26, height: 26, border: "3px solid #F97316", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                  <div style={{ width: 26, height: 26, border: `3px solid ${ORANGE.base}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
                   <span style={{ fontSize: 13, color: "#94A3B8" }}>Loading inventory…</span>
                 </div>
               </td></tr>}
-              {isError && <tr><td colSpan={11} style={{ padding: "48px", textAlign: "center", color: "#EF4444" }}>
+              {isError && <tr><td colSpan={11} style={{ padding: "48px", textAlign: "center", color: ORANGE.dark }}>
                 <AlertTriangle size={22} /> Backend not connected
               </td></tr>}
               {!isLoading && !isError && items.length === 0 && (
@@ -347,18 +369,18 @@ export default function InventoryPage() {
                   return (
                     <motion.tr key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       style={{ borderBottom: idx < items.length - 1 ? "1px solid #F1F5F9" : "none", background: isSelected ? "#FFF7ED" : "transparent" }}
-                      onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
+                      onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = ORANGE.bgSofter; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = isSelected ? "#FFF7ED" : "transparent"; }}>
                       <td style={tdStyle}>
-                        <input type="checkbox" checked={isSelected} onChange={() => toggleOne(item.id)} style={{ cursor: "pointer" }} />
+                        <input type="checkbox" checked={isSelected} onChange={() => toggleOne(item.id)} style={{ cursor: "pointer", accentColor: ORANGE.base }} />
                       </td>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>{item.productName}</td>
                       <td style={tdStyle}><code style={chip}>{item.productCode}</code></td>
                       <td style={{ ...tdStyle, color: "#64748B" }}>{item.unit}</td>
                       <td style={{ ...tdStyle, color: "#64748B" }}>{item.openingStock}</td>
-                      <td style={{ ...tdStyle, color: "#22C55E", fontWeight: 600 }}>+{item.stockIn}</td>
-                      <td style={{ ...tdStyle, color: "#EF4444", fontWeight: 600 }}>-{item.stockOut}</td>
-                      <td style={{ ...tdStyle, fontSize: 14, fontWeight: 800, color: item.currentStock <= 0 ? "#EF4444" : item.currentStock <= item.lowStockAlert ? "#EAB308" : "#0F172A" }}>
+                      <td style={{ ...tdStyle, color: ORANGE.base, fontWeight: 600 }}>+{item.stockIn}</td>
+                      <td style={{ ...tdStyle, color: ORANGE.dark, fontWeight: 600 }}>-{item.stockOut}</td>
+                      <td style={{ ...tdStyle, fontSize: 14, fontWeight: 800, color: item.currentStock <= 0 ? ORANGE.dark : item.currentStock <= item.lowStockAlert ? ORANGE.light : "#0F172A" }}>
                         {item.currentStock}
                       </td>
                       <td style={{ ...tdStyle, fontWeight: 600, color: "#475569" }}>₹{item.stockValue.toFixed(2)}</td>
@@ -367,7 +389,7 @@ export default function InventoryPage() {
                       </td>
                       <td style={tdStyle}>
                         <button onClick={() => setAdjustTarget(item)} style={rowIconBtn} title="Adjust stock"
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#F97316"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = ORANGE.base; (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#64748B"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
                           <Edit2 size={13} />
                         </button>
@@ -384,7 +406,7 @@ export default function InventoryPage() {
         <div ref={sentinelRef} style={{ height: 1 }} />
         {isFetchingNextPage && (
           <div style={{ padding: "14px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#94A3B8", fontSize: 13 }}>
-            <Loader2 size={16} color="#F97316" style={{ animation: "spin 0.7s linear infinite" }} /> Loading more…
+            <Loader2 size={16} color={ORANGE.base} style={{ animation: "spin 0.7s linear infinite" }} /> Loading more…
           </div>
         )}
         {!hasNextPage && items.length > 0 && !search && (
@@ -438,7 +460,7 @@ function AdjustStockDialog({ item, onClose, onSaved }: { item: InventoryItem; on
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px" }}>
           <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "12px 14px", marginBottom: 18, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            {[{ label: "Stock In", value: `+${item.stockIn}`, color: "#22C55E" }, { label: "Stock Out", value: `-${item.stockOut}`, color: "#EF4444" }, { label: "New Total", value: String(newCurrent), color: newCurrent <= 0 ? "#EF4444" : "#0F172A" }].map((s) => (
+            {[{ label: "Stock In", value: `+${item.stockIn}`, color: ORANGE.base }, { label: "Stock Out", value: `-${item.stockOut}`, color: ORANGE.dark }, { label: "New Total", value: String(newCurrent), color: newCurrent <= 0 ? ORANGE.dark : "#0F172A" }].map((s) => (
               <div key={s.label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{s.label}</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: s.color, marginTop: 2 }}>{s.value}</div>
@@ -446,13 +468,17 @@ function AdjustStockDialog({ item, onClose, onSaved }: { item: InventoryItem; on
             ))}
           </div>
           <label style={labelStyle}>Opening Stock ({item.unit})</label>
-          <input type="text" inputMode="decimal" value={openingStock} onChange={(e) => { setOpeningStock(e.target.value); setError(""); }} style={inputStyle} autoFocus />
+          <input type="text" inputMode="decimal" value={openingStock} onChange={(e) => { setOpeningStock(e.target.value); setError(""); }} style={inputStyle} autoFocus
+            onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
+            onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }} />
           <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 5 }}>
-            Current stock will become <strong style={{ color: "#F97316" }}>{newCurrent}</strong> {item.unit}
+            Current stock will become <strong style={{ color: ORANGE.base }}>{newCurrent}</strong> {item.unit}
           </div>
-          {error && <div style={{ fontSize: 12, color: "#EF4444", marginTop: 8 }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: ORANGE.dark, marginTop: 8 }}>{error}</div>}
           <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-            <button type="button" onClick={onClose} style={cancelBtn}>Cancel</button>
+            <button type="button" onClick={onClose} style={cancelBtn}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = ORANGE.base; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(var(--border))"; }}>Cancel</button>
             <button type="submit" disabled={loading} style={{ ...primaryBtnFull, flex: 2, justifyContent: "center" }}>
               {loading ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> Saving…</> : <><CheckCircle2 size={14} /> Apply Adjustment</>}
             </button>
@@ -495,10 +521,6 @@ function CreateProductDialog({ onClose, onSaved }: { onClose: () => void; onSave
 
     setLoading(true);
     try {
-      // ⚠️ FIX: field names now match the Prisma `Product` model
-      // (name / code / salePrice) instead of productName / productCode /
-      // sellingPrice. That mismatch is what made the backend see the
-      // required fields as missing and return "Required".
       const res = await http.post<{ success: boolean; message?: string }>("/products", {
         name: productName.trim(),
         code: productCode.trim(),
@@ -514,8 +536,6 @@ function CreateProductDialog({ onClose, onSaved }: { onClose: () => void; onSave
         setError(res.message || "Failed to create product.");
       }
     } catch (err: any) {
-      // FIX: surface the REAL backend message instead of a generic string,
-      // so if this ever fails again you see exactly which field it wants.
       const backendMsg =
         err?.response?.data?.message ??
         err?.response?.data?.error ??
@@ -544,49 +564,65 @@ function CreateProductDialog({ onClose, onSaved }: { onClose: () => void; onSave
         <form onSubmit={handleSubmit} style={{ padding: "20px", overflowY: "auto" }}>
           <label style={labelStyle}>Product Name *</label>
           <input type="text" value={productName} onChange={(e) => { setProductName(e.target.value); setError(""); }}
-            placeholder="e.g. 1056 RAMA 30 SAREE" style={{ ...inputStyle, marginBottom: 14 }} autoFocus />
+            placeholder="e.g. 1056 RAMA 30 SAREE" style={{ ...inputStyle, marginBottom: 14 }} autoFocus
+            onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
+            onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }} />
 
           <label style={labelStyle}>Product Code / SKU *</label>
           <input type="text" value={productCode} onChange={(e) => { setProductCode(e.target.value); setError(""); }}
-            placeholder="e.g. 1110285257" style={{ ...inputStyle, marginBottom: 14 }} />
+            placeholder="e.g. 1110285257" style={{ ...inputStyle, marginBottom: 14 }}
+            onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
+            onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }} />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>Unit</label>
-              <select value={unit} onChange={(e) => setUnit(e.target.value)} style={inputStyle}>
+              <select value={unit} onChange={(e) => setUnit(e.target.value)} style={inputStyle}
+                onFocus={(e) => { (e.currentTarget as HTMLSelectElement).style.borderColor = ORANGE.base; }}
+                onBlur={(e) => { (e.currentTarget as HTMLSelectElement).style.borderColor = "hsl(var(--border))"; }}>
                 {UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
             <div>
               <label style={labelStyle}>Opening Stock</label>
               <input type="text" inputMode="decimal" value={openingStock}
-                onChange={(e) => { setOpeningStock(e.target.value); setError(""); }} style={inputStyle} />
+                onChange={(e) => { setOpeningStock(e.target.value); setError(""); }} style={inputStyle}
+                onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
+                onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }} />
             </div>
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Low Stock Alert Level</label>
             <input type="text" inputMode="decimal" value={lowStockAlert}
-              onChange={(e) => { setLowStockAlert(e.target.value); setError(""); }} style={inputStyle} />
+              onChange={(e) => { setLowStockAlert(e.target.value); setError(""); }} style={inputStyle}
+              onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
+              onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 6 }}>
             <div>
               <label style={labelStyle}>Purchase Price (₹)</label>
               <input type="text" inputMode="decimal" value={purchasePrice}
-                onChange={(e) => { setPurchasePrice(e.target.value); setError(""); }} placeholder="0.00" style={inputStyle} />
+                onChange={(e) => { setPurchasePrice(e.target.value); setError(""); }} placeholder="0.00" style={inputStyle}
+                onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
+                onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }} />
             </div>
             <div>
               <label style={labelStyle}>Selling Price (₹)</label>
               <input type="text" inputMode="decimal" value={sellingPrice}
-                onChange={(e) => { setSellingPrice(e.target.value); setError(""); }} placeholder="0.00" style={inputStyle} />
+                onChange={(e) => { setSellingPrice(e.target.value); setError(""); }} placeholder="0.00" style={inputStyle}
+                onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
+                onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }} />
             </div>
           </div>
 
-          {error && <div style={{ fontSize: 12, color: "#EF4444", marginTop: 10 }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: ORANGE.dark, marginTop: 10 }}>{error}</div>}
 
           <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-            <button type="button" onClick={onClose} style={cancelBtn}>Cancel</button>
+            <button type="button" onClick={onClose} style={cancelBtn}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = ORANGE.base; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(var(--border))"; }}>Cancel</button>
             <button type="submit" disabled={loading} style={{ ...primaryBtnFull, flex: 2, justifyContent: "center" }}>
               {loading ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> Saving…</> : <><CheckCircle2 size={14} /> Add Product</>}
             </button>

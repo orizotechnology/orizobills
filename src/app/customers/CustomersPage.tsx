@@ -20,7 +20,19 @@ type BalanceFilter = "ALL" | "DUE" | "CREDIT" | "ZERO";
 type SortKey = "name" | "balance";
 type SortDir = "asc" | "desc";
 
-const AVATAR_COLORS = ["#F97316", "#3B82F6", "#22C55E", "#A855F7", "#EC4899", "#14B8A6", "#EAB308"];
+/* ---------------- Single orange palette (no green/blue/red/yellow) ---------------- */
+const ORANGE = {
+  base:     "#F97316",
+  dark:     "#C2410C",
+  darker:   "#9A3412",
+  light:    "#FB923C",
+  pale:     "#FDBA74",
+  bgSoft:   "rgba(249,115,22,0.10)",
+  bgSofter: "rgba(249,115,22,0.06)",
+};
+
+// All avatar colors are now orange shades only
+const AVATAR_COLORS = [ORANGE.base, ORANGE.dark, ORANGE.light, ORANGE.darker, ORANGE.pale];
 function avatarColorFor(name: string) {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -39,13 +51,13 @@ function BalanceBadge({ balance }: { balance: number }) {
   }
   if (balance > 0) {
     return (
-      <span style={{ ...badgeBase, background: "rgba(239,68,68,0.1)", color: "#DC2626" }}>
+      <span style={{ ...badgeBase, background: ORANGE.bgSoft, color: ORANGE.dark }}>
         ₹{balance.toFixed(2)} DR
       </span>
     );
   }
   return (
-    <span style={{ ...badgeBase, background: "rgba(34,197,94,0.1)", color: "#16A34A" }}>
+    <span style={{ ...badgeBase, background: ORANGE.bgSofter, color: ORANGE.base }}>
       ₹{Math.abs(balance).toFixed(2)} CR
     </span>
   );
@@ -116,10 +128,10 @@ function ExportButton({ onExportExcel, onExportPDF, disabled }: { onExportExcel:
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
           <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 20, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", minWidth: 190, overflow: "hidden" }}>
             <button onClick={() => { onExportExcel(); setOpen(false); }} style={menuItemStyle}>
-              <FileSpreadsheet size={14} color="#22C55E" /> Download Excel (.xlsx)
+              <FileSpreadsheet size={14} color={ORANGE.base} /> Download Excel (.xlsx)
             </button>
             <button onClick={() => { onExportPDF(); setOpen(false); }} style={{ ...menuItemStyle, borderTop: "1px solid #F1F5F9" }}>
-              <FileText size={14} color="#F97316" /> Download PDF
+              <FileText size={14} color={ORANGE.dark} /> Download PDF
             </button>
           </div>
         </>
@@ -222,7 +234,7 @@ export default function CustomersPage() {
 
   const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => {
     if (!active) return <ArrowUpDown size={11} color="#CBD5E1" />;
-    return dir === "asc" ? <ArrowUp size={11} color="#F97316" /> : <ArrowDown size={11} color="#F97316" />;
+    return dir === "asc" ? <ArrowUp size={11} color={ORANGE.base} /> : <ArrowDown size={11} color={ORANGE.base} />;
   };
 
   // ── Export handlers ─────────────────────────────────────────
@@ -246,26 +258,29 @@ export default function CustomersPage() {
         <div style={{ display: "flex", gap: 8 }}>
           <ExportButton onExportExcel={handleExportExcel} onExportPDF={handleExportPDF} disabled={customers.length === 0} />
           <button type="button" onClick={() => void handleRefresh()} style={iconBtn}>
-            <RefreshCw size={15} color="#64748B" style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
+            <RefreshCw size={15} color={ORANGE.dark} style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
           </button>
           <button onClick={() => setDialog("new")} style={primaryBtn}><Plus size={15} /> Add Customer</button>
         </div>
       </div>
 
-      {/* Summary cards (also act as balance filters) */}
+      {/* Summary cards (also act as balance filters) — all orange now */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16, flexShrink: 0 }}>
         {[
-          { icon: <Users size={20} color="#F97316" />,       label: "Total Customers",  value: `${total}`,                         color: "#F97316", f: "ALL" as BalanceFilter    },
-          { icon: <UserCheck size={20} color="#3B82F6" />,   label: "Active",           value: `${summary.active}`,                color: "#3B82F6", f: "ALL" as BalanceFilter    },
-          { icon: <TrendingDown size={20} color="#EF4444" />,label: "Balance Due",      value: `₹${summary.due.toFixed(2)}`,       color: "#EF4444", f: "DUE" as BalanceFilter    },
-          { icon: <TrendingUp size={20} color="#22C55E" />,  label: "In Credit",        value: `₹${summary.credit.toFixed(2)}`,    color: "#22C55E", f: "CREDIT" as BalanceFilter },
+          { icon: <Users size={20} color={ORANGE.base} />,        label: "Total Customers", value: `${total}`,                      color: ORANGE.base,  f: "ALL" as BalanceFilter    },
+          { icon: <UserCheck size={20} color={ORANGE.light} />,   label: "Active",          value: `${summary.active}`,             color: ORANGE.light, f: "ALL" as BalanceFilter    },
+          { icon: <TrendingDown size={20} color={ORANGE.dark} />, label: "Balance Due",     value: `₹${summary.due.toFixed(2)}`,    color: ORANGE.dark,  f: "DUE" as BalanceFilter    },
+          { icon: <TrendingUp size={20} color={ORANGE.base} />,   label: "In Credit",       value: `₹${summary.credit.toFixed(2)}`, color: ORANGE.base,  f: "CREDIT" as BalanceFilter },
         ].map((c) => (
           <button key={c.label} onClick={() => setBalanceFilter(c.f)} style={{
             background: "#fff", border: `1.5px solid ${balanceFilter === c.f ? c.color : "#E2E8F0"}`,
             borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12,
             cursor: "pointer", textAlign: "left",
             boxShadow: balanceFilter === c.f ? `0 0 0 3px ${c.color}22` : "none", transition: "all 0.15s",
-          }}>
+          }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = ORANGE.base; (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 0 3px ${ORANGE.base}22`; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = balanceFilter === c.f ? c.color : "#E2E8F0"; (e.currentTarget as HTMLButtonElement).style.boxShadow = balanceFilter === c.f ? `0 0 0 3px ${c.color}22` : "none"; }}
+          >
             <div style={{ width: 40, height: 40, borderRadius: 10, background: `${c.color}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>{c.icon}</div>
             <div>
               <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>{c.label}</div>
@@ -281,7 +296,7 @@ export default function CustomersPage() {
           <Search size={13} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none" }} />
           <input value={search} onChange={(e) => handleSearch(e.target.value)} placeholder="Search by name, phone, email…"
             style={{ width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "7px 10px 7px 28px", fontSize: 13, color: "#475569", background: "#F8FAFC", outline: "none", fontFamily: "inherit", boxSizing: "border-box" as const }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#F97316"; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = ORANGE.base; }}
             onBlur={(e)  => { e.currentTarget.style.borderColor = "#E2E8F0"; }} />
         </div>
         <div style={{ display: "flex", gap: 6 }}>
@@ -293,9 +308,9 @@ export default function CustomersPage() {
           ] as { key: BalanceFilter; label: string }[]).map((f) => (
             <button key={f.key} onClick={() => setBalanceFilter(f.key)} style={{
               padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-              border: balanceFilter === f.key ? "1.5px solid #F97316" : "1.5px solid #E2E8F0",
+              border: balanceFilter === f.key ? `1.5px solid ${ORANGE.base}` : "1.5px solid #E2E8F0",
               background: balanceFilter === f.key ? "#FFF7ED" : "#fff",
-              color: balanceFilter === f.key ? "#C2410C" : "#64748B",
+              color: balanceFilter === f.key ? ORANGE.dark : "#64748B",
             }}>
               {f.label}
             </button>
@@ -327,9 +342,9 @@ export default function CustomersPage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={7} style={centeredCell}>
-              <Loader2 size={20} color="#F97316" style={{ animation: "spin 0.7s linear infinite" }} />
+              <Loader2 size={20} color={ORANGE.base} style={{ animation: "spin 0.7s linear infinite" }} />
             </td></tr>}
-            {isError && <tr><td colSpan={7} style={{ ...centeredCell, color: "#EF4444" }}>
+            {isError && <tr><td colSpan={7} style={{ ...centeredCell, color: ORANGE.dark }}>
               <AlertTriangle size={18} /> Backend not connected
             </td></tr>}
             {!isLoading && !isError && customers.length === 0 && (
@@ -343,7 +358,7 @@ export default function CustomersPage() {
               {customers.map((c, idx) => (
                 <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   style={{ borderBottom: idx < customers.length - 1 ? "1px solid #F1F5F9" : "none" }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ORANGE.bgSofter; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -368,12 +383,12 @@ export default function CustomersPage() {
                   <td style={tdStyle}>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={() => setDialog(c)} style={rowIconBtn} title="Edit"
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#F97316"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = ORANGE.base; (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; }}
                         onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#64748B"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
                         <Edit2 size={13} />
                       </button>
                       <button onClick={() => deleteMutation.mutate(c.id)} style={{ ...rowIconBtn, color: "#CBD5E1" }} title="Delete"
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#EF4444"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF1F2"; }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = ORANGE.dark; (e.currentTarget as HTMLButtonElement).style.background = ORANGE.bgSoft; }}
                         onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#CBD5E1"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
                         <Trash2 size={13} />
                       </button>
@@ -389,7 +404,7 @@ export default function CustomersPage() {
         <div ref={sentinelRef} style={{ height: 1 }} />
         {isFetchingNextPage && (
           <div style={{ padding: "14px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#94A3B8", fontSize: 13 }}>
-            <Loader2 size={16} color="#F97316" style={{ animation: "spin 0.7s linear infinite" }} /> Loading more…
+            <Loader2 size={16} color={ORANGE.base} style={{ animation: "spin 0.7s linear infinite" }} /> Loading more…
           </div>
         )}
         {!hasNextPage && customers.length > 0 && balanceFilter === "ALL" && !debSearch && (
@@ -464,23 +479,31 @@ function CustomerDialog({ customer, onClose, onSaved }: { customer: Customer | n
             { label: "GSTIN",  key: "gstin", placeholder: "22AAAAA0000A1Z5" }].map(({ label, key, placeholder }) => (
             <div key={key}>
               <label style={labelStyle}>{label}</label>
-              <input value={(form as Record<string, string>)[key]} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} style={inputStyle} />
+              <input value={(form as Record<string, string>)[key]} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} style={inputStyle}
+                onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
+                onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }} />
             </div>
           ))}
           <div>
             <label style={labelStyle}>Address</label>
-            <textarea value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Street, City, State, PIN" rows={2} style={{ ...inputStyle, resize: "none" }} />
+            <textarea value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Street, City, State, PIN" rows={2} style={{ ...inputStyle, resize: "none" }}
+              onFocus={(e) => { (e.currentTarget as HTMLTextAreaElement).style.borderColor = ORANGE.base; }}
+              onBlur={(e) => { (e.currentTarget as HTMLTextAreaElement).style.borderColor = "hsl(var(--border))"; }} />
           </div>
           <div>
             <label style={labelStyle}>Opening Balance (₹)</label>
-            <input type="text" inputMode="decimal" step={0.01} value={form.openingBalance} onChange={(e) => set("openingBalance", e.target.value)} placeholder="0.00" style={inputStyle} />
+            <input type="text" inputMode="decimal" step={0.01} value={form.openingBalance} onChange={(e) => set("openingBalance", e.target.value)} placeholder="0.00" style={inputStyle}
+              onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
+              onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }} />
             <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>
               Positive = customer owes you (DR) · Negative = you owe customer (CR)
             </div>
           </div>
-          {error && <div style={{ fontSize: 12, color: "#EF4444" }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: ORANGE.dark }}>{error}</div>}
           <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={cancelBtn}>Cancel</button>
+            <button type="button" onClick={onClose} style={cancelBtn}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = ORANGE.base; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(var(--border))"; }}>Cancel</button>
             <button type="submit" disabled={loading} style={{ ...primaryBtn, flex: 2, justifyContent: "center" }}>
               {loading ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> Saving…</> : <><CheckCircle2 size={14} /> {isEdit ? "Update" : "Add Customer"}</>}
             </button>
