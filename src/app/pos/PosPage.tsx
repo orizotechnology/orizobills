@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   UserRound, Printer, Save, RefreshCw, Archive,
-  CheckCircle2, AlertCircle, X, Loader2,
+  CheckCircle2, AlertCircle, X, Loader2, FileText,
 } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useQueryClient } from "@tanstack/react-query";
@@ -530,6 +530,12 @@ export default function PosPage() {
               setShowBillOverview(false);
               setPrintData(null);
             }}
+            onViewInvoices={() => {
+              const invNo = printData.invoiceNo;
+              setShowBillOverview(false);
+              setPrintData(null);
+              navigate("/app/sales/invoices", { state: { highlightInvoice: invNo } });
+            }}
           />
         )}
       </AnimatePresence>
@@ -677,8 +683,8 @@ interface OverviewData {
 }
 
 function BillOverviewModal({
-  data, onPrint, onClose,
-}: { data: OverviewData; onPrint: () => void; onClose: () => void }) {
+  data, onPrint, onClose, onViewInvoices,
+}: { data: OverviewData; onPrint: () => void; onClose: () => void; onViewInvoices: () => void }) {
   const f = (n: number) => "₹" + Math.round(n);
   const change = Math.max(0, data.paidAmount - data.totalAmount);
   const dateStr = data.invoiceDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
@@ -819,13 +825,20 @@ function BillOverviewModal({
         {/* ── Actions ── */}
         <div style={{ padding: "14px 22px", display: "flex", gap: 10, borderTop: "1px solid #E2E8F0" }}>
           <button onClick={onClose}
-            style={{ width: 100, minWidth: 100, maxWidth: 100, padding: "10px 0", border: "1.5px solid #E2E8F0", borderRadius: 10,
+            style={{ flex: 1, padding: "10px 0", border: "1.5px solid #E2E8F0", borderRadius: 10,
               background: "#fff", color: "#475569", fontSize: 13, fontWeight: 600,
-              cursor: "pointer", fontFamily: "inherit", outline: "none", flexShrink: 0, flexGrow: 0 }}>
+              cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
             New Bill
           </button>
+          <button onClick={onViewInvoices}
+            style={{ flex: 1, padding: "10px 0", border: "1.5px solid #F97316", borderRadius: 10,
+              background: "#fff", color: "#F97316", fontSize: 13, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit", outline: "none",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+            <FileText size={15} /> View Invoice
+          </button>
           <button onClick={onPrint}
-            style={{ flex: 1, minWidth: 0, padding: "10px 0", border: "none", borderRadius: 10,
+            style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10,
               background: "#F97316", color: "#fff", fontSize: 13, fontWeight: 700,
               cursor: "pointer", fontFamily: "inherit", outline: "none",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>

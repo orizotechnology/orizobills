@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -154,6 +154,7 @@ function DeleteConfirmDialog({ invoice, isDeleting, onConfirm, onCancel }: {
 export default function SaleInvoicesPage() {
   const qc       = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const today    = toStr(new Date());
 
   // ── Filter state ─────────────────────────────────────────
@@ -163,6 +164,35 @@ export default function SaleInvoicesPage() {
   const [search,   setSearch]   = useState("");
   const [page,     setPage]     = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<SaleInvoice | null>(null);
+  // Invoice number to highlight (passed via router state from POS)
+  const [highlightInvoice, setHighlightInvoice] = useState<string | null>(null);
+  const highlightRowRef = useRef<HTMLTableRowElement | null>(null);
+
+  // On mount: if navigated from POS with a highlight invoice, switch to All + highlight it
+  useEffect(() => {
+    const inv = (location.state as { highlightInvoice?: string } | null)?.highlightInvoice;
+    if (inv) {
+      setFilter("All");
+      setPage(1);
+      setHighlightInvoice(inv);
+      // Clear router state so a manual refresh doesn't re-highlight
+      window.history.replaceState({}, "");
+    }
+  }, []);
+
+  // Scroll the highlighted row into view once it renders
+  useEffect(() => {
+    if (highlightInvoice && highlightRowRef.current) {
+      highlightRowRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [highlightInvoice, highlightRowRef.current]);
+
+  // Clear highlight after 4 seconds
+  useEffect(() => {
+    if (!highlightInvoice) return;
+    const t = setTimeout(() => setHighlightInvoice(null), 4000);
+    return () => clearTimeout(t);
+  }, [highlightInvoice]);
 
   const FILTERS = ["Today", "This Week", "This Month", "Custom", "All"];
 
@@ -383,12 +413,21 @@ export default function SaleInvoicesPage() {
             <AnimatePresence initial={false}>
               {invoices.map((inv, idx) => {
                 const sc = STATUS_COLOR[inv.status] ?? STATUS_COLOR.DRAFT;
+                const isHighlighted = highlightInvoice === inv.invoiceNumber;
                 return (
                   <motion.tr key={inv.id}
+                    ref={isHighlighted ? (el) => { highlightRowRef.current = el; } : undefined}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    style={{ borderBottom: idx < invoices.length - 1 ? "1px solid #F1F5F9" : "none" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
+                    style={{
+                      borderBottom: idx < invoices.length - 1 ? "1px solid #F1F5F9" : "none",
+                      background: isHighlighted ? "rgba(249,115,22,0.07)" : "transparent",
+                      outline: isHighlighted ? "2px solid rgba(249,115,22,0.4)" : "none",
+                      outlineOffset: "-2px",
+                      transition: "background 0.5s, outline 0.5s",
+                      animation: isHighlighted ? "highlight-fade 4s ease-out forwards" : undefined,
+                    }}
+                    onMouseEnter={(e) => { if (!isHighlighted) (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
+                    onMouseLeave={(e) => { if (!isHighlighted) (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
                     <td style={tdStyle}><code style={chip}>{inv.invoiceNumber}</code></td>
                     <td style={{ ...tdStyle, fontWeight: 500 }}>{inv.customerName}</td>
                     <td style={{ ...tdStyle, color: "#64748B", whiteSpace: "nowrap" }}>
@@ -442,7 +481,8 @@ export default function SaleInvoicesPage() {
         )}
       </AnimatePresence>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes highlight-fade { 0%,20% { background: rgba(249,115,22,0.14); } 100% { background: transparent; } }`}</style>
     </div>
   );
 }

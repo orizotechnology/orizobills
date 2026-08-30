@@ -84,7 +84,7 @@ const TEMPLATES: Template[] = [
   { id: "th-pharmacy",    name: "04 Pharmacy",     type: "Thermal", color: "#0EA5E9" },
   { id: "th-fashion",     name: "05 Fashion",      type: "Thermal", color: "#9333EA" },
   { id: "th-electronics", name: "06 Electronics",  type: "Thermal", color: "#0284C7" },
-  { id: "th-cafe",        name: "07 CafÃ©",         type: "Thermal", color: "#92400E" },
+  { id: "th-cafe",        name: "07 Café",         type: "Thermal", color: "#92400E" },
   { id: "th-hardware",    name: "08 Hardware",     type: "Thermal", color: "#0F766E" },
   { id: "th-services",    name: "09 Services",     type: "Thermal", color: "#D97706" },
   { id: "th-minimal",     name: "10 Minimal",      type: "Thermal", color: "#475569" },
@@ -272,8 +272,8 @@ function TplModern({ c, fs, config, profile }: { c: string; fs: number; config: 
                 <td style={{ padding: "4px 7px", fontSize: fs - 1 }}>{i + 1}</td>
                 <td style={{ padding: "4px 7px", fontSize: fs - 1 }}>{it.name}</td>
                 <td style={{ padding: "4px 7px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
-                <td style={{ padding: "4px 7px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.rate}</td>
-                <td style={{ padding: "4px 7px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
+                <td style={{ padding: "4px 7px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
+                <td style={{ padding: "4px 7px", fontSize: fs - 1, textAlign: "right" }}>₹{it.qty * it.rate}</td>
               </tr>
             ))}
           </tbody>
@@ -281,14 +281,14 @@ function TplModern({ c, fs, config, profile }: { c: string; fs: number; config: 
         {/* Totals */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
           <div style={{ minWidth: 200 }}>
-            {[["Subtotal","â‚¹2,450"],["GST 18%","â‚¹441"]].map(([k,v]) => (
+            {[["Subtotal","₹2,450"],["GST 18%","₹441"]].map(([k,v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 16, fontSize: fs-1, marginBottom: 2 }}>
                 <span style={{ color: "#64748B" }}>{k}</span><span>{v}</span>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", background: c, color: "#fff",
               padding: "5px 8px", borderRadius: 4, fontWeight: 700, marginTop: 4, fontSize: fs }}>
-              <span>Total</span><span>â‚¹2,891</span>
+              <span>Total</span><span>₹2,891</span>
             </div>
           </div>
         </div>
@@ -320,11 +320,11 @@ function TplElegant({ c, fs, config, profile }: { c: string; fs: number; config:
         )}
         <div style={{ fontWeight: 700, fontSize: bnFs, letterSpacing: 2, color: "#1F2937" }}>{(profile.storeName || "YOUR BUSINESS").toUpperCase()}</div>
         <div style={{ fontSize: fs - 1, color: "#9CA3AF", fontStyle: "italic" }}>{profile.address || "123 Main Street, City"}</div>
-        <div style={{ fontSize: fs - 1, color: "#9CA3AF" }}>{profile.phone} Â· {profile.email}</div>
+        <div style={{ fontSize: fs - 1, color: "#9CA3AF" }}>{profile.phone} · {profile.email}</div>
       </div>
       <div style={{ borderTop: "1px solid #E5E7EB", borderBottom: "1px solid #E5E7EB", padding: "4px 0", textAlign: "center", marginBottom: 10 }}>
         <span style={{ fontSize: fs + 1, fontWeight: 700, letterSpacing: 4, color: "#374151" }}>INVOICE</span>
-        <span style={{ fontSize: fs - 1, color: "#9CA3AF", marginLeft: 12 }}>INV-2024-0123 Â· 24 May 2024</span>
+        <span style={{ fontSize: fs - 1, color: "#9CA3AF", marginLeft: 12 }}>INV-2024-0123 · 24 May 2024</span>
       </div>
       {/* Bill To row */}
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, fontSize: fs - 1, borderBottom: "1px solid #E5E7EB", paddingBottom: 8 }}>
@@ -354,8 +354,8 @@ function TplElegant({ c, fs, config, profile }: { c: string; fs: number; config:
             <tr key={i} style={{ borderBottom: "1px solid #F3F4F6", background: rowBg(i, config.tableStyle, c) }}>
               <td style={{ padding: "5px 6px", fontSize: fs - 1, fontStyle: i === 1 ? "italic" : "normal" }}>{it.name}</td>
               <td style={{ padding: "5px 6px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
-              <td style={{ padding: "5px 6px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.rate}</td>
-              <td style={{ padding: "5px 6px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ padding: "5px 6px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
+              <td style={{ padding: "5px 6px", fontSize: fs - 1, textAlign: "right" }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
@@ -363,7 +363,7 @@ function TplElegant({ c, fs, config, profile }: { c: string; fs: number; config:
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
         <div style={{ minWidth: 180 }}>
           <div style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #E5E7EB", paddingTop: 6, fontWeight: 700, fontSize: fs }}>
-            <span style={{ color: "#374151" }}>Total</span><span style={{ color: c }}>â‚¹2,891</span>
+            <span style={{ color: "#374151" }}>Total</span><span style={{ color: c }}>₹2,891</span>
           </div>
         </div>
       </div>
@@ -432,8 +432,8 @@ function TplPremium({ c, fs, config, profile }: { c: string; fs: number; config:
                 <td style={{ padding: "5px 8px", fontSize: fs - 1 }}>{i + 1}</td>
                 <td style={{ padding: "5px 8px", fontSize: fs - 1 }}>{it.name}</td>
                 <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
-                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.rate}</td>
-                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right", fontWeight: 700 }}>â‚¹{it.qty * it.rate}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right", fontWeight: 700 }}>₹{it.qty * it.rate}</td>
               </tr>
             ))}
           </tbody>
@@ -441,10 +441,10 @@ function TplPremium({ c, fs, config, profile }: { c: string; fs: number; config:
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <div style={{ background: navy, color: "#fff", borderRadius: 8, padding: "8px 14px", minWidth: 180 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, marginBottom: 2 }}>
-              <span style={{ color: "#94A3B8" }}>Subtotal</span><span>â‚¹2,450</span>
+              <span style={{ color: "#94A3B8" }}>Subtotal</span><span>₹2,450</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, borderTop: "1px solid #334155", paddingTop: 4, fontWeight: 900 }}>
-              <span>TOTAL</span><span style={{ color: c }}>â‚¹2,891</span>
+              <span>TOTAL</span><span style={{ color: c }}>₹2,891</span>
             </div>
           </div>
         </div>
@@ -475,7 +475,7 @@ function TplPharmacy({ c, fs, config, profile }: { c: string; fs: number; config
             <div style={{ color: "#fff", fontWeight: 800, fontSize: bnFs }}>
               {profile.storeName || "City Pharmacy"}
             </div>
-            <div style={{ color: "#BAE6FD", fontSize: fs - 2 }}>Licensed Pharmacy Â· Dl No. 12-AB-345</div>
+            <div style={{ color: "#BAE6FD", fontSize: fs - 2 }}>Licensed Pharmacy · Dl No. 12-AB-345</div>
           </div>
         </div>
         <div style={{ textAlign: "right", color: "#fff" }}>
@@ -511,8 +511,8 @@ function TplPharmacy({ c, fs, config, profile }: { c: string; fs: number; config
                 <tr key={i} style={{ borderBottom: rowBorder(config.tableStyle, c), background: rowBg(i, config.tableStyle, c) }}>
                   <td style={{ padding: "4px 6px" }}>{it.name}</td>
                   <td style={{ padding: "4px 6px", textAlign: "right" }}>{it.qty}</td>
-                  <td style={{ padding: "4px 6px", textAlign: "right" }}>â‚¹{it.rate}</td>
-                  <td style={{ padding: "4px 6px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
+                  <td style={{ padding: "4px 6px", textAlign: "right" }}>₹{it.rate}</td>
+                  <td style={{ padding: "4px 6px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
                 </tr>
               ))}
             </tbody>
@@ -525,7 +525,7 @@ function TplPharmacy({ c, fs, config, profile }: { c: string; fs: number; config
             <div style={{ fontSize: fs - 2, color: "#64748B" }}>INV-2024-0123</div>
           </div>
           <div style={{ fontSize: fs - 1 }}>
-            {[["Sub","â‚¹535"],["Disc","â‚¹0"],["GST","â‚¹96"],["Total","â‚¹631"]].map(([k,v],idx) => (
+            {[["Sub","₹535"],["Disc","₹0"],["GST","₹96"],["Total","₹631"]].map(([k,v],idx) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", fontWeight: idx === 3 ? 700 : 400,
                 color: idx === 3 ? c : "#374151", borderTop: idx === 3 ? `1px solid ${c}` : "none",
                 paddingTop: idx === 3 ? 4 : 0, marginBottom: 3 }}>
@@ -537,7 +537,7 @@ function TplPharmacy({ c, fs, config, profile }: { c: string; fs: number; config
         </div>
       </div>
       <div style={{ borderTop: `1px solid ${c}`, margin: "0 16px", paddingTop: 6, paddingBottom: 8, fontSize: fs - 1, color: "#64748B", textAlign: "center" }}>
-        {config.footerText} Â· {config.showTerms && config.termsText.split("\n")[0]}
+        {config.footerText} · {config.showTerms && config.termsText.split("\n")[0]}
       </div>
     </div>
   );
@@ -562,8 +562,8 @@ function TplRestaurant({ c, fs, config, profile }: { c: string; fs: number; conf
           <div style={{ fontWeight: 900, fontSize: bnFs, color: c, letterSpacing: 2 }}>
             {(profile.storeName || "LA BELLA CUCINA").toUpperCase()}
           </div>
-          <div style={{ fontSize: fs - 1, color: "#9CA3AF", letterSpacing: 1 }}>Fine Dining Â· Est. 2010</div>
-          <div style={{ fontSize: fs - 1, color: "#6B7280" }}>{profile.address} Â· {profile.phone}</div>
+          <div style={{ fontSize: fs - 1, color: "#9CA3AF", letterSpacing: 1 }}>Fine Dining · Est. 2010</div>
+          <div style={{ fontSize: fs - 1, color: "#6B7280" }}>{profile.address} · {profile.phone}</div>
         </div>
         {/* Decorative separator */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -597,22 +597,22 @@ function TplRestaurant({ c, fs, config, profile }: { c: string; fs: number; conf
               <tr key={i} style={{ background: rowBg(i, config.tableStyle, c), borderBottom: rowBorder(config.tableStyle, c) }}>
                 <td style={{ padding: "5px 8px", fontSize: fs - 1 }}>{it.name}</td>
                 <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
-                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.rate}</td>
-                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
+                <td style={{ padding: "5px 8px", fontSize: fs - 1, textAlign: "right" }}>₹{it.qty * it.rate}</td>
               </tr>
             ))}
           </tbody>
         </table>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div style={{ minWidth: 200 }}>
-            {[["Subtotal","â‚¹1,680"],["Service Charge (10%)","â‚¹168"],["CGST (2.5%)","â‚¹46"],["SGST (2.5%)","â‚¹46"]].map(([k,v]) => (
+            {[["Subtotal","₹1,680"],["Service Charge (10%)","₹168"],["CGST (2.5%)","₹46"],["SGST (2.5%)","₹46"]].map(([k,v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 16, fontSize: fs - 1, marginBottom: 2 }}>
                 <span style={{ color: "#6B7280" }}>{k}</span><span>{v}</span>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", background: c, color: "#fff",
               padding: "6px 10px", borderRadius: 4, fontWeight: 700, marginTop: 4, fontSize: fs + 1 }}>
-              <span>GRAND TOTAL</span><span>â‚¹1,940</span>
+              <span>GRAND TOTAL</span><span>₹1,940</span>
             </div>
           </div>
         </div>
@@ -650,8 +650,8 @@ function TplBoutique({ c, fs, config, profile }: { c: string; fs: number; config
           </span>
           <span style={{ color: c, fontSize: bnFs + 2, fontWeight: 300 }}>]</span>
         </div>
-        <div style={{ fontSize: fs - 1, color: "#A78BFA", letterSpacing: 1 }}>Couture Â· Collections Â· Craftsmanship</div>
-        <div style={{ fontSize: fs - 1, color: "#9CA3AF" }}>{profile.address} Â· {profile.phone}</div>
+        <div style={{ fontSize: fs - 1, color: "#A78BFA", letterSpacing: 1 }}>Couture · Collections · Craftsmanship</div>
+        <div style={{ fontSize: fs - 1, color: "#9CA3AF" }}>{profile.address} · {profile.phone}</div>
       </div>
       {/* Thin decorative border */}
       <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${c}, transparent)`, marginBottom: 12 }} />
@@ -683,22 +683,22 @@ function TplBoutique({ c, fs, config, profile }: { c: string; fs: number; config
               <td style={{ padding: "5px 7px", fontSize: fs - 1 }}>{it.name}</td>
               <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right", color: "#9CA3AF" }}>{it.size}</td>
               <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right" }}>{it.qty}</td>
-              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right" }}>â‚¹{it.rate}</td>
-              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right", fontWeight: 600, color: "#4B0082" }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right" }}>₹{it.rate}</td>
+              <td style={{ padding: "5px 7px", fontSize: fs - 1, textAlign: "right", fontWeight: 600, color: "#4B0082" }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
         <div style={{ minWidth: 190, background: "#fff", border: `1px solid ${c}40`, borderRadius: 8, padding: "8px 12px" }}>
-          {[["Subtotal","â‚¹5,750"],["Member Disc","- â‚¹575"]].map(([k,v]) => (
+          {[["Subtotal","₹5,750"],["Member Disc","- ₹575"]].map(([k,v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, marginBottom: 3 }}>
               <span style={{ color: "#9CA3AF" }}>{k}</span><span>{v}</span>
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, color: "#4B0082",
             borderTop: `1px solid ${c}40`, paddingTop: 5, fontSize: fs }}>
-            <span>Total</span><span>â‚¹5,175</span>
+            <span>Total</span><span>₹5,175</span>
           </div>
         </div>
       </div>
@@ -758,8 +758,8 @@ function TplElectronics({ c, fs, config, profile }: { c: string; fs: number; con
             <tr key={i} style={{ borderBottom: `1px solid ${c}20`, background: rowBg(i, config.tableStyle, c) === "#F8FAFC" ? "#161B22" : "#0D1117" }}>
               <td style={{ padding: "4px 7px", color: "#E6EDF3" }}>{it.name}</td>
               <td style={{ padding: "4px 7px", textAlign: "right", color: "#79C0FF" }}>{it.qty}</td>
-              <td style={{ padding: "4px 7px", textAlign: "right", color: "#7EE787" }}>â‚¹{it.rate}</td>
-              <td style={{ padding: "4px 7px", textAlign: "right", color: c, fontWeight: 700 }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ padding: "4px 7px", textAlign: "right", color: "#7EE787" }}>₹{it.rate}</td>
+              <td style={{ padding: "4px 7px", textAlign: "right", color: c, fontWeight: 700 }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
@@ -768,13 +768,13 @@ function TplElectronics({ c, fs, config, profile }: { c: string; fs: number; con
       <div style={{ borderTop: `1px solid ${c}40`, paddingTop: 8, display: "flex", justifyContent: "flex-end" }}>
         <div style={{ fontSize: fs - 1, minWidth: 200 }}>
           <div style={{ display: "flex", justifyContent: "space-between", color: "#6E7681", marginBottom: 2 }}>
-            <span>// subtotal</span><span>â‚¹2,450</span>
+            <span>// subtotal</span><span>₹2,450</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", color: "#6E7681", marginBottom: 4 }}>
-            <span>// gst_18</span><span>â‚¹441</span>
+            <span>// gst_18</span><span>₹441</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, fontSize: fs }}>
-            <span>TOTAL =&gt;</span><span>â‚¹2,891</span>
+            <span>TOTAL =&gt;</span><span>₹2,891</span>
           </div>
         </div>
       </div>
@@ -803,7 +803,7 @@ function TplWholesale({ c, fs, config, profile }: { c: string; fs: number; confi
           )}
           <div>
             <div style={{ color: "#fff", fontWeight: 800, fontSize: bnFs }}>{profile.storeName || "Wholesale Mart"}</div>
-            <div style={{ color: "#BBF7D0", fontSize: fs - 2 }}>Bulk Supplier Â· GST Registered</div>
+            <div style={{ color: "#BBF7D0", fontSize: fs - 2 }}>Bulk Supplier · GST Registered</div>
           </div>
         </div>
         <div style={{ color: "#fff", textAlign: "right", fontSize: fs - 2 }}>
@@ -850,11 +850,11 @@ function TplWholesale({ c, fs, config, profile }: { c: string; fs: number; confi
                 <td style={{ padding: "3px 5px", textAlign: "right" }}>{it.hsn}</td>
                 <td style={{ padding: "3px 5px", textAlign: "right" }}>{it.qty * 10}</td>
                 <td style={{ padding: "3px 5px", textAlign: "right" }}>pcs</td>
-                <td style={{ padding: "3px 5px", textAlign: "right" }}>â‚¹{it.rate}</td>
+                <td style={{ padding: "3px 5px", textAlign: "right" }}>₹{it.rate}</td>
                 <td style={{ padding: "3px 5px", textAlign: "right" }}>0%</td>
-                <td style={{ padding: "3px 5px", textAlign: "right", color: "#64748B" }}>â‚¹{Math.round(it.rate * it.qty * 10 * 0.09)}</td>
-                <td style={{ padding: "3px 5px", textAlign: "right", color: "#64748B" }}>â‚¹{Math.round(it.rate * it.qty * 10 * 0.09)}</td>
-                <td style={{ padding: "3px 5px", textAlign: "right", fontWeight: 700 }}>â‚¹{it.rate * it.qty * 10}</td>
+                <td style={{ padding: "3px 5px", textAlign: "right", color: "#64748B" }}>₹{Math.round(it.rate * it.qty * 10 * 0.09)}</td>
+                <td style={{ padding: "3px 5px", textAlign: "right", color: "#64748B" }}>₹{Math.round(it.rate * it.qty * 10 * 0.09)}</td>
+                <td style={{ padding: "3px 5px", textAlign: "right", fontWeight: 700 }}>₹{it.rate * it.qty * 10}</td>
               </tr>
             ))}
           </tbody>
@@ -862,20 +862,20 @@ function TplWholesale({ c, fs, config, profile }: { c: string; fs: number; confi
         {/* Summary */}
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <div style={{ minWidth: 200, fontSize: fs - 1 }}>
-            {[["Taxable Amt","â‚¹24,500"],["CGST","â‚¹2,205"],["SGST","â‚¹2,205"]].map(([k,v]) => (
+            {[["Taxable Amt","₹24,500"],["CGST","₹2,205"],["SGST","₹2,205"]].map(([k,v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
                 <span style={{ color: "#64748B" }}>{k}</span><span>{v}</span>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", background: c, color: "#fff",
               padding: "4px 8px", borderRadius: 4, fontWeight: 700, marginTop: 4 }}>
-              <span>NET PAYABLE</span><span>â‚¹28,910</span>
+              <span>NET PAYABLE</span><span>₹28,910</span>
             </div>
           </div>
         </div>
         {config.showBankDetails && (
           <div style={{ marginTop: 8, padding: "6px 10px", background: `${c}10`, border: `1px solid ${c}30`, borderRadius: 6, fontSize: fs - 2 }}>
-            <strong style={{ color: c }}>Bank: </strong>SBI Â· A/C: 1234567890 Â· IFSC: SBIN0001234
+            <strong style={{ color: c }}>Bank: </strong>SBI · A/C: 1234567890 · IFSC: SBIN0001234
           </div>
         )}
       </div>
@@ -941,27 +941,27 @@ function TplServices({ c, fs, config, profile }: { c: string; fs: number; config
               borderLeft: `3px solid ${i === 2 ? c : `${c}40`}`, fontSize: fs - 1 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600 }}>{s.desc}</div>
-                <div style={{ color: "#6B7280", fontSize: fs - 2 }}>{s.week} Â· {s.hrs} hrs @ â‚¹{s.rate}/hr</div>
+                <div style={{ color: "#6B7280", fontSize: fs - 2 }}>{s.week} · {s.hrs} hrs @ ₹{s.rate}/hr</div>
               </div>
-              <div style={{ fontWeight: 700, color: "#1F2937" }}>â‚¹{s.hrs * s.rate}</div>
+              <div style={{ fontWeight: 700, color: "#1F2937" }}>₹{s.hrs * s.rate}</div>
             </div>
           ))}
         </div>
         {/* Summary */}
         <div style={{ background: "#fff", border: `1px solid ${c}40`, borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}>
-          {[["Subtotal","â‚¹1,00,000"],["Tax (18%)","â‚¹18,000"]].map(([k,v]) => (
+          {[["Subtotal","₹1,00,000"],["Tax (18%)","₹18,000"]].map(([k,v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, marginBottom: 3 }}>
               <span style={{ color: "#6B7280" }}>{k}</span><span>{v}</span>
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: fs + 2,
             color: c, borderTop: `2px solid ${c}`, paddingTop: 6, marginTop: 4 }}>
-            <span>TOTAL DUE</span><span>â‚¹1,18,000</span>
+            <span>TOTAL DUE</span><span>₹1,18,000</span>
           </div>
         </div>
         {config.showBankDetails && (
           <div style={{ fontSize: fs - 1, color: "#6B7280", marginBottom: 6 }}>
-            <strong>Pay via: </strong>Bank Transfer Â· A/C: 1234567890 Â· IFSC: ICIC0001234
+            <strong>Pay via: </strong>Bank Transfer · A/C: 1234567890 · IFSC: ICIC0001234
           </div>
         )}
         {config.showTerms && <div style={{ fontSize: fs - 1, color: "#6B7280", marginBottom: 4 }}>
@@ -1027,8 +1027,8 @@ function TplMinimal({ fs, config, profile }: { fs: number; config: PrintConfig; 
             <tr key={i} style={{ borderBottom: "1px solid #E5E7EB" }}>
               <td style={{ padding: "5px 6px" }}>{it.name}</td>
               <td style={{ padding: "5px 6px", textAlign: "right" }}>{it.qty}</td>
-              <td style={{ padding: "5px 6px", textAlign: "right" }}>â‚¹{it.rate}</td>
-              <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 600 }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ padding: "5px 6px", textAlign: "right" }}>₹{it.rate}</td>
+              <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 600 }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
@@ -1036,13 +1036,13 @@ function TplMinimal({ fs, config, profile }: { fs: number; config: PrintConfig; 
       {/* Totals */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <div style={{ minWidth: 200, fontSize: fs - 1 }}>
-          {[["Subtotal","â‚¹2,450"],["GST (18%)","â‚¹441"]].map(([k,v]) => (
+          {[["Subtotal","₹2,450"],["GST (18%)","₹441"]].map(([k,v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
               <span style={{ color: "#777" }}>{k}</span><span>{v}</span>
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, borderTop: "2px solid #000", paddingTop: 5, fontSize: fs + 1 }}>
-            <span>TOTAL</span><span>â‚¹2,891</span>
+            <span>TOTAL</span><span>₹2,891</span>
           </div>
         </div>
       </div>
@@ -1140,7 +1140,7 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
             )
           )}
           <div style={{ fontWeight: 900, fontSize: fs + 3, color: c }}>{profile.storeName || "SHOP"}</div>
-          <div style={{ fontSize: fs - 2 }}>{profile.phone} Â· {profile.address}</div>
+          <div style={{ fontSize: fs - 2 }}>{profile.phone} · {profile.address}</div>
         </div>
       )}
       {children}
@@ -1167,8 +1167,8 @@ function ThermalItems({ c, fs, config }: { c: string; fs: number; config: PrintC
           <tr key={i} style={{ borderBottom: rowBorder(config.tableStyle, c) }}>
             <td style={{ padding: "2px 3px" }}>{it.name}</td>
             <td style={{ padding: "2px 3px", textAlign: "right" }}>{it.qty}</td>
-            <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.rate}</td>
-            <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
+            <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.rate}</td>
+            <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
           </tr>
         ))}
       </tbody>
@@ -1179,14 +1179,14 @@ function ThermalItems({ c, fs, config }: { c: string; fs: number; config: PrintC
 function ThermalTotals({ c, fs, config }: { c: string; fs: number; config: PrintConfig }) {
   return (
     <div style={{ fontSize: fs - 1, marginBottom: 6 }}>
-      {[["Subtotal","â‚¹2,450"],["GST","â‚¹441"]].map(([k,v]) => (
+      {[["Subtotal","₹2,450"],["GST","₹441"]].map(([k,v]) => (
         <div key={k} style={{ display: "flex", justifyContent: "space-between" }}>
           <span style={{ color: "#64748B" }}>{k}</span><span>{v}</span>
         </div>
       ))}
       <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: fs,
         borderTop: `1px solid ${c}`, paddingTop: 3, marginTop: 2 }}>
-        <span>TOTAL</span><span style={{ color: c }}>â‚¹2,891</span>
+        <span>TOTAL</span><span style={{ color: c }}>₹2,891</span>
       </div>
     </div>
   );
@@ -1223,13 +1223,13 @@ function TplThGrocery({ c, fs, config, profile }: { c: string; fs: number; confi
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
               <td style={{ padding: "2px 3px", textAlign: "right" }}>{it.qty}Ã—{it.rate}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right", fontWeight: 700, color: c }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right", fontWeight: 700, color: c }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div style={{ fontWeight: 900, fontSize: fs + 1, textAlign: "right", color: c }}>Total: â‚¹490</div>
-      <div style={{ fontSize: fs - 2, color: "#64748B", textAlign: "center", marginTop: 4 }}>Items: 6 | Savings: â‚¹24</div>
+      <div style={{ fontWeight: 900, fontSize: fs + 1, textAlign: "right", color: c }}>Total: ₹490</div>
+      <div style={{ fontSize: fs - 2, color: "#64748B", textAlign: "center", marginTop: 4 }}>Items: 6 | Savings: ₹24</div>
     </ThermalBase>
   );
 }
@@ -1248,15 +1248,15 @@ function TplThRestaurant({ c, fs, config, profile }: { c: string; fs: number; co
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
               <td style={{ padding: "2px 3px", textAlign: "right" }}>{it.qty}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ fontSize: fs - 1 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Food</span><span>â‚¹450</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Service (10%)</span><span>â‚¹45</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>â‚¹495</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Food</span><span>₹450</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span>Service (10%)</span><span>₹45</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>₹495</span></div>
       </div>
       <div style={{ textAlign: "center", fontSize: fs - 2, color: "#64748B", marginTop: 4 }}>GST No: 29ABCDE1234F1Z5</div>
     </ThermalBase>
@@ -1278,13 +1278,13 @@ function TplThPharmacy({ c, fs, config, profile }: { c: string; fs: number; conf
         <tbody>
           {[{name:"Paracetamol 500mg",qty:10,rate:2.5},{name:"Azithromycin 500mg",qty:5,rate:18},{name:"Vitamin C",qty:1,rate:85}].map((it,i) => (
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
-              <td style={{ padding: "2px 3px" }}><div>{it.name}</div><div style={{ fontSize: fs - 3, color: "#94A3B8" }}>Qty: {it.qty} @ â‚¹{it.rate}</div></td>
-              <td style={{ padding: "2px 3px", textAlign: "right", fontWeight: 700 }}>â‚¹{(it.qty * it.rate).toFixed(0)}</td>
+              <td style={{ padding: "2px 3px" }}><div>{it.name}</div><div style={{ fontSize: fs - 3, color: "#94A3B8" }}>Qty: {it.qty} @ ₹{it.rate}</div></td>
+              <td style={{ padding: "2px 3px", textAlign: "right", fontWeight: 700 }}>₹{(it.qty * it.rate).toFixed(0)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs, color: c }}>TOTAL: â‚¹195</div>
+      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs, color: c }}>TOTAL: ₹195</div>
       <div style={{ fontSize: fs - 2, color: "#64748B", marginTop: 4, borderTop: "1px dashed #E2E8F0", paddingTop: 3 }}>Store medicines in cool dry place</div>
     </ThermalBase>
   );
@@ -1304,15 +1304,15 @@ function TplThFashion({ c, fs, config, profile }: { c: string; fs: number; confi
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
               <td style={{ padding: "2px 3px", textAlign: "center" }}>{it.qty}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ fontSize: fs - 1 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>MRP</span><span>â‚¹2,350</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Member 10% off</span><span style={{ color: c }}>- â‚¹235</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>YOU PAY</span><span>â‚¹2,115</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>MRP</span><span>₹2,350</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Member 10% off</span><span style={{ color: c }}>- ₹235</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>YOU PAY</span><span>₹2,115</span></div>
       </div>
       <div style={{ textAlign: "center", fontSize: fs - 2, color: "#94A3B8", marginTop: 4, fontStyle: "italic" }}>Exchange within 7 days with receipt</div>
     </ThermalBase>
@@ -1331,15 +1331,15 @@ function TplThElectronics({ c, fs, config, profile }: { c: string; fs: number; c
           {[{name:"Smartphone X12",qty:1,rate:18999},{name:"Screen Guard",qty:2,rate:149},{name:"Cover Case",qty:1,rate:299}].map((it,i) => (
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ fontSize: fs - 1, marginBottom: 4 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Sub</span><span>â‚¹19,596</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>GST</span><span>â‚¹1,727</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>â‚¹21,323</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Sub</span><span>₹19,596</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>GST</span><span>₹1,727</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>₹21,323</span></div>
       </div>
       <div style={{ fontSize: fs - 2, color: "#64748B" }}>Serial: SN-TECH-20240524</div>
     </ThermalBase>
@@ -1360,12 +1360,12 @@ function TplThCafe({ c, fs, config, profile }: { c: string; fs: number; config: 
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
               <td style={{ padding: "2px 3px", textAlign: "center", color: "#64748B" }}>x{it.qty}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs + 1, color: c, marginBottom: 2 }}>â‚¹460</div>
+      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs + 1, color: c, marginBottom: 2 }}>₹460</div>
       <div style={{ textAlign: "center", fontSize: fs - 2, color: "#64748B" }}>Paid: UPI | Txn: 7890XY</div>
       <div style={{ textAlign: "center", fontSize: fs - 2, marginTop: 4, color: c, fontStyle: "italic" }}>Enjoy your coffee! â˜•</div>
     </ThermalBase>
@@ -1385,15 +1385,15 @@ function TplThHardware({ c, fs, config, profile }: { c: string; fs: number; conf
           {[{name:"M10 Bolt Ã—50",qty:1,rate:120},{name:"PVC Pipe 2m",qty:3,rate:85},{name:"Elbow Joint",qty:6,rate:18}].map((it,i) => (
             <tr key={i} style={{ borderBottom: "1px dotted #E2E8F0" }}>
               <td style={{ padding: "2px 3px" }}>{it.name}</td>
-              <td style={{ padding: "2px 3px", textAlign: "right" }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ padding: "2px 3px", textAlign: "right" }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ fontSize: fs - 1, marginBottom: 4 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Parts</span><span>â‚¹483</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Labour</span><span>â‚¹200</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>â‚¹683</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Parts</span><span>₹483</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B" }}>Labour</span><span>₹200</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, color: c, borderTop: `1px solid ${c}`, paddingTop: 2, marginTop: 2 }}><span>TOTAL</span><span>₹683</span></div>
       </div>
       <div style={{ fontSize: fs - 2, color: "#64748B" }}>Warranty: Parts 30 days</div>
     </ThermalBase>
@@ -1415,10 +1415,10 @@ function TplThServices({ c, fs, config, profile }: { c: string; fs: number; conf
       {[{desc:"Repair Labour",amt:800},{desc:"Refrigerant Gas",amt:450},{desc:"Cleaning Charge",amt:250}].map((s,i) => (
         <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, paddingLeft: 8,
           borderLeft: `2px solid ${i < 2 ? `${c}40` : c}`, marginBottom: 4 }}>
-          <span>{s.desc}</span><span>â‚¹{s.amt}</span>
+          <span>{s.desc}</span><span>₹{s.amt}</span>
         </div>
       ))}
-      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs, color: c, borderTop: `1px solid ${c}`, paddingTop: 3, marginTop: 2 }}>TOTAL: â‚¹1,500</div>
+      <div style={{ fontWeight: 900, textAlign: "right", fontSize: fs, color: c, borderTop: `1px solid ${c}`, paddingTop: 3, marginTop: 2 }}>TOTAL: ₹1,500</div>
       <div style={{ textAlign: "center", fontSize: fs - 2, color: "#64748B", marginTop: 4 }}>Next service due: 24 Nov 2024</div>
     </ThermalBase>
   );
@@ -1444,7 +1444,7 @@ function TplThMinimal({ c, fs, config, profile }: { c: string; fs: number; confi
         )}
         <div style={{ fontWeight: 900, fontSize: fs + 2 }}>{profile.storeName || "STORE"}</div>
       </div>
-      <div style={{ fontSize: fs - 2, color: "#555", marginBottom: 6 }}>{profile.phone} Â· INV-0123 Â· 24 May 2024</div>
+      <div style={{ fontSize: fs - 2, color: "#555", marginBottom: 6 }}>{profile.phone} · INV-0123 · 24 May 2024</div>
       <div style={{ borderTop: "1px solid #000", marginBottom: 6 }} />
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: fs - 1, marginBottom: 6 }}>
         <tbody>
@@ -1452,13 +1452,13 @@ function TplThMinimal({ c, fs, config, profile }: { c: string; fs: number; confi
             <tr key={i}>
               <td style={{ padding: "2px 0" }}>{it.name}</td>
               <td style={{ textAlign: "right" }}>{it.qty}Ã—{it.rate}</td>
-              <td style={{ textAlign: "right", fontWeight: 700, paddingLeft: 6 }}>â‚¹{it.qty * it.rate}</td>
+              <td style={{ textAlign: "right", fontWeight: 700, paddingLeft: 6 }}>₹{it.qty * it.rate}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ borderTop: "1px solid #000", paddingTop: 4, display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: fs + 1 }}>
-        <span>TOTAL</span><span>â‚¹2,891</span>
+        <span>TOTAL</span><span>₹2,891</span>
       </div>
       <div style={{ marginTop: 8, fontSize: fs - 2, color: "#555", textAlign: "center" }}>{config.footerText}</div>
     </div>
