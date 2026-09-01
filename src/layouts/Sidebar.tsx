@@ -30,7 +30,6 @@ import {
   Wallet,
   PiggyBank,
   Sliders,
-  Printer,
   Percent,
   MessageSquare,
   Users2,
@@ -108,7 +107,6 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { label: "General",             icon: Sliders,    to: "/app/settings/general"     },
       { label: "Transaction",         icon: Receipt,    to: "/app/settings/transaction"  },
-      { label: "Print",               icon: Printer,    to: "/app/settings/print"        },
       { label: "Taxes & GST",         icon: Percent,    to: "/app/settings/taxes"        },
       { label: "Transaction Message", icon: MessageSquare, to: "/app/settings/messages"  },
       { label: "Party",               icon: Users2,     to: "/app/settings/party"        },

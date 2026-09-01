@@ -13,7 +13,6 @@ import {
 import FlashToast from "@/components/FlashToast"; 
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
-import BillDesignerPage from "./BillDesignerPage";
 
 
 // =============================================================
@@ -581,60 +580,6 @@ function TransactionSettings() {
         <Toggle defaultOn />
       </SettingRow>
     </Section>
-  );
-}
-
-// =============================================================
-// PRINT SETTINGS
-// =============================================================
-
-function PrintSettings() {
-  return (
-    <>
-      <Section title="Invoice Print">
-        <SettingRow label="Print Size">
-          <select style={inp} defaultValue="Thermal 80mm">
-            <option>Thermal 80mm</option>
-            <option>Thermal 58mm</option>
-            <option>A4</option>
-            <option>A5</option>
-          </select>
-        </SettingRow>
-
-        <SettingRow label="Show Logo on Print">
-          <Toggle defaultOn />
-        </SettingRow>
-
-        <SettingRow label="Show Signature Line">
-          <Toggle />
-        </SettingRow>
-
-        <SettingRow label="Show Bank Details">
-          <Toggle />
-        </SettingRow>
-      </Section>
-
-      <Section title="Thermal Print">
-        <SettingRow label="Enable Thermal Printer">
-          <Toggle />
-        </SettingRow>
-
-        <SettingRow label="Auto Print on Save">
-          <Toggle />
-        </SettingRow>
-
-        <SettingRow label="Print Copies">
-          <input
-            style={{
-              ...inp,
-              width: 60,
-            }}
-            type="text" inputMode="decimal"
-            defaultValue={1}
-          />
-        </SettingRow>
-      </Section>
-    </>
   );
 }
 
@@ -1666,13 +1611,6 @@ const ROUTE_MAP: Record<
     key: "transaction",
     label: "Transaction",
     content: <TransactionSettings />,
-  },
-
-  "/app/settings/print": {
-    key: "print",
-    label: "Bill Designer",
-    content: <BillDesignerPage />,
-    fullPage: true,
   },
 
   "/app/settings/taxes": {

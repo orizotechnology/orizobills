@@ -59,7 +59,6 @@ const SEARCH_INDEX = [
   { label: "Settings",           to: "/app/settings/general",       category: "Settings"  },
   { label: "Officer Management", to: "/app/settings/officers",      category: "Settings"  },
   { label: "Taxes & GST",        to: "/app/settings/taxes",         category: "Settings"  },
-  { label: "Print Settings",     to: "/app/settings/print",         category: "Settings"  },
 ];
 
 // =============================================================
@@ -101,7 +100,7 @@ const HELP_SECTIONS = [
   },
   {
     title: "Settings",
-    body: "Configure your business in Settings → General. Add user accounts with role-based access in Officer Management. Set up GST slabs and tax rates in Taxes & GST. Customise invoice and receipt print layout in Print Settings.",
+    body: "Configure your business in Settings → General. Add user accounts with role-based access in Officer Management. Set up GST slabs and tax rates in Taxes & GST.",
   },
   {
     title: "Need Help?",
