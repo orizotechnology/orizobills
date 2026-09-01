@@ -13,6 +13,7 @@ import {
 import FlashToast from "@/components/FlashToast"; 
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
+import PrintSettingsPage from "./PrintSettingsPage";
 
 
 // =============================================================
@@ -1611,6 +1612,13 @@ const ROUTE_MAP: Record<
     key: "transaction",
     label: "Transaction",
     content: <TransactionSettings />,
+  },
+
+  "/app/settings/print": {
+    key: "print",
+    label: "Print",
+    content: <PrintSettingsPage />,
+    fullPage: true,
   },
 
   "/app/settings/taxes": {
