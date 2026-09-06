@@ -24,7 +24,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         {/* Main area */}
         <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, overflow: "hidden" }}>
           <TopBar />
-          <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", background: "#F8FAFC" }}>
+          <main style={{ flex: 1, overflowY: "auto", overflowX: "clip", background: "#F8FAFC" }}>
             {children}
           </main>
         </div>
