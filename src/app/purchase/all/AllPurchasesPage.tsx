@@ -363,7 +363,7 @@ export default function AllPurchasesPage() {
   const [fromDate, setFromDate] = useState(new Date().toISOString().slice(0, 10));
   const [toDate,   setToDate]   = useState(new Date().toISOString().slice(0, 10));
 
-  const FILTERS = ["All", "Today", "This Week", "This Month", "Custom"];
+  const FILTERS = ["All", "This Month", "This Week", "Today", "Custom"];
 
   // Resolve date range from filter — same pattern as SaleInvoicesPage
   function toStr(d: Date) { return d.toISOString().slice(0, 10); }

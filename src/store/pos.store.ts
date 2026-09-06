@@ -11,6 +11,7 @@ export interface Bill {
   paidAmount: string;
   discount: number;
   discountType: "%" | "₹";
+  splitCashAmt: number;   // cash portion when paymentMode === "Split"
   createdAt: string;
 }
 
@@ -68,6 +69,7 @@ function makeBill(n: number): Bill {
     paidAmount: "",
     discount: 0,
     discountType: "%",
+    splitCashAmt: 0,
     createdAt: new Date().toISOString(),
   };
 }

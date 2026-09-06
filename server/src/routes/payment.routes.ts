@@ -24,8 +24,10 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       const targetDate = req.query.date ? new Date(req.query.date) : new Date();
       const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
       const dayEnd   = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1);
+      const monthStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+      const monthEnd   = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 1);
 
-      const [todayAgg, todayCount, monthAgg] = await Promise.all([
+      const [todayAgg, todayCount, monthAgg, todayByMethod, monthByMethod] = await Promise.all([
         req.prisma.paymentIn.aggregate({
           _sum: { amount: true },
           where: { paymentDate: { gte: dayStart, lt: dayEnd } },
@@ -35,19 +37,30 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         }),
         req.prisma.paymentIn.aggregate({
           _sum: { amount: true },
-          where: {
-            paymentDate: {
-              gte: new Date(targetDate.getFullYear(), targetDate.getMonth(), 1),
-              lt:  new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 1),
-            },
-          },
+          where: { paymentDate: { gte: monthStart, lt: monthEnd } },
+        }),
+        req.prisma.paymentIn.groupBy({
+          by: ["paymentMethod"],
+          _sum: { amount: true },
+          where: { paymentDate: { gte: dayStart, lt: dayEnd } },
+        }),
+        req.prisma.paymentIn.groupBy({
+          by: ["paymentMethod"],
+          _sum: { amount: true },
+          where: { paymentDate: { gte: monthStart, lt: monthEnd } },
         }),
       ]);
 
+      // Convert groupBy results to { method: amount } maps
+      const toMethodMap = (rows: { paymentMethod: string; _sum: { amount: unknown } }[]) =>
+        Object.fromEntries(rows.map((r) => [r.paymentMethod, parseFloat(String(r._sum.amount ?? 0))]));
+
       return reply.send(successResponse({
-        todayAmount: parseFloat(String(todayAgg._sum.amount ?? 0)),
+        todayAmount:    parseFloat(String(todayAgg._sum.amount ?? 0)),
         todayCount,
-        monthAmount: parseFloat(String(monthAgg._sum.amount ?? 0)),
+        monthAmount:    parseFloat(String(monthAgg._sum.amount ?? 0)),
+        todayByMethod:  toMethodMap(todayByMethod),
+        monthByMethod:  toMethodMap(monthByMethod),
       }));
     } catch (err) {
       return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR));

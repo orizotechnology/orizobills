@@ -14,12 +14,14 @@ interface BillSummaryProps {
   taxableAmount: number;
   cgst:          number;
   sgst:          number;
-  roundingAdj:   number;  // difference from rounding total to nearest ₹5
+  roundingAdj:   number;
   totalAmount:   number;
   paidAmount:    string;
   onPaidAmountChange: (v: string) => void;
   paymentMode:   "Cash" | "UPI" | "Card" | "Split";
   onPaymentModeChange: (m: "Cash" | "UPI" | "Card" | "Split") => void;
+  splitCashAmt:  number;
+  onSplitCashChange: (v: number) => void;
 }
 
 function fmt(n: number) {
@@ -162,17 +164,19 @@ export function BillSummary({
   cgst, sgst, roundingAdj, totalAmount,
   paidAmount, onPaidAmountChange,
   paymentMode, onPaymentModeChange,
+  splitCashAmt, onSplitCashChange,
   onAddNewProduct,
 }: BillSummaryProps & { onAddNewProduct?: () => void }) {
   const { profile } = useBusinessStore();
   const upiId = profile.upiId.trim();
 
-  // Split mode: track cash portion separately
-  const [splitCash, setSplitCash] = useState("");
+  // Split mode: local string for the input field
+  const [splitCashStr, setSplitCashStr] = useState(splitCashAmt > 0 ? String(splitCashAmt) : "");
 
-  // When switching modes — reset everything to blank so user enters manually
+  // When switching modes — reset split cash
   useEffect(() => {
-    setSplitCash("");
+    setSplitCashStr("");
+    onSplitCashChange(0);
     // Reset paid amount to blank on every mode switch — no auto-fill
     onPaidAmountChange("");
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,7 +186,6 @@ export function BillSummary({
   const change     = Math.max(0, paid - totalAmount);
 
   // Split computations
-  const splitCashAmt = parseFloat(splitCash) || 0;
   const splitUpiAmt  = Math.max(0, totalAmount - splitCashAmt);
 
   // Mode order: Cash → UPI → Split → Card
@@ -374,13 +377,14 @@ export function BillSummary({
               <input
                 type="text"
                 inputMode="decimal"
-                value={splitCash}
+                value={splitCashStr}
                 placeholder="Enter cash portion…"
                 autoFocus
                 onChange={(e) => {
                   const v = e.target.value;
-                  setSplitCash(v);
+                  setSplitCashStr(v);
                   const cashAmt = parseFloat(v) || 0;
+                  onSplitCashChange(cashAmt);
                   if (cashAmt > 0) {
                     onPaidAmountChange(String(totalAmount));
                   } else {
@@ -394,7 +398,7 @@ export function BillSummary({
             </div>
 
             {/* UPI portion — auto-calculated */}
-            {splitCash !== "" && (
+            {splitCashStr !== "" && (
               <div>
                 <div style={{ ...fieldLabel, color: "#F97316" }}>
                   <Layers size={12} /> UPI Amount (auto)
@@ -411,7 +415,7 @@ export function BillSummary({
             )}
 
             {/* QR for UPI portion — only show when cash < total */}
-            {splitCash !== "" && splitUpiAmt > 0 && (
+            {splitCashStr !== "" && splitUpiAmt > 0 && (
               <UpiQrPanel
                 upiId={upiId}
                 amount={splitUpiAmt}
@@ -419,7 +423,7 @@ export function BillSummary({
               />
             )}
 
-            {splitCash !== "" && splitUpiAmt <= 0 && splitCashAmt > 0 && (
+            {splitCashStr !== "" && splitUpiAmt <= 0 && splitCashAmt > 0 && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 6,
                 background: "rgba(34,197,94,0.07)",

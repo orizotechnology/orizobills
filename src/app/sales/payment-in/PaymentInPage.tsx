@@ -38,6 +38,8 @@ interface Stats {
   todayAmount: number;
   todayCount:  number;
   monthAmount: number;
+  todayByMethod:  Record<string, number>;
+  monthByMethod:  Record<string, number>;
 }
 
 interface ApiResponse<T> { success: boolean; data: T; }
@@ -81,44 +83,82 @@ export default function PaymentInPage() {
   const [toDate,     setToDate]    = useState(today);
   const [showAdd,    setShowAdd]   = useState(false);
   const [isFetching, setIsFetch]   = useState(false);
+  const [methodFilter, setMethodFilter] = useState("All");
+  const [datePreset,   setDatePreset]   = useState("Today");  // "All" | "This Month" | "This Week" | "Today" | "Custom"
+
+  // ── Resolve from/to from preset ───────────────────────────
+  const resolvedDates = useMemo(() => {
+    if (datePreset === "All")        return { from: "", to: "" };
+    if (datePreset === "Today")      return { from: today, to: today };
+    if (datePreset === "This Week")  {
+      const mon = new Date();
+      mon.setDate(mon.getDate() - mon.getDay() + (mon.getDay() === 0 ? -6 : 1));
+      return { from: toDateStr(mon), to: today };
+    }
+    if (datePreset === "This Month") return { from: today.slice(0, 8) + "01", to: today };
+    // Custom — use fromDate / toDate state directly
+    return { from: fromDate, to: toDate };
+  }, [datePreset, fromDate, toDate, today]);
 
   // ── Stats — today's summary ───────────────────────────────
   const { data: statsData } = useQuery({
-    queryKey: ["payment-stats"],
+    queryKey: ["payment-stats", "v2"],
     queryFn: () => http.get<ApiResponse<Stats>>("/payments/stats"),
     staleTime: 30_000,
   });
-  const stats: Stats = statsData?.data ?? { todayAmount: 0, todayCount: 0, monthAmount: 0 };
+  const stats: Stats = {
+    todayAmount:   Number(statsData?.data?.todayAmount  ?? 0),
+    todayCount:    Number(statsData?.data?.todayCount   ?? 0),
+    monthAmount:   Number(statsData?.data?.monthAmount  ?? 0),
+    todayByMethod: statsData?.data?.todayByMethod  ?? {},
+    monthByMethod: statsData?.data?.monthByMethod  ?? {},
+  };
 
-  // ── Payments list — filtered by From/To ───────────────────
+  // ── Payments list — filtered by date preset ──────────────
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["payments-in", fromDate, toDate],
+    queryKey: ["payments-in", resolvedDates.from, resolvedDates.to],
     queryFn: async () => {
-      const url = `/payments?pageSize=500&startDate=${fromDate}&endDate=${toDate}`;
+      let url = `/payments?pageSize=500`;
+      if (resolvedDates.from && resolvedDates.to)
+        url += `&startDate=${resolvedDates.from}&endDate=${resolvedDates.to}`;
       const res = await http.get<ApiResponse<{ data: PaymentIn[]; total: number }>>(url);
       if (!res.success) throw new Error("Failed");
       return res.data;
     },
     staleTime: 30_000,
-    enabled: !!fromDate && !!toDate,
   });
 
   const payments = data?.data ?? [];
 
+  // ── Always show all known methods; highlight only those with data ─
+  const KNOWN_METHODS = ["Cash", "UPI", "Card", "Split", "Bank Transfer", "Cheque"];
+
+  const availableMethods = useMemo(() => {
+    const set = new Set(payments.map((p) => p.paymentMethod));
+    // Always show known methods; append any unknown ones from data
+    const extra = Array.from(set).filter((m) => !KNOWN_METHODS.includes(m)).sort();
+    return [...KNOWN_METHODS, ...extra];
+  }, [payments]);
+
+  // ── Apply method filter ───────────────────────────────────
+  const filteredPayments = useMemo(() =>
+    methodFilter === "All" ? payments : payments.filter((p) => p.paymentMethod === methodFilter),
+  [payments, methodFilter]);
+
   // ── Group by day ──────────────────────────────────────────
   const grouped = useMemo(() => {
     const map: Record<string, PaymentIn[]> = {};
-    payments.forEach((p) => {
+    filteredPayments.forEach((p) => {
       const day = p.paymentDate.slice(0, 10);
       (map[day] ??= []).push(p);
     });
     return Object.entries(map).sort(([a], [b]) => b.localeCompare(a));
-  }, [payments]);
+  }, [filteredPayments]);
 
   const handleRefresh = async () => {
     setIsFetch(true);
     await qc.invalidateQueries({ queryKey: ["payments-in"] });
-    await qc.invalidateQueries({ queryKey: ["payment-stats"] });
+    await qc.invalidateQueries({ queryKey: ["payment-stats", "v2"] });
     await refetch();
     setIsFetch(false);
   };
@@ -144,79 +184,146 @@ export default function PaymentInPage() {
         </div>
       </div>
 
-      {/* ── Stat cards — Today + This Month only ────────────── */}
+      {/* ── Stat cards — Today + This Month ────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
         {[
           {
-            label: "Today's Collection",
-            value: fmtAmt(stats.todayAmount),
-            sub:   `${stats.todayCount} transaction${stats.todayCount !== 1 ? "s" : ""}`,
-            color: "#F97316",
-            bg:    "rgba(249,115,22,0.07)",
-            icon:  <Banknote size={20} color="#F97316" />,
+            label:     "Today's Collection",
+            value:     fmtAmt(stats.todayAmount),
+            sub:       `${stats.todayCount} transaction${stats.todayCount !== 1 ? "s" : ""}`,
+            color:     "#F97316",
+            bg:        "rgba(249,115,22,0.07)",
+            icon:      <Banknote size={20} color="#F97316" />,
+            byMethod:  stats.todayByMethod,
           },
           {
-            label: "This Month",
-            value: fmtAmt(stats.monthAmount),
-            sub:   "Month total",
-            color: "#8B5CF6",
-            bg:    "rgba(139,92,246,0.07)",
-            icon:  <TrendingUp size={20} color="#8B5CF6" />,
+            label:     "This Month",
+            value:     fmtAmt(stats.monthAmount),
+            sub:       "Month total",
+            color:     "#8B5CF6",
+            bg:        "rgba(139,92,246,0.07)",
+            icon:      <TrendingUp size={20} color="#8B5CF6" />,
+            byMethod:  stats.monthByMethod,
           },
-        ].map((c) => (
-          <div key={c.label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12,
-            padding: "16px 18px", display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 10, background: c.bg,
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {c.icon}
+        ].map((c) => {
+          const methods = Object.entries(c.byMethod ?? {}).filter(([, v]) => v > 0);
+          return (
+            <div key={c.label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12,
+              padding: "16px 18px" }}>
+              {/* Top row: icon + total */}
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: c.bg, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {c.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", letterSpacing: "0.04em",
+                    textTransform: "uppercase" }}>{c.label}</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: c.color, marginTop: 2 }}>{c.value}</div>
+                  <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 1 }}>{c.sub}</div>
+                </div>
+              </div>
+              {/* Per-method breakdown */}
+              {methods.length > 0 && (
+                <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px dashed #E2E8F0",
+                  display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {methods.map(([method, amount]) => {
+                    const ms = METHOD_STYLE[method] ?? METHOD_STYLE["Bank Transfer"];
+                    return (
+                      <div key={method} style={{ display: "inline-flex", alignItems: "center", gap: 5,
+                        background: ms.bg, borderRadius: 8, padding: "4px 10px" }}>
+                        <span style={{ color: ms.color, display: "flex", alignItems: "center" }}>{ms.icon}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: ms.color }}>{method}</span>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: ms.color }}>
+                          {fmtAmt(amount)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", letterSpacing: "0.04em", textTransform: "uppercase" }}>{c.label}</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: c.color, marginTop: 2 }}>{c.value}</div>
-              <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 1 }}>{c.sub}</div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* ── From / To date filter ────────────────────────────── */}
+      {/* ── Filter toolbar ───────────────────────────────────── */}
       <div style={{
-        display: "flex", alignItems: "center", gap: 12,
-        background: "#fff", border: "1px solid #E2E8F0",
-        borderRadius: 10, padding: "12px 18px", marginBottom: 16,
+        background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10,
+        padding: "12px 14px", marginBottom: 16,
+        display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
       }}>
-        <span style={{ fontSize: 13, color: "#64748B", fontWeight: 500 }}>From</span>
-        <input
-          type="date"
-          value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-          style={dateInp}
-        />
-        <span style={{ fontSize: 13, color: "#64748B", fontWeight: 500 }}>To</span>
-        <input
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-          style={dateInp}
-        />
-        {/* Quick shortcuts */}
-        <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-          {[
-            { label: "Today",      from: today,                                          to: today },
-            { label: "This Month", from: today.slice(0, 8) + "01",                       to: today },
-          ].map(({ label, from, to }) => (
-            <button key={label}
-              onClick={() => { setFromDate(from); setToDate(to); }}
+        {/* Date preset chips */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          {["All", "This Month", "This Week", "Today", "Custom"].map((p) => (
+            <button key={p}
+              onClick={() => { setDatePreset(p); setMethodFilter("All"); }}
               style={{
-                padding: "4px 12px", borderRadius: 6, border: "1px solid #E2E8F0",
-                background: fromDate === from && toDate === to ? "#F97316" : "#fff",
-                color:      fromDate === from && toDate === to ? "#fff"    : "#64748B",
-                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", outline: "none",
+                padding: "5px 13px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                cursor: "pointer", fontFamily: "inherit", outline: "none",
+                border: datePreset === p ? "none" : "1px solid #E2E8F0",
+                background: datePreset === p ? "#F97316" : "#fff",
+                color:      datePreset === p ? "#fff"    : "#64748B",
+                transition: "all 0.12s",
               }}>
-              {label}
+              {p}
             </button>
           ))}
         </div>
+
+        {/* Custom date pickers — only when Custom is selected */}
+        {datePreset === "Custom" && (
+          <>
+            <div style={{ width: 1, height: 22, background: "#E2E8F0", flexShrink: 0 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>From</span>
+              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={dateInp} />
+              <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>To</span>
+              <input type="date" value={toDate}   onChange={(e) => setToDate(e.target.value)}   style={dateInp} />
+            </div>
+          </>
+        )}
+
+        {/* Divider + method chips */}
+        <div style={{ width: 1, height: 22, background: "#E2E8F0", flexShrink: 0 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          {["All", ...availableMethods].map((m) => {
+            const isActive = methodFilter === m;
+            const hasData  = m === "All" || payments.some((p) => p.paymentMethod === m);
+            const ms = m !== "All" ? (METHOD_STYLE[m] ?? METHOD_STYLE["Bank Transfer"]) : null;
+            const count = m === "All" ? payments.length : payments.filter((p) => p.paymentMethod === m).length;
+            return (
+              <button key={m} onClick={() => setMethodFilter(m)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit", outline: "none",
+                  transition: "all 0.12s", opacity: hasData ? 1 : 0.4,
+                  border: isActive ? "none" : `1px solid ${ms ? ms.color + "44" : "#E2E8F0"}`,
+                  background: isActive ? (ms ? ms.color : "#F97316") : (ms ? ms.bg : "#fff"),
+                  color: isActive ? "#fff" : (ms ? ms.color : "#64748B"),
+                }}>
+                {ms && <span style={{ display: "flex", alignItems: "center" }}>{ms.icon}</span>}
+                {m}
+                <span style={{
+                  fontSize: 10, fontWeight: 700, borderRadius: 10, padding: "1px 5px",
+                  background: isActive ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.07)",
+                  color: isActive ? "#fff" : "inherit",
+                }}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Filtered total on the right */}
+        {methodFilter !== "All" && (
+          <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 700, color: "#0F172A" }}>
+            {fmtAmt(filteredPayments.reduce((s, p) => s + p.amount, 0))}
+            <span style={{ fontSize: 11, fontWeight: 400, color: "#94A3B8", marginLeft: 4 }}>
+              {filteredPayments.length} txn{filteredPayments.length !== 1 ? "s" : ""}
+            </span>
+          </span>
+        )}
       </div>
 
       {/* ── Loading / Error ───────────────────────────────────── */}
@@ -246,6 +353,13 @@ export default function PaymentInPage() {
           const dayTotal = rows.reduce((s, r) => s + r.amount, 0);
           const isToday  = day === toDateStr(new Date());
 
+          // Group amounts by method for this day
+          const dayByMethod: Record<string, number> = {};
+          rows.forEach((r) => {
+            dayByMethod[r.paymentMethod] = (dayByMethod[r.paymentMethod] ?? 0) + r.amount;
+          });
+          const methodEntries = Object.entries(dayByMethod).filter(([, v]) => v > 0);
+
           return (
             <div key={day} style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", overflow: "hidden" }}>
 
@@ -256,7 +370,7 @@ export default function PaymentInPage() {
                 background: isToday ? "rgba(249,115,22,0.04)" : "#F8FAFC",
                 borderBottom: "1px solid #E2E8F0",
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   {isToday && (
                     <span style={{ fontSize: 10, fontWeight: 700, background: "#F97316", color: "#fff",
                       borderRadius: 20, padding: "1px 8px", letterSpacing: "0.05em" }}>TODAY</span>
@@ -267,8 +381,19 @@ export default function PaymentInPage() {
                   <span style={{ fontSize: 12, color: "#94A3B8" }}>
                     · {rows.length} transaction{rows.length !== 1 ? "s" : ""}
                   </span>
+                  {/* Per-method pills */}
+                  {methodEntries.map(([method, amount]) => {
+                    const ms = METHOD_STYLE[method] ?? METHOD_STYLE["Bank Transfer"];
+                    return (
+                      <span key={method} style={{ display: "inline-flex", alignItems: "center", gap: 4,
+                        fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "2px 8px",
+                        background: ms.bg, color: ms.color }}>
+                        {ms.icon} {method} {fmtAmt(amount)}
+                      </span>
+                    );
+                  })}
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 800, color: "#F97316" }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: "#F97316", flexShrink: 0, marginLeft: 8 }}>
                   {fmtAmt(dayTotal)}
                 </span>
               </div>
@@ -321,7 +446,7 @@ export default function PaymentInPage() {
             onClose={() => setShowAdd(false)}
             onSaved={() => {
               qc.invalidateQueries({ queryKey: ["payments-in"] });
-              qc.invalidateQueries({ queryKey: ["payment-stats"] });
+              qc.invalidateQueries({ queryKey: ["payment-stats", "v2"] });
               setShowAdd(false);
             }}
           />

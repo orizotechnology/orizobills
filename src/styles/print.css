@@ -37,15 +37,17 @@
     size:   80mm auto;
   }
 
-  /* A4 override — applied when body has data-paper="A4" or "A5" */
-  body[data-paper="A4"] #pos-print-area ~ * { display: none; }
-  body[data-paper="A4"]  @page { size: A4 portrait;  margin: 10mm; }
-  body[data-paper="A5"]  @page { size: A5 portrait;  margin: 8mm;  }
-  body[data-paper="Thermal 58mm"] @page { size: 58mm auto; margin: 2mm; }
+  /* Paper-size overrides — applied when body carries data-paper attribute */
+  body[data-paper="A4"]            @page { size: A4 portrait;  margin: 10mm; }
+  body[data-paper="A5"]            @page { size: A5 portrait;  margin: 8mm;  }
+  body[data-paper="Thermal 58mm"]  @page { size: 58mm auto;    margin: 2mm;  }
+  body[data-paper="Thermal 80mm"]  @page { size: 80mm auto;    margin: 2mm 3mm; }
 
   .pos-receipt {
     page-break-inside: avoid;
     break-inside:      avoid;
+    /* Pure white background so thermal paper prints as bright as possible */
+    background: #ffffff !important;
   }
 
   .pos-receipt + .pos-receipt {
@@ -53,6 +55,7 @@
     break-before:      page;
   }
 
+  /* Force full colour fidelity — prevents browsers washing out background colours */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust:         exact !important;
