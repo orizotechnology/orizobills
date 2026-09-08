@@ -330,7 +330,7 @@ export default function SaleInvoicesPage() {
       const upiAmt = d.paymentMethod === "Split" ? totalAmount : totalAmount;
       const needsQr = (d.paymentMethod === "UPI" || d.paymentMethod === "Split") && !!profile.upiId;
       const qrDataUrl = needsQr
-        ? (await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 400) ?? undefined)
+        ? (await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 270) ?? undefined)
         : undefined;
       pendingPrintRef.current = true;
       setPrintData({ ...snapshot, qrDataUrl });

@@ -154,7 +154,7 @@ export default function PosPage() {
           // Pre-generate QR before committing to DOM so it's ready when print fires
           const upiAmt = snapshot.splitUpiAmt ?? snapshot.totalAmount;
           const qrDataUrl = (snapshot.paymentMode === "UPI" || snapshot.paymentMode === "Split") && profile.upiId
-            ? await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 400)
+            ? await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 270)
             : null;
           pendingPrintRef.current = true;
           setPrinting(true);

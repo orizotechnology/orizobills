@@ -140,7 +140,7 @@ function ThermalReceipt(props: ReceiptProps) {
   const needsQr    = (isUpi || isSplit) && !!profile.upiId && settings.showQR;
   const qrAmount   = isSplit && splitUpiAmt !== undefined ? splitUpiAmt : totalAmount;
   const innerWidth = w - settings.marginLeft - settings.marginRight;
-  const qrSize     = Math.min(innerWidth - 4, 150);
+  const qrSize     = Math.min(innerWidth - 4, 90);
 
   const cashPortion = isSplit && splitUpiAmt !== undefined
     ? totalAmount - splitUpiAmt
@@ -504,7 +504,7 @@ function A4Receipt(props: ReceiptProps) {
               padding: 8, display: "inline-block", marginBottom: 6 }}>
               <QrImg
                 dataUrl={props.qrDataUrl}
-                size={110}
+                size={80}
               />
             </div>
             <div style={{ fontSize: fs - 1, fontWeight: 700, color: c }}>
@@ -632,7 +632,7 @@ function A4Receipt(props: ReceiptProps) {
           <div style={{ border: `3px solid ${c}`, borderRadius: 12, padding: 10, marginTop: 4 }}>
             <QrImg
               dataUrl={props.qrDataUrl}
-              size={180}
+              size={120}
             />
           </div>
           {/* Big amount below QR */}
