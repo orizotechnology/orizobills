@@ -43,6 +43,7 @@ export default function PosPage() {
     rows: ProductRow[]; mrpTotal: number; subTotal: number;
     discTotal: number; taxableAmt: number; cgst: number; sgst: number;
     roundingAdj: number; totalAmount: number; paidAmount: number; paymentMode: string;
+    splitUpiAmt?: number;
   } | null>(null);
   // Used to trigger window.print() after printData is committed to DOM
   const pendingPrintRef = useRef(false);
@@ -142,6 +143,7 @@ export default function PosPage() {
           roundingAdj, totalAmount,
           paidAmount:   paid,
           paymentMode:  bill.paymentMode,
+          splitUpiAmt:  bill.paymentMode === "Split" ? Math.max(0, totalAmount - (bill.splitCashAmt ?? 0)) : undefined,
         };
         qc.invalidateQueries({ queryKey: ["sales"] });
         qc.invalidateQueries({ queryKey: ["inventory"] });
@@ -182,6 +184,7 @@ export default function PosPage() {
         roundingAdj, totalAmount,
         paidAmount:   paid,
         paymentMode:  bill.paymentMode,
+        splitUpiAmt:  bill.paymentMode === "Split" ? Math.max(0, totalAmount - (bill.splitCashAmt ?? 0)) : undefined,
       };
     })();
     if (!snap) return;
@@ -535,6 +538,7 @@ export default function PosPage() {
               totalAmount={printData.totalAmount}
               paidAmount={printData.paidAmount}
               paymentMode={printData.paymentMode}
+              splitUpiAmt={printData.splitUpiAmt}
               settings={printSettings}
               profile={profile}
             />

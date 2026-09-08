@@ -322,36 +322,6 @@ function ThermalReceipt(props: ReceiptProps) {
         </div>
       )}
 
-      {/* ── UPI QR CODE ── */}
-      {needsQr && qrAmount > 0 && (
-        <>
-          <Dash />
-          <div style={{ textAlign: "center", marginBottom: 4 }}>
-            <div style={{ fontSize: fs - 1, fontWeight: 700 }}>
-              {isSplit ? "Scan to pay UPI portion" : "Scan to pay"}
-            </div>
-            <div style={{ fontSize: fs + 2, fontWeight: 900, letterSpacing: 0.5 }}>
-              {fmt(qrAmount)}
-            </div>
-            <div style={{ fontSize: fs - 3, color: "#000", marginTop: 1 }}>
-              Amount is fixed — cannot be changed
-            </div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "center", margin: "3px 0" }}>
-            <QrImg
-              upiId={profile.upiId}
-              shopName={profile.storeName}
-              amount={qrAmount}
-              size={qrSize}
-            />
-          </div>
-          <div style={{ textAlign: "center", fontSize: fs - 2, color: "#000", marginTop: 2 }}>
-            {profile.upiId}
-          </div>
-          <Dash />
-        </>
-      )}
-
       {/* ── TERMS ── */}
       {settings.showTerms && settings.termsText && (
         <div style={{ borderTop: "1px dashed #999", marginTop: 5, paddingTop: 4,
@@ -374,6 +344,43 @@ function ThermalReceipt(props: ReceiptProps) {
             Authorised Signatory
           </div>
         </div>
+      )}
+
+      {/* ── UPI QR — always at bottom for UPI / Split ── */}
+      {(isUpi || isSplit) && profile.upiId && qrAmount > 0 && (
+        <>
+          <Dash />
+          <div style={{ textAlign: "center", marginTop: 6, marginBottom: 4 }}>
+            <div style={{ fontSize: fs, fontWeight: 700, letterSpacing: 0.3, marginBottom: 3 }}>
+              {isSplit ? "Pay UPI Portion" : "Scan & Pay"}
+            </div>
+            {/* QR code — full inner width for easy scanning */}
+            <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 6px" }}>
+              <QrImg
+                upiId={profile.upiId}
+                shopName={profile.storeName}
+                amount={qrAmount}
+                size={qrSize}
+              />
+            </div>
+            {/* Amount prominently below QR */}
+            <div style={{ fontSize: fs + 6, fontWeight: 900, letterSpacing: -0.5, marginBottom: 2 }}>
+              {fmt(qrAmount)}
+            </div>
+            {isSplit && cashPortion !== null && (
+              <div style={{ fontSize: fs - 1, color: "#555", marginBottom: 2 }}>
+                (Cash {fmt(cashPortion)} + UPI {fmt(qrAmount)})
+              </div>
+            )}
+            <div style={{ fontSize: fs - 2, color: "#000", marginBottom: 2 }}>
+              {profile.upiId}
+            </div>
+            <div style={{ fontSize: fs - 3, color: "#555" }}>
+              Amount pre-filled · cannot be changed
+            </div>
+          </div>
+          <Dash />
+        </>
       )}
     </div>
   );
@@ -405,7 +412,6 @@ function A4Receipt(props: ReceiptProps) {
   return (
     <div className="pos-receipt" style={{
       width: isA5 ? "148mm" : "210mm",
-      minHeight: isA5 ? "105mm" : "297mm",
       background: "#fff", fontFamily: settings.fontFamily,
       fontSize: fs, color: "#1E293B", padding: pad,
     }}>
@@ -622,6 +628,43 @@ function A4Receipt(props: ReceiptProps) {
           </div>
         )}
       </div>
+
+      {/* ── UPI QR — full-width section at bottom of A4 ── */}
+      {(isUpi || isSplit) && profile.upiId && qrAmount > 0 && (
+        <div style={{
+          marginTop: 20, paddingTop: 16,
+          borderTop: `2px dashed ${c}`,
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+        }}>
+          <div style={{ fontSize: fs + 1, fontWeight: 800, color: c, letterSpacing: 0.5 }}>
+            {isSplit ? "Scan QR to Pay UPI Portion" : "Scan QR to Pay"}
+          </div>
+          {isSplit && cashPortion !== null && (
+            <div style={{ fontSize: fs - 1, color: "#64748B" }}>
+              Cash {fmt(cashPortion)} + UPI {fmt(qrAmount)}
+            </div>
+          )}
+          {/* Large QR */}
+          <div style={{ border: `3px solid ${c}`, borderRadius: 12, padding: 10, marginTop: 4 }}>
+            <QrImg
+              upiId={profile.upiId}
+              shopName={profile.storeName}
+              amount={qrAmount}
+              size={180}
+            />
+          </div>
+          {/* Big amount below QR */}
+          <div style={{ fontSize: fs + 12, fontWeight: 900, color: c, letterSpacing: -1, lineHeight: 1, marginTop: 4 }}>
+            {fmt(qrAmount)}
+          </div>
+          <div style={{ fontSize: fs, color: "#475569", fontWeight: 600 }}>
+            {profile.upiId}
+          </div>
+          <div style={{ fontSize: fs - 2, color: "#94A3B8" }}>
+            Amount is pre-filled in UPI app · cannot be changed by customer
+          </div>
+        </div>
+      )}
     </div>
   );
 }

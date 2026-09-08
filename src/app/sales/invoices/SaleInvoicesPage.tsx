@@ -598,6 +598,7 @@ export default function SaleInvoicesPage() {
               totalAmount={printData.totalAmount}
               paidAmount={printData.paidAmount}
               paymentMode={printData.paymentMode}
+              splitUpiAmt={printData.paymentMode === "Split" ? printData.totalAmount : undefined}
               settings={printSettings}
               profile={profile}
             />
