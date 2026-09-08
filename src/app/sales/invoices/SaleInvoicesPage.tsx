@@ -170,8 +170,17 @@ export default function SaleInvoicesPage() {
   const [fromDate, setFromDate] = useState(today);
   const [toDate,   setToDate]   = useState(today);
   const [search,   setSearch]   = useState("");
+  const [debSearch, setDebSearch] = useState("");
   const [page,     setPage]     = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<SaleInvoice | null>(null);
+
+  // Debounce search — reset to page 1
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    setPage(1);
+    clearTimeout((handleSearch as { _t?: ReturnType<typeof setTimeout> })._t);
+    (handleSearch as { _t?: ReturnType<typeof setTimeout> })._t = setTimeout(() => setDebSearch(val), 320);
+  };
   // Print state
   const [printData,  setPrintData]  = useState<{ invoiceNo: string; customerName: string; invoiceDate: Date; rows: ProductRow[]; mrpTotal: number; subTotal: number; discTotal: number; taxableAmt: number; cgst: number; sgst: number; roundingAdj: number; totalAmount: number; paidAmount: number; paymentMode: string } | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
@@ -217,11 +226,13 @@ export default function SaleInvoicesPage() {
 
   // ── Query ────────────────────────────────────────────────
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ["sales", page, dateRange.start, dateRange.end],
+    queryKey: ["sales", page, dateRange.start, dateRange.end, debSearch],
     queryFn: async () => {
-      let url = `/sales?page=${page}&pageSize=20`;
+      let url = `/sales?page=${page}&pageSize=50`;
       if (dateRange.start && dateRange.end)
         url += `&startDate=${dateRange.start}&endDate=${dateRange.end}`;
+      if (debSearch.trim())
+        url += `&search=${encodeURIComponent(debSearch.trim())}`;
       const res = await http.get<ApiResponse<{ data: SaleInvoice[]; total: number }>>(url);
       if (!res.success) throw new Error("Failed");
       return res.data;
@@ -230,14 +241,9 @@ export default function SaleInvoicesPage() {
     placeholderData: (prev) => prev,
   });
 
-  const allInvoices = data?.data ?? [];
-  const invoices    = allInvoices.filter((i) =>
-    !search ||
-    i.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
-    i.customerName.toLowerCase().includes(search.toLowerCase())
-  );
+  const invoices   = data?.data ?? [];
   const total      = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / 20));
+  const totalPages = Math.max(1, Math.ceil(total / 50));
 
   // ── Summary strip values ─────────────────────────────────
   const sumTotal       = invoices.reduce((s, i) => s + i.totalAmt, 0);
@@ -373,7 +379,7 @@ export default function SaleInvoicesPage() {
         <div style={{ position: "relative", flex: "1 1 220px", minWidth: 180 }}>
           <Search size={13} style={{ position: "absolute", left: 9, top: "50%",
             transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none" }} />
-          <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          <input value={search} onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search invoice or customer…"
             style={{ width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 7,
               padding: "7px 10px 7px 28px", fontSize: 13, color: "#475569",

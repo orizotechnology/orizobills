@@ -113,16 +113,26 @@ export default function InventoryPage() {
   const [adjustTarget, setAdjustTarget] = useState<InventoryItem | null>(null);
   const [showCreate,   setShowCreate]   = useState(false);
   const [search,       setSearch]       = useState("");
+  const [debSearch,    setDebSearch]    = useState("");
   const [selected,     setSelected]     = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // Debounce search — reset to page 1 on each keystroke
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    clearTimeout((handleSearch as { _t?: ReturnType<typeof setTimeout> })._t);
+    (handleSearch as { _t?: ReturnType<typeof setTimeout> })._t = setTimeout(() => setDebSearch(val), 320);
+  };
 
   const {
     data, fetchNextPage, hasNextPage, isFetchingNextPage,
     isLoading, isError, isFetching, refetch,
   } = useInfiniteQuery({
-    queryKey: ["inventory", filter],
+    queryKey: ["inventory", filter, debSearch],
     queryFn: async ({ pageParam = 1 }) => {
-      const url = `/inventory?page=${pageParam}&pageSize=${PAGE_SIZE}${filter !== "ALL" ? `&status=${filter}` : ""}`;
+      let url = `/inventory?page=${pageParam}&pageSize=${PAGE_SIZE}`;
+      if (filter !== "ALL") url += `&status=${filter}`;
+      if (debSearch.trim()) url += `&search=${encodeURIComponent(debSearch.trim())}`;
       const res = await http.get<ApiResponse<{ items: InventoryItem[]; summary: InventorySummary; total: number }>>(url);
       if (!res.success) throw new Error("Failed");
       return { ...res.data, page: pageParam as number };
@@ -139,13 +149,8 @@ export default function InventoryPage() {
   const summary  = data?.pages[0]?.summary ?? { total: 0, inStock: 0, lowStock: 0, outOfStock: 0, totalValue: 0 };
   const total    = data?.pages[0]?.total ?? 0;
 
-  const items = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return allItems;
-    return allItems.filter(
-      (it) => it.productName.toLowerCase().includes(q) || it.productCode.toLowerCase().includes(q)
-    );
-  }, [allItems, search]);
+  // No client-side filter needed — search is server-side
+  const items = allItems;
 
   const sentinelRef = useInfiniteScroll({
     onLoadMore: () => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); },
@@ -287,14 +292,14 @@ export default function InventoryPage() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search by product name or code..."
             style={{ ...inputStyle, paddingLeft: 34, background: "#fff" }}
             onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
             onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }}
           />
           {search && (
-            <button onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94A3B8", padding: 2 }}
+            <button onClick={() => { setSearch(""); setDebSearch(""); }} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94A3B8", padding: 2 }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = ORANGE.base; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#94A3B8"; }}>
               <X size={14} />

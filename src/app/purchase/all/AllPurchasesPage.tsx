@@ -358,10 +358,19 @@ export default function AllPurchasesPage() {
 
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<PurchaseInvoice | null>(null);
-  const [search,   setSearch]   = useState("");
+  const [search,    setSearch]    = useState("");
+  const [debSearch, setDebSearch] = useState("");
   const [filter,   setFilter]   = useState("All");
   const [fromDate, setFromDate] = useState(new Date().toISOString().slice(0, 10));
   const [toDate,   setToDate]   = useState(new Date().toISOString().slice(0, 10));
+
+  // Debounce search — reset to page 1
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    setPage(1);
+    clearTimeout((handleSearch as { _t?: ReturnType<typeof setTimeout> })._t);
+    (handleSearch as { _t?: ReturnType<typeof setTimeout> })._t = setTimeout(() => setDebSearch(val), 320);
+  };
 
   const FILTERS = ["All", "This Month", "This Week", "Today", "Custom"];
 
@@ -385,44 +394,24 @@ export default function AllPurchasesPage() {
   })();
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-      queryKey: ["purchases", page, dateRange.start, dateRange.end],
-      queryFn: async () => {
-        let url = `/purchases?page=${page}&pageSize=20`;
-        if (dateRange.start && dateRange.end)
-          url += `&startDate=${dateRange.start}&endDate=${dateRange.end}`;
-        const res = await http.get<ApiResponse<{ data: PurchaseInvoice[]; total: number }>>(url);
-        if (!res.success) throw new Error("Failed to load purchases");
-        return res.data;
-      },
-      staleTime: 30_000,
-      placeholderData: (prev) => prev,
-    });
-
-  const allPurchases = data?.data ?? [];
-
-  // Client-side search
-  const purchases = allPurchases.filter((purchase) => {
-    const searchText = search.toLowerCase().trim();
-
-    if (!searchText) {
-      return true;
-    }
-
-    return (
-      purchase.invoiceNumber
-        .toLowerCase()
-        .includes(searchText) ||
-      purchase.supplierName
-        .toLowerCase()
-        .includes(searchText)
-    );
+    queryKey: ["purchases", page, dateRange.start, dateRange.end, debSearch],
+    queryFn: async () => {
+      let url = `/purchases?page=${page}&pageSize=50`;
+      if (dateRange.start && dateRange.end)
+        url += `&startDate=${dateRange.start}&endDate=${dateRange.end}`;
+      if (debSearch.trim())
+        url += `&search=${encodeURIComponent(debSearch.trim())}`;
+      const res = await http.get<ApiResponse<{ data: PurchaseInvoice[]; total: number }>>(url);
+      if (!res.success) throw new Error("Failed to load purchases");
+      return res.data;
+    },
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
 
-  const total = data?.total ?? 0;
-  const totalPages = Math.max(
-    1,
-    Math.ceil(total / 20)
-  );
+  const purchases  = data?.data ?? [];
+  const total      = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / 50));
 
   // =============================================================
   // DELETE
@@ -614,10 +603,7 @@ export default function AllPurchasesPage() {
 
           <input
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search purchase or supplier..."
             style={{
               width: "100%",

@@ -96,23 +96,31 @@ export async function purchaseRoutes(fastify: FastifyInstance) {
 
   // ── Collection & parameterised ────────────────────────────
 
-  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; startDate?: string; endDate?: string } }>, reply) => {
+  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; startDate?: string; endDate?: string; search?: string } }>, reply) => {
     try {
       const page = Number(req.query.page ?? 1);
-      const size = Number(req.query.pageSize ?? 20);
-      const dateWhere: Record<string, unknown> = {};
+      const size = Math.min(500, Math.max(1, Number(req.query.pageSize ?? 20)));
+      const search = req.query.search?.trim();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const where: Record<string, any> = {};
       if (req.query.startDate && req.query.endDate) {
-        dateWhere.billDate = { gte: new Date(req.query.startDate), lte: new Date(req.query.endDate + "T23:59:59.999Z") };
+        where.billDate = { gte: new Date(req.query.startDate), lte: new Date(req.query.endDate + "T23:59:59.999Z") };
+      }
+      if (search) {
+        where.OR = [
+          { invoiceNumber: { contains: search } },
+          { supplierName:  { contains: search } },
+        ];
       }
       const [rows, total] = await Promise.all([
         req.prisma.purchaseInvoice.findMany({
-          where: Object.keys(dateWhere).length ? dateWhere : undefined,
+          where: Object.keys(where).length ? where : undefined,
           include: { _count: { select: { items: true } } },
           orderBy: { createdAt: "desc" },
           skip: (page - 1) * size,
           take: size,
         }),
-        req.prisma.purchaseInvoice.count({ where: Object.keys(dateWhere).length ? dateWhere : undefined }),
+        req.prisma.purchaseInvoice.count({ where: Object.keys(where).length ? where : undefined }),
       ]);
       return reply.send(successResponse({ data: rows.map(toResult), total }));
     } catch (err) {

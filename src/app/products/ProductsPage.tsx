@@ -35,7 +35,8 @@ function useProducts(search: string, page: number, pageSize: number) {
     queryFn: async () => {
       let url: string;
       if (search) {
-        url = `/products?search=${encodeURIComponent(search)}`;
+        // Server-side search — cap at 500 to prevent unbounded queries
+        url = `/products?search=${encodeURIComponent(search)}&pageSize=500`;
       } else {
         url = `/products?page=${page}&pageSize=${pageSize}&filter=active`;
       }
@@ -62,11 +63,11 @@ export default function ProductsPage() {
   const { data, isLoading, isError, isFetching, refetch } =
     useProducts(debouncedSearch, page, PAGE_SIZE);
 
-  // Also fetch inventory to get stock status per product
+  // Fetch inventory summary map — paginated to 500 for status badges
   const { data: invData } = useQuery({
     queryKey: ["inventory-map"],
     queryFn: async () => {
-      const res = await http.get<ApiResponse<{ items: InventoryItem[] }>>("/inventory");
+      const res = await http.get<ApiResponse<{ items: InventoryItem[] }>>("/inventory?pageSize=500");
       if (!res.success) return {};
       const map: Record<string, InventoryItem> = {};
       res.data.items.forEach((i) => { map[i.productId] = i; });

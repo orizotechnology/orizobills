@@ -23,20 +23,42 @@ function toResult(row: any) {
 
 export async function inventoryRoutes(fastify: FastifyInstance) {
 
-  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; status?: string } }>, reply) => {
+  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; status?: string; search?: string } }>, reply) => {
     try {
       const pg   = Math.max(1, Number(req.query.page    ?? 1));
-      const size = Math.min(200, Math.max(1, Number(req.query.pageSize ?? 50)));
+      const size = Math.min(500, Math.max(1, Number(req.query.pageSize ?? 50)));
+      const search = req.query.search?.trim();
+      const status = req.query.status;
+
+      // Build where: status filter + optional product name/code search
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const where: Record<string, any> = {
+        product: {
+          isActive: true,
+          ...(search ? {
+            OR: [
+              { name: { contains: search } },
+              { code: { contains: search } },
+            ],
+          } : {}),
+        },
+      };
+
       const rows = await req.prisma.inventoryItem.findMany({
+        where,
         include: { product: { select: { name: true, code: true, unit: true, salePrice: true, isActive: true } } },
         orderBy: { product: { name: "asc" } },
         skip: (pg - 1) * size,
         take: size,
       });
-      const total = await req.prisma.inventoryItem.count();
+      const total = await req.prisma.inventoryItem.count({ where });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const items = rows.filter((r: any) => r.product?.isActive).map(toResult);
-      // summary is computed from this page only — for full summary client can use page=1&pageSize=9999
+      const allItems = rows.map(toResult);
+      // Apply status filter in-memory after fetch (fast, already limited set)
+      const items = status && status !== "ALL"
+        ? allItems.filter((i: any) => i.status === status)
+        : allItems;
+
       const summary = {
         total,
         inStock:    items.filter((i: any) => i.status === "IN_STOCK").length,

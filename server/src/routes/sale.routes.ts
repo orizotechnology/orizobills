@@ -158,17 +158,25 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
   // ── Collection & parameterised ─────────────────────────────
 
-  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; startDate?: string; endDate?: string } }>, reply) => {
+  fastify.get("/", async (req: FastifyRequest<{ Querystring: { page?: string; pageSize?: string; startDate?: string; endDate?: string; search?: string } }>, reply) => {
     try {
-      const page = Number(req.query.page ?? 1), size = Number(req.query.pageSize ?? 20);
-      // Optional date filter
-      const dateWhere: Record<string, unknown> = {};
+      const page = Number(req.query.page ?? 1);
+      const size = Math.min(500, Math.max(1, Number(req.query.pageSize ?? 20)));
+      const search = req.query.search?.trim();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const where: Record<string, any> = { status: { not: "CANCELLED" } };
       if (req.query.startDate && req.query.endDate) {
-        dateWhere.invoiceDate = { gte: new Date(req.query.startDate), lte: new Date(req.query.endDate + "T23:59:59.999Z") };
+        where.invoiceDate = { gte: new Date(req.query.startDate), lte: new Date(req.query.endDate + "T23:59:59.999Z") };
+      }
+      if (search) {
+        where.OR = [
+          { invoiceNumber: { contains: search } },
+          { customerName:  { contains: search } },
+        ];
       }
       const [rows, total] = await Promise.all([
-        req.prisma.saleInvoice.findMany({ where: { status: { not: "CANCELLED" }, ...dateWhere }, include: { _count: { select: { items: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
-        req.prisma.saleInvoice.count({ where: { status: { not: "CANCELLED" }, ...dateWhere } }),
+        req.prisma.saleInvoice.findMany({ where, include: { _count: { select: { items: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
+        req.prisma.saleInvoice.count({ where }),
       ]);
       return reply.send(successResponse({ data: rows.map(toSaleResult), total }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
