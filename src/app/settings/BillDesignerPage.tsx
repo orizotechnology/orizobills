@@ -1669,13 +1669,35 @@ function TemplateThumbnailWrapper({ tpl }: { tpl: Template }) {
 
 export default function BillDesignerPage() {
   const { profile, updateProfile } = useBusinessStore();
-  const { updateSettings } = usePrintStore();
-  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">("A4");
-  const [selectedId,  setSelectedId]  = useState("modern");
+  const { settings: savedSettings, updateSettings } = usePrintStore();
+
+  // Seed from persisted settings on first render
+  const isTherm = savedSettings.paperType.startsWith("Thermal");
+  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">(isTherm ? "Thermal" : "A4");
+  const [selectedId,  setSelectedId]  = useState(savedSettings.templateId || (isTherm ? "th-retail" : "modern"));
   const [rightTab,    setRightTab]    = useState<"properties" | "arrange">("properties");
   const [zoom,        setZoom]        = useState(100);
   const [showPreview, setShowPreview] = useState(false);
-  const [config,      setConfig]      = useState<PrintConfig>(DEFAULT_CONFIG);
+  const [config,      setConfig]      = useState<PrintConfig>({
+    ...DEFAULT_CONFIG,
+    paperType:         savedSettings.paperType,
+    primaryColor:      savedSettings.primaryColor,
+    fontFamily:        savedSettings.fontFamily,
+    fontSize:          savedSettings.fontSize,
+    showLogo:          savedSettings.showLogo,
+    showQR:            savedSettings.showQR,
+    showTerms:         savedSettings.showTerms,
+    showAmountInWords: savedSettings.showAmountInWords,
+    showSignature:     savedSettings.showSignature,
+    footerText:        savedSettings.footerText,
+    termsText:         savedSettings.termsText,
+    marginTop:         savedSettings.marginTop,
+    marginBottom:      savedSettings.marginBottom,
+    marginLeft:        savedSettings.marginLeft,
+    marginRight:       savedSettings.marginRight,
+    copies:            savedSettings.copies,
+    tableStyle:        savedSettings.tableStyle,
+  });
   const [saved,       setSaved]       = useState(false);
   const [isDesktop,   setIsDesktop]   = useState(true);
   const [defaultMsg,  setDefaultMsg]  = useState("");

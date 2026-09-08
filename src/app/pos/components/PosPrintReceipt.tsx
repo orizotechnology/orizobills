@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import type { ProductRow } from "./ProductTable";
 import type { PrintSettings } from "@/store/print.store";
 import type { BusinessProfile } from "@/store/business.store";
@@ -9,7 +8,7 @@ import type { BusinessProfile } from "@/store/business.store";
 // Renders the actual POS bill data using the saved print config.
 // Supports Thermal (58mm / 80mm) and A4 / A5 paper types.
 //
-// QR code: generated as a data-URL <img> (print-safe).
+// QR code: pre-generated as a data-URL before print is fired.
 // Shown only when paymentMode is "UPI" or "Split".
 // The encoded UPI URL has a fixed amount so the customer pays
 // exactly the right total — the amount cannot be changed.
@@ -34,6 +33,8 @@ export interface ReceiptProps {
   profile:      BusinessProfile;
   /** For Split mode: the UPI portion amount. Omit for full-UPI payments. */
   splitUpiAmt?: number;
+  /** Pre-generated QR data URL — must be generated before window.print() fires. */
+  qrDataUrl?:   string;
 }
 
 // ── helpers ───────────────────────────────────────────────────
@@ -62,43 +63,30 @@ function buildUpiUrl(upiId: string, name: string, amount: number): string {
   );
 }
 
-// ── QrImg — generates once, renders as <img> (print-safe) ────
-function QrImg({
-  upiId,
-  shopName,
-  amount,
-  size,
-}: {
-  upiId: string;
-  shopName: string;
-  amount: number;
-  size: number;
-}) {
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
-  const [failed,  setFailed]  = useState(false);
-  const generated = useRef(false);
-
-  useEffect(() => {
-    if (generated.current || !upiId || amount <= 0) return;
-    generated.current = true;
-    const url = buildUpiUrl(upiId, shopName, amount);
-    import("qrcode")
-      .then((mod) => (mod.default ?? mod).toDataURL(url, {
-        width:  size * 3,   // 3× resolution for print sharpness
-        margin: 1,
-        color:  { dark: "#000000", light: "#ffffff" },
-      }))
-      .then(setDataUrl)
-      .catch(() => setFailed(true));
-  }, [upiId, shopName, amount, size]);
-
+// ── Pre-generate QR data URL (call BEFORE window.print()) ────
+export async function generateQrDataUrl(
+  upiId: string,
+  shopName: string,
+  amount: number,
+  size = 300,
+): Promise<string | null> {
   if (!upiId || amount <= 0) return null;
-  if (failed) return (
-    <div style={{ fontSize: 8, color: "#999", textAlign: "center", width: size }}>
-      QR unavailable
-    </div>
-  );
-  if (!dataUrl) return <div style={{ width: size, height: size, background: "#f0f0f0" }} />;
+  try {
+    const url = buildUpiUrl(upiId, shopName, amount);
+    const QRCode = await import("qrcode");
+    return await (QRCode.default ?? QRCode).toDataURL(url, {
+      width:  size,
+      margin: 1,
+      color:  { dark: "#000000", light: "#ffffff" },
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ── Sync QR image — renders immediately from pre-generated dataUrl ──
+function QrImg({ dataUrl, size }: { dataUrl: string | null | undefined; size: number }) {
+  if (!dataUrl) return <div style={{ width: size, height: size, background: "#f0f0f0", borderRadius: 4 }} />;
   return (
     <img
       src={dataUrl}
@@ -357,9 +345,7 @@ function ThermalReceipt(props: ReceiptProps) {
             {/* QR code — full inner width for easy scanning */}
             <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 6px" }}>
               <QrImg
-                upiId={profile.upiId}
-                shopName={profile.storeName}
-                amount={qrAmount}
+                dataUrl={props.qrDataUrl}
                 size={qrSize}
               />
             </div>
@@ -517,9 +503,7 @@ function A4Receipt(props: ReceiptProps) {
             <div style={{ border: `2px solid ${c}`, borderRadius: 8,
               padding: 8, display: "inline-block", marginBottom: 6 }}>
               <QrImg
-                upiId={profile.upiId}
-                shopName={profile.storeName}
-                amount={qrAmount}
+                dataUrl={props.qrDataUrl}
                 size={110}
               />
             </div>
@@ -647,9 +631,7 @@ function A4Receipt(props: ReceiptProps) {
           {/* Large QR */}
           <div style={{ border: `3px solid ${c}`, borderRadius: 12, padding: 10, marginTop: 4 }}>
             <QrImg
-              upiId={profile.upiId}
-              shopName={profile.storeName}
-              amount={qrAmount}
+              dataUrl={props.qrDataUrl}
               size={180}
             />
           </div>

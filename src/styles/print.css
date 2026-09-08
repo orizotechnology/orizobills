@@ -1,8 +1,5 @@
 ﻿/* =============================================================
    POS PRINT STYLESHEET
-   The receipt portal (#pos-print-area) is rendered directly
-   into document.body via ReactDOM.createPortal().
-   On screen it is hidden. On print everything else is hidden.
    ============================================================= */
 
 /* ── Screen: hide the portal ─────────────────────────────── */
@@ -17,12 +14,10 @@
 
 /* ── Print: show ONLY the portal ─────────────────────────── */
 @media print {
-  /* hide the entire app */
   body > #root {
     display: none !important;
   }
 
-  /* show the portal that is a direct child of body */
   body > #pos-print-area {
     display:    block !important;
     visibility: visible !important;
@@ -31,22 +26,27 @@
     width:      100% !important;
   }
 
-  /* Default: Thermal 80mm — targets thermal printers */
+  /* Default: Thermal 80mm */
   @page {
     margin: 2mm 3mm;
     size:   80mm auto;
   }
 
-  /* Paper-size overrides — applied when body carries data-paper attribute */
+  /* Paper-size overrides */
   body[data-paper="A4"]            @page { size: A4 portrait;  margin: 10mm; }
   body[data-paper="A5"]            @page { size: A5 portrait;  margin: 8mm;  }
   body[data-paper="Thermal 58mm"]  @page { size: 58mm auto;    margin: 2mm;  }
   body[data-paper="Thermal 80mm"]  @page { size: 80mm auto;    margin: 2mm 3mm; }
 
+  /* Force full colour fidelity */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust:         exact !important;
+  }
+
   .pos-receipt {
     page-break-inside: avoid;
     break-inside:      avoid;
-    /* Pure white background so thermal paper prints as bright as possible */
     background: #ffffff !important;
   }
 
@@ -55,9 +55,27 @@
     break-before:      page;
   }
 
-  /* Force full colour fidelity — prevents browsers washing out background colours */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust:         exact !important;
+  /* Thermal: force ALL text to pure black — overrides any inline grey colours */
+  body[data-paper="Thermal 80mm"] .pos-receipt,
+  body[data-paper="Thermal 80mm"] .pos-receipt *,
+  body[data-paper="Thermal 58mm"] .pos-receipt,
+  body[data-paper="Thermal 58mm"] .pos-receipt * {
+    color:            #000000 !important;
+    background-color: transparent !important;
+    border-color:     #000000 !important;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Keep QR and logo images unaffected */
+  body[data-paper="Thermal 80mm"] .pos-receipt img,
+  body[data-paper="Thermal 58mm"] .pos-receipt img {
+    background-color: #ffffff !important;
+  }
+
+  /* Default thermal (no data-paper set) also gets black text */
+  body:not([data-paper]) .pos-receipt,
+  body:not([data-paper]) .pos-receipt * {
+    color:            #000000 !important;
+    background-color: transparent !important;
   }
 }

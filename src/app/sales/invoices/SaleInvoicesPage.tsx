@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import { http } from "@/lib/axios";
 import { useDialogKeyboard } from "@/hooks";
-import { PosPrintReceipt } from "@/app/pos/components/PosPrintReceipt";
+import { PosPrintReceipt, generateQrDataUrl } from "@/app/pos/components/PosPrintReceipt";
 import { usePrintStore } from "@/store/print.store";
 import { useBusinessStore } from "@/store/business.store";
 import type { ProductRow } from "@/app/pos/components/ProductTable";
@@ -182,7 +182,7 @@ export default function SaleInvoicesPage() {
     (handleSearch as { _t?: ReturnType<typeof setTimeout> })._t = setTimeout(() => setDebSearch(val), 320);
   };
   // Print state
-  const [printData,  setPrintData]  = useState<{ invoiceNo: string; customerName: string; invoiceDate: Date; rows: ProductRow[]; mrpTotal: number; subTotal: number; discTotal: number; taxableAmt: number; cgst: number; sgst: number; roundingAdj: number; totalAmount: number; paidAmount: number; paymentMode: string } | null>(null);
+  const [printData,  setPrintData]  = useState<{ invoiceNo: string; customerName: string; invoiceDate: Date; rows: ProductRow[]; mrpTotal: number; subTotal: number; discTotal: number; taxableAmt: number; cgst: number; sgst: number; roundingAdj: number; totalAmount: number; paidAmount: number; paymentMode: string; qrDataUrl?: string } | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
   const pendingPrintRef = useRef(false);
   // Invoice number to highlight (passed via router state from POS)
@@ -326,8 +326,14 @@ export default function SaleInvoicesPage() {
         paidAmount:  Number(d.paidAmt),
         paymentMode: d.paymentMethod,
       };
+      // Pre-generate QR before committing to DOM
+      const upiAmt = d.paymentMethod === "Split" ? totalAmount : totalAmount;
+      const needsQr = (d.paymentMethod === "UPI" || d.paymentMethod === "Split") && !!profile.upiId;
+      const qrDataUrl = needsQr
+        ? (await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 400) ?? undefined)
+        : undefined;
       pendingPrintRef.current = true;
-      setPrintData(snapshot);
+      setPrintData({ ...snapshot, qrDataUrl });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load invoice");
       setPrintingId(null);
@@ -605,6 +611,7 @@ export default function SaleInvoicesPage() {
               paidAmount={printData.paidAmount}
               paymentMode={printData.paymentMode}
               splitUpiAmt={printData.paymentMode === "Split" ? printData.totalAmount : undefined}
+              qrDataUrl={printData.qrDataUrl}
               settings={printSettings}
               profile={profile}
             />

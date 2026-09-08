@@ -19,6 +19,7 @@ import type { ProductRow } from "./components/ProductTable";
 import { usePosStore }   from "@/store/pos.store";
 import { usePrintStore } from "@/store/print.store";
 import { useBusinessStore } from "@/store/business.store";
+import { generateQrDataUrl } from "./components/PosPrintReceipt";
 import { http } from "@/lib/axios";
 import "@/styles/print.css";
 
@@ -44,6 +45,7 @@ export default function PosPage() {
     discTotal: number; taxableAmt: number; cgst: number; sgst: number;
     roundingAdj: number; totalAmount: number; paidAmount: number; paymentMode: string;
     splitUpiAmt?: number;
+    qrDataUrl?:   string;
   } | null>(null);
   // Used to trigger window.print() after printData is committed to DOM
   const pendingPrintRef = useRef(false);
@@ -149,10 +151,14 @@ export default function PosPage() {
         qc.invalidateQueries({ queryKey: ["inventory"] });
         resetAfterSave();
         if (andPrint) {
-          // Commit snapshot to DOM first, then fire print via useEffect
+          // Pre-generate QR before committing to DOM so it's ready when print fires
+          const upiAmt = snapshot.splitUpiAmt ?? snapshot.totalAmount;
+          const qrDataUrl = (snapshot.paymentMode === "UPI" || snapshot.paymentMode === "Split") && profile.upiId
+            ? await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 400)
+            : null;
           pendingPrintRef.current = true;
           setPrinting(true);
-          setPrintData(snapshot);
+          setPrintData({ ...snapshot, qrDataUrl: qrDataUrl ?? undefined });
         } else {
           // Just save — navigate to invoices list
           navigate("/app/sales/invoices", { state: { highlightInvoice: savedInvoiceNo } });
@@ -168,7 +174,7 @@ export default function PosPage() {
   }, [bill, qc, totalAmount, mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst]);
 
   // ── Print ───────────────────────────────────────────────────
-  const triggerPrint = useCallback(() => {
+  const triggerPrint = useCallback(async () => {
     // Build snapshot from current bill if no saved print data exists
     const snap = printData ?? (() => {
       if (!bill) return null;
@@ -189,22 +195,20 @@ export default function PosPage() {
     })();
     if (!snap) return;
 
+    // Pre-generate QR data URL before touching DOM so print fires with QR ready
+    const upiAmt = snap.splitUpiAmt ?? snap.totalAmount;
+    const needsQr = (snap.paymentMode === "UPI" || snap.paymentMode === "Split") && !!profile.upiId;
+    const qrDataUrl = needsQr
+      ? (await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 400) ?? undefined)
+      : undefined;
+    const snapWithQr = { ...snap, qrDataUrl };
+
     setPrinting(true);
 
-    if (snap === printData) {
-      // printData already in DOM — fire directly
-      document.body.setAttribute("data-paper", printSettings.paperType);
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        window.print();
-        setPrinting(false);
-        document.body.removeAttribute("data-paper");
-      }));
-    } else {
-      // Set flag first, then state — useEffect will fire after render
-      pendingPrintRef.current = true;
-      setPrintData(snap);
-    }
-  }, [printData, bill, mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst, totalAmount]);
+    // Always go through DOM → useEffect path to ensure QR is rendered
+    pendingPrintRef.current = true;
+    setPrintData(snapWithQr);
+  }, [printData, bill, mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst, totalAmount, profile]);
 
   // ── Add empty row ───────────────────────────────────────────
   const addEmptyRow = useCallback(() => {
@@ -229,7 +233,7 @@ export default function PosPage() {
       if (e.key === "F2")  { e.preventDefault(); void handleSave(false); }
       if (e.key === "F3")  { e.preventDefault(); addBill(); }
       if (e.key === "F5")  { e.preventDefault(); navigate("/app/sales/invoices"); }
-      if (e.key === "F6")  { e.preventDefault(); triggerPrint(); }
+      if (e.key === "F6")  { e.preventDefault(); void triggerPrint(); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -447,7 +451,7 @@ export default function PosPage() {
                 icon={printing ? <Loader2 size={13} style={{ animation: "spin 0.7s linear infinite" }} /> : <Printer size={13} />}
                 label="Print (F6)"
                 v="outline"
-                onClick={triggerPrint}
+                onClick={() => void triggerPrint()}
                 disabled={printing}
               />
               <FooterBtn
@@ -471,7 +475,7 @@ export default function PosPage() {
           <div style={{ borderTop: "1px solid #E2E8F0", padding: "6px 14px", display: "flex", alignItems: "center", gap: 8, background: "#F8FAFC", flexShrink: 0 }}>
             <FooterBtn icon={<RefreshCw size={13} />} label="Update (F4)"   v="outline" onClick={() => void handleSave(false)} />
             <FooterBtn icon={<Archive   size={13} />} label="Old Bill (F5)" v="outline" onClick={() => navigate("/app/sales/invoices")} />
-            <FooterBtn icon={<Printer   size={13} />} label="Print (F6)"    v="outline" onClick={triggerPrint} />
+            <FooterBtn icon={<Printer   size={13} />} label="Print (F6)"    v="outline" onClick={() => void triggerPrint()} />
           </div>
         </div>
 
@@ -539,6 +543,7 @@ export default function PosPage() {
               paidAmount={printData.paidAmount}
               paymentMode={printData.paymentMode}
               splitUpiAmt={printData.splitUpiAmt}
+              qrDataUrl={printData.qrDataUrl}
               settings={printSettings}
               profile={profile}
             />
