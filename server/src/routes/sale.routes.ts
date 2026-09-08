@@ -252,6 +252,132 @@ export async function saleRoutes(fastify: FastifyInstance) {
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
+  // ── Update (edit) an existing sale invoice ───────────────
+  fastify.put("/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    const schema = z.object({
+      customerName:  z.string().default("Walk-in Customer"),
+      customerId:    z.string().optional(),
+      paymentMethod: z.string().default("Cash"),
+      discountPct:   z.number().min(0).default(0),
+      notes:         z.string().optional(),
+      paidAmt:       z.number().min(0).default(0),
+      items:         z.array(saleItemSchema).min(1),
+    });
+    const parse = schema.safeParse(req.body);
+    if (!parse.success)
+      return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(
+        parse.error.errors[0]?.message ?? "Validation failed",
+        HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR,
+      ));
+    try {
+      const { id } = req.params;
+      const existing = await req.prisma.saleInvoice.findUnique({
+        where: { id }, include: { items: true },
+      });
+      if (!existing)
+        return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse(
+          "Invoice not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND,
+        ));
+
+      const { items, paidAmt, discountPct, ...rest } = parse.data;
+      const subtotal    = items.reduce((s: number, i: {unitPrice:number;quantity:number}) => s + i.unitPrice * i.quantity, 0);
+      const discountAmt = subtotal * (discountPct / 100);
+      const cgst        = items.reduce((s: number, i: {taxAmount:number}) => s + i.taxAmount / 2, 0);
+      const sgst        = cgst;
+      const totalAmt    = subtotal - discountAmt + cgst + sgst;
+      const balanceDue  = Math.max(0, totalAmt - paidAmt);
+      const status      = balanceDue === 0 ? "PAID" : paidAmt > 0 ? "PARTIAL" : "UNPAID";
+
+      const updated = await req.prisma.$transaction(async (tx: typeof req.prisma) => {
+        // Reverse old stock-out for existing items
+        for (const oldItem of existing.items) {
+          if (oldItem.productId) {
+            await tx.inventoryItem.update({
+              where: { productId: oldItem.productId },
+              data:  { stockOut: { decrement: parseFloat(String(oldItem.quantity)) } },
+            }).catch(() => {});
+          }
+        }
+
+        // Delete old items and old linked payment-in records
+        await tx.saleInvoiceItem.deleteMany({ where: { saleInvoiceId: id } });
+        await tx.paymentIn.deleteMany({ where: { invoiceId: id } });
+
+        // Update the invoice header + recreate items
+        const s = await tx.saleInvoice.update({
+          where: { id },
+          data: {
+            customerName:  rest.customerName,
+            customerId:    rest.customerId ?? null,
+            paymentMethod: rest.paymentMethod,
+            notes:         rest.notes ?? null,
+            subtotal,
+            discountPct,
+            discountAmt,
+            cgst,
+            sgst,
+            totalAmt,
+            paidAmt,
+            balanceDue,
+            status,
+            items: {
+              create: items.map((i: {productId?:string;itemName:string;itemCode:string;quantity:number;unit:string;mrp:number;unitPrice:number;discountPct:number;discountAmt:number;taxPercent:number;taxAmount:number;totalAmount:number}) => ({
+                productId:   i.productId ?? null,
+                itemName:    i.itemName,
+                itemCode:    i.itemCode,
+                quantity:    i.quantity,
+                unit:        i.unit,
+                mrp:         i.mrp,
+                unitPrice:   i.unitPrice,
+                discountPct: i.discountPct,
+                discountAmt: i.discountAmt,
+                taxPercent:  i.taxPercent,
+                taxAmount:   i.taxAmount,
+                totalAmount: i.totalAmount,
+              })),
+            },
+          },
+          include: { _count: { select: { items: true } } },
+        });
+
+        // Apply new stock-out
+        for (const item of items) {
+          if (item.productId) {
+            await tx.inventoryItem.upsert({
+              where:  { productId: item.productId },
+              create: { productId: item.productId, openingStock: 0, stockIn: 0, stockOut: item.quantity, lowStockAlert: 5 },
+              update: { stockOut: { increment: item.quantity } },
+            });
+          }
+        }
+
+        // Recreate payment-in record
+        if (paidAmt > 0) {
+          const paymentNumber = await getNextPaymentInNumber(tx);
+          await tx.paymentIn.create({
+            data: {
+              paymentNumber,
+              customerName:  rest.customerName ?? "Walk-in Customer",
+              customerId:    rest.customerId   ?? null,
+              invoiceId:     id,
+              amount:        paidAmt,
+              paymentMethod: rest.paymentMethod,
+              paymentDate:   new Date(),
+              reference:     `Invoice ${existing.invoiceNumber} (edited)`,
+              notes:         null,
+            },
+          });
+        }
+
+        return s;
+      });
+
+      return reply.send(successResponse(toSaleResult(updated), "Sale updated"));
+    } catch (err) {
+      return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR));
+    }
+  });
+
   fastify.delete("/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
     try {
       const inv = await req.prisma.saleInvoice.findUnique({

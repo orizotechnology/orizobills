@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, Search, FileText, Trash2, RefreshCw, Printer,
+  Plus, Search, FileText, Trash2, RefreshCw, Printer, Pencil,
   AlertTriangle, X, AlertCircle, TrendingUp, IndianRupee,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import { useDialogKeyboard } from "@/hooks";
 import { PosPrintReceipt, generateQrDataUrl } from "@/app/pos/components/PosPrintReceipt";
 import { usePrintStore } from "@/store/print.store";
 import { useBusinessStore } from "@/store/business.store";
+import { usePosStore } from "@/store/pos.store";
 import type { ProductRow } from "@/app/pos/components/ProductTable";
 import "@/styles/print.css";
 
@@ -164,6 +165,7 @@ export default function SaleInvoicesPage() {
   const today    = toStr(new Date());
   const { settings: printSettings } = usePrintStore();
   const { profile } = useBusinessStore();
+  const { loadInvoiceForEdit } = usePosStore();
 
   // ── Filter state ─────────────────────────────────────────
   const [filter,   setFilter]   = useState("All");
@@ -337,6 +339,41 @@ export default function SaleInvoicesPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load invoice");
       setPrintingId(null);
+    }
+  };
+
+  // ── Load invoice into POS for editing ───────────────────
+  const handleEdit = async (inv: SaleInvoice) => {
+    try {
+      type InvDetail = {
+        id: string; invoiceNumber: string; customerName: string; invoiceDate: string;
+        paymentMethod: string; subtotal: number; discountAmt: number; cgst: number; sgst: number;
+        totalAmt: number; paidAmt: number;
+        items: { id: string; itemName: string; itemCode: string | null; quantity: number; mrp: number; unitPrice: number; discountPct: number; discountAmt: number; taxPercent: number; taxAmount: number; totalAmount: number }[];
+      };
+      const res = await http.get<{ success: boolean; data: InvDetail }>(`/sales/${inv.id}`);
+      if (!res.success || !res.data) { toast.error("Could not load invoice"); return; }
+      const d = res.data;
+      const rows: ProductRow[] = d.items.map((item, i) => ({
+        id:      String(i),
+        product: item.itemName,
+        code:    item.itemCode ?? "",
+        qty:     Number(item.quantity),
+        mrp:     Number(item.mrp),
+        price:   Number(item.unitPrice),
+        discPct: Number(item.discountPct),
+        discAmt: Number(item.discountAmt),
+        taxPct:  Number(item.taxPercent),
+        taxAmt:  Number(item.taxAmount),
+        total:   Number(item.totalAmount),
+      }));
+      const validMode = ["Cash", "UPI", "Card", "Split"].includes(d.paymentMethod)
+        ? (d.paymentMethod as "Cash" | "UPI" | "Card" | "Split")
+        : "Cash";
+      loadInvoiceForEdit(d.id, d.invoiceNumber, d.customerName, validMode, Number(d.paidAmt), rows);
+      navigate("/app/pos");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load invoice");
     }
   };
 
@@ -548,6 +585,14 @@ export default function SaleInvoicesPage() {
                           {printingId === inv.id
                             ? <span style={{ width: 13, height: 13, border: "2px solid #F97316", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
                             : <Printer size={13} />}
+                        </button>
+                        <button
+                          onClick={() => void handleEdit(inv)}
+                          style={rowIconBtn}
+                          title="Edit Invoice"
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#3B82F6"; (e.currentTarget as HTMLButtonElement).style.background = "#EFF6FF"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#CBD5E1"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                          <Pencil size={13} />
                         </button>
                         <button onClick={() => setDeleteTarget(inv)} style={rowIconBtn} title="Delete"
                           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#EF4444"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF1F2"; }}

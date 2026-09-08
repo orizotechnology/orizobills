@@ -22,13 +22,13 @@ import { useBusinessStore } from "@/store/business.store";
 import { generateQrDataUrl } from "./components/PosPrintReceipt";
 import { http } from "@/lib/axios";
 import "@/styles/print.css";
-
 export default function PosPage() {
   const navigate  = useNavigate();
   const qc        = useQueryClient();
   const {
     activeBillId, getActiveBill, updateBill,
     addRowToBill, updateRowInBill, removeRowFromBill, addBill, resetAfterSave,
+    loadInvoiceForEdit,
   } = usePosStore();
   const { settings: printSettings } = usePrintStore();
   const { profile } = useBusinessStore();
@@ -107,7 +107,7 @@ export default function PosPage() {
     }
   }, [printData]);
 
-  // ── Save sale ───────────────────────────────────────────────
+  // ── Save sale (new) or Update (edit mode) ──────────────────
   const handleSave = useCallback(async (andPrint = false) => {
     if (!bill) return;
     const validRows = bill.rows.filter((r) => r.product.trim() && r.qty > 0);
@@ -117,11 +117,11 @@ export default function PosPage() {
       return;
     }
     setSaving(true);
+    const isEdit = !!bill.editingInvoiceId;
     try {
       const paid = parseFloat(bill.paidAmount) || totalAmount;
-      const res = await http.post<{ success: boolean; data: { invoiceNumber: string } }>("/sales", {
+      const payload = {
         customerName:  bill.customer.trim() || "Walk-in Customer",
-        invoiceDate:   new Date().toISOString(),
         paymentMethod: bill.paymentMode,
         discountPct:   bill.discount,
         paidAmt:       paid,
@@ -133,9 +133,18 @@ export default function PosPage() {
           discountAmt: r.discAmt,   taxPercent:  r.taxPct,
           taxAmount:   r.taxAmt,    totalAmount: r.total,
         })),
-      });
+      };
+
+      // POST for new sales, PUT for edits
+      const res = isEdit
+        ? await http.put<{ success: boolean; data: { invoiceNumber: string } }>(`/sales/${bill.editingInvoiceId}`, payload)
+        : await http.post<{ success: boolean; data: { invoiceNumber: string } }>("/sales", {
+            ...payload,
+            invoiceDate: new Date().toISOString(),
+          });
+
       if (res.success) {
-        const savedInvoiceNo = res.data?.invoiceNumber ?? bill.invoiceNo;
+        const savedInvoiceNo = res.data?.invoiceNumber ?? bill.editingInvoiceNo ?? bill.invoiceNo;
         const snapshot = {
           invoiceNo:    savedInvoiceNo,
           customerName: bill.customer.trim() || "Walk-in Customer",
@@ -151,7 +160,6 @@ export default function PosPage() {
         qc.invalidateQueries({ queryKey: ["inventory"] });
         resetAfterSave();
         if (andPrint) {
-          // Pre-generate QR before committing to DOM so it's ready when print fires
           const upiAmt = snapshot.splitUpiAmt ?? snapshot.totalAmount;
           const qrDataUrl = (snapshot.paymentMode === "UPI" || snapshot.paymentMode === "Split") && profile.upiId
             ? await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 270)
@@ -160,11 +168,10 @@ export default function PosPage() {
           setPrinting(true);
           setPrintData({ ...snapshot, qrDataUrl: qrDataUrl ?? undefined });
         } else {
-          // Just save — navigate to invoices list
           navigate("/app/sales/invoices", { state: { highlightInvoice: savedInvoiceNo } });
         }
       } else {
-        setFeedback({ type: "error", msg: "Failed to save sale." });
+        setFeedback({ type: "error", msg: isEdit ? "Failed to update sale." : "Failed to save sale." });
         setTimeout(() => setFeedback(null), 3000);
       }
     } catch (err) {
@@ -443,8 +450,13 @@ export default function PosPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: saving ? "#F97316" : "#22C55E" }} />
               <span style={{ fontSize: 12, fontWeight: 600, color: saving ? "#F97316" : "#22C55E" }}>
-                {saving ? "Saving…" : "Ready"}
+                {saving ? (bill?.editingInvoiceId ? "Updating…" : "Saving…") : (bill?.editingInvoiceId ? `Editing ${bill.editingInvoiceNo}` : "Ready")}
               </span>
+              {bill?.editingInvoiceId && (
+                <span style={{ fontSize: 10, fontWeight: 700, background: "rgba(249,115,22,0.12)", color: "#F97316", borderRadius: 4, padding: "1px 7px" }}>
+                  EDIT MODE
+                </span>
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <FooterBtn
@@ -456,14 +468,14 @@ export default function PosPage() {
               />
               <FooterBtn
                 icon={saving ? <Loader2 size={13} style={{ animation: "spin 0.7s linear infinite" }} /> : <Save size={13} />}
-                label={saving ? "Saving…" : "Save (F2)"}
+                label={saving ? (bill?.editingInvoiceId ? "Updating…" : "Saving…") : (bill?.editingInvoiceId ? "Update (F2)" : "Save (F2)")}
                 v="orange"
                 onClick={() => void handleSave(false)}
                 disabled={saving}
               />
               <FooterBtn
                 icon={<Save size={13} />}
-                label="Save & Print"
+                label={bill?.editingInvoiceId ? "Update & Print" : "Save & Print"}
                 v="outline-orange"
                 onClick={() => void handleSave(true)}
                 disabled={saving}

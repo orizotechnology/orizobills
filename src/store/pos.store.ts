@@ -13,6 +13,10 @@ export interface Bill {
   discountType: "%" | "₹";
   splitCashAmt: number;   // cash portion when paymentMode === "Split"
   createdAt: string;
+  /** Set when this tab was loaded from an existing saved invoice for editing */
+  editingInvoiceId?: string;
+  /** The original server invoice number shown in the tab when editing */
+  editingInvoiceNo?: string;
 }
 
 interface PosState {
@@ -29,6 +33,8 @@ interface PosState {
   addRowToBill: (id: string, row: ProductRow) => void;
   updateRowInBill: (billId: string, rowId: string, field: keyof ProductRow, value: number | string) => void;
   removeRowFromBill: (billId: string, rowId: string) => void;
+  /** Load an existing saved invoice into a new tab for editing */
+  loadInvoiceForEdit: (invoiceId: string, invoiceNumber: string, customerName: string, paymentMode: Bill["paymentMode"], paidAmount: number, rows: ProductRow[]) => void;
 }
 
 // =============================================================
@@ -203,6 +209,37 @@ export const usePosStore = create<PosState>((set, get) => {
             ? { ...b, rows: b.rows.filter((r) => r.id !== rowId) }
             : b
         ),
+      }));
+    },
+
+    loadInvoiceForEdit: (invoiceId, invoiceNumber, customerName, paymentMode, paidAmount, rows) => {
+      const { bills } = get();
+
+      // If already open in an existing tab, just switch to it
+      const existing = bills.find((b) => b.editingInvoiceId === invoiceId);
+      if (existing) {
+        set({ activeBillId: existing.id });
+        return;
+      }
+
+      const tabNum = nextTabNumber(bills);
+      const bill: Bill = {
+        id:                nanoid(),
+        invoiceNo:         makeInvoiceNo(tabNum),
+        customer:          customerName,
+        rows,
+        paymentMode,
+        paidAmount:        String(paidAmount),
+        discount:          0,
+        discountType:      "%",
+        splitCashAmt:      0,
+        createdAt:         new Date().toISOString(),
+        editingInvoiceId:  invoiceId,
+        editingInvoiceNo:  invoiceNumber,
+      };
+      set((s) => ({
+        bills: [...s.bills, bill],
+        activeBillId: bill.id,
       }));
     },
   };
