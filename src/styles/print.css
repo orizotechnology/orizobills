@@ -28,7 +28,7 @@
 
   /* Default: Thermal 80mm */
   @page {
-    margin: 2mm 3mm;
+    margin: 1mm 2mm;
     size:   80mm auto;
   }
 

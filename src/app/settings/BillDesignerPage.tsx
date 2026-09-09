@@ -36,6 +36,7 @@ interface PrintConfig {
   showTerms:         boolean;
   showAmountInWords: boolean;
   fontSize:          "small" | "medium" | "large";
+  fontBold:          boolean;
   primaryColor:      string;
   fontFamily:        string;
   copies:            number;
@@ -51,10 +52,10 @@ interface PrintConfig {
 
 const DEFAULT_CONFIG: PrintConfig = {
   paperType: "Thermal 80mm", orientation: "portrait",
-  marginTop: 10, marginBottom: 10, marginLeft: 10, marginRight: 10,
+  marginTop: 6, marginBottom: 6, marginLeft: 6, marginRight: 6,
   showLogo: true, showSignature: false, showBankDetails: false,
   showQR: true, showTerms: true, showAmountInWords: true,
-  fontSize: "medium", primaryColor: "#F97316", fontFamily: "Inter",
+  fontSize: "medium", fontBold: false, primaryColor: "#F97316", fontFamily: "Arial",
   copies: 1, autoPrint: false,
   footerText: "Thank you for your business!",
   termsText: "Goods once sold will not be taken back.\nWarranty as per manufacturer policy.",
@@ -90,11 +91,12 @@ const TEMPLATES: Template[] = [
   { id: "th-minimal",     name: "10 Minimal",      type: "Thermal", color: "#475569" },
 ];
 
-const FONT_FAMILIES = ["Inter", "Roboto", "Lato", "Open Sans", "Poppins", "Noto Sans"];
+// Print-safe fonts — these are available in all OS environments without embedding
+const FONT_FAMILIES = ["Arial", "Inter", "Roboto", "Lato", "Open Sans", "Poppins", "Noto Sans", "Courier New"];
 const FONT_SIZES    = [
-  { v: "small",  l: "Small (10px)" },
-  { v: "medium", l: "Medium (12px)" },
-  { v: "large",  l: "Large (14px)" },
+  { v: "small",  l: "Small  (11px)" },
+  { v: "medium", l: "Medium (13px)" },
+  { v: "large",  l: "Large  (15px)" },
 ];
 
 // â”€â”€ Shared style constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1697,6 +1699,7 @@ export default function BillDesignerPage() {
     marginRight:       savedSettings.marginRight,
     copies:            savedSettings.copies,
     tableStyle:        savedSettings.tableStyle,
+    fontBold:          savedSettings.fontBold ?? false,
   });
   const [saved,       setSaved]       = useState(false);
   const [isDesktop,   setIsDesktop]   = useState(true);
@@ -1757,6 +1760,7 @@ export default function BillDesignerPage() {
       marginRight:       config.marginRight,
       copies:            config.copies,
       tableStyle:        config.tableStyle,
+      fontBold:          config.fontBold,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -2117,6 +2121,14 @@ export default function BillDesignerPage() {
                   <select value={config.fontSize} onChange={e => C({ fontSize: e.target.value as PrintConfig["fontSize"] })} style={sel}>
                     {FONT_SIZES.map(f => <option key={f.v} value={f.v}>{f.l}</option>)}
                   </select>
+                </PR>
+                <PR label="Bold Text">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Tog value={config.fontBold} onChange={v => C({ fontBold: v })} />
+                    <span style={{ fontSize: 11, color: config.fontBold ? "#F97316" : "#94A3B8" }}>
+                      {config.fontBold ? "On — thicker print" : "Off"}
+                    </span>
+                  </div>
                 </PR>
                 <PR label="Color">
                   <input type="color" value={config.primaryColor} onChange={e => C({ primaryColor: e.target.value })}

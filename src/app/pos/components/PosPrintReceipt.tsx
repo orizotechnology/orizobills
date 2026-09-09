@@ -130,9 +130,13 @@ function ThermalReceipt(props: ReceiptProps) {
     settings, profile, splitUpiAmt,
   } = props;
 
-  const fs  = settings.fontSize === "small" ? 10 : settings.fontSize === "large" ? 13 : 11;
-  const w   = settings.paperType === "Thermal 58mm" ? 200 : 260;
+  const fs  = settings.fontSize === "small" ? 11 : settings.fontSize === "large" ? 15 : 13;
+  // Physical 80mm thermal = ~302px at 96dpi; 58mm = ~220px. Use slightly less to account for margins.
+  const w   = settings.paperType === "Thermal 58mm" ? 210 : 295;
   const pad = `${settings.marginTop}px ${settings.marginRight}px ${settings.marginBottom}px ${settings.marginLeft}px`;
+  // Safe print font — always available, renders crisply on thermal
+  const font = `${settings.fontFamily || "Arial"}, Arial, sans-serif`;
+  const bold = settings.fontBold ? 700 : 400;
 
   const change     = Math.max(0, paidAmount - totalAmount);
   const isUpi      = paymentMode === "UPI";
@@ -152,8 +156,10 @@ function ThermalReceipt(props: ReceiptProps) {
   return (
     <div className="pos-receipt" style={{
       width: w, background: "#fff",
-      fontFamily: settings.fontFamily, fontSize: fs,
+      fontFamily: font, fontSize: fs,
+      fontWeight: bold,
       color: "#000", padding: pad,
+      WebkitFontSmoothing: "antialiased",
     }}>
 
       {/* ── HEADER ── */}

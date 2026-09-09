@@ -15,6 +15,7 @@ export interface PrintSettings {
   primaryColor:      string;
   fontFamily:        string;
   fontSize:          "small" | "medium" | "large";
+  fontBold:          boolean;
   showLogo:          boolean;
   showQR:            boolean;
   showTerms:         boolean;
@@ -34,8 +35,9 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   templateId:        "th-retail",
   paperType:         "Thermal 80mm",
   primaryColor:      "#F97316",
-  fontFamily:        "Inter",
+  fontFamily:        "Arial",
   fontSize:          "medium",
+  fontBold:          false,
   showLogo:          true,
   showQR:            true,
   showTerms:         true,
@@ -43,10 +45,10 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   showSignature:     false,
   footerText:        "Thank you for your business!",
   termsText:         "Goods once sold will not be taken back.",
-  marginTop:         8,
-  marginBottom:      8,
-  marginLeft:        8,
-  marginRight:       8,
+  marginTop:         6,
+  marginBottom:      6,
+  marginLeft:        6,
+  marginRight:       6,
   copies:            1,
   tableStyle:        "minimal",
 };
