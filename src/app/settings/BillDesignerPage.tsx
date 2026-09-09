@@ -1687,7 +1687,7 @@ export default function BillDesignerPage() {
     primaryColor:      savedSettings.primaryColor,
     fontFamily:        savedSettings.fontFamily,
     fontSize:          savedSettings.fontSize,
-    showLogo:          savedSettings.showLogo,
+    showLogo:          savedSettings.showLogo ?? true,
     showQR:            savedSettings.showQR,
     showTerms:         savedSettings.showTerms,
     showAmountInWords: savedSettings.showAmountInWords,

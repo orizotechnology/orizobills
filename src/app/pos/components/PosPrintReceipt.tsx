@@ -164,12 +164,14 @@ function ThermalReceipt(props: ReceiptProps) {
 
       {/* ── HEADER ── */}
       <div style={{ textAlign: "center", marginBottom: 5 }}>
-        {settings.showLogo && profile.logoUrl && (
+        {/* Show logo if logoUrl is set — showLogo toggle in settings controls this */}
+        {profile.logoUrl && settings.showLogo !== false && (
           <img src={profile.logoUrl} alt="logo"
             style={{ width: settings.logoSize ?? 48, height: settings.logoSize ?? 48, objectFit: "contain",
               margin: "0 auto 4px", display: "block" }} />
         )}
-        {settings.showLogo && !profile.logoUrl && profile.storeName && (
+        {/* Fallback letter avatar when no logo image */}
+        {!profile.logoUrl && settings.showLogo !== false && profile.storeName && (
           <div style={{ fontWeight: 900, fontSize: fs + 6, margin: "0 auto 4px" }}>
             [{profile.storeName.charAt(0).toUpperCase()}]
           </div>

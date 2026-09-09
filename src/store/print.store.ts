@@ -68,16 +68,7 @@ export const usePrintStore = create<PrintState>()(
         set((s) => ({ settings: { ...s.settings, ...patch } })),
     }),
     {
-      name: "orizo-print",
-      // Migrate existing users who had A4/A5 stored to Thermal 80mm
-      onRehydrateStorage: () => (state) => {
-        if (state && (state.settings.paperType === "A4" || state.settings.paperType === "A5")) {
-          state.updateSettings({
-            paperType:  "Thermal 80mm",
-            templateId: "th-retail",
-          });
-        }
-      },
+      name: "orizo-print-v2",   // v2 — clears stale cache, picks up new defaults (showLogo:true, Arial, fontBold, logoSize)
     }
   )
 );
