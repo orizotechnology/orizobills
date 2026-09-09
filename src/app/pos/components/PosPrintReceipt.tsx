@@ -166,7 +166,7 @@ function ThermalReceipt(props: ReceiptProps) {
       <div style={{ textAlign: "center", marginBottom: 5 }}>
         {settings.showLogo && profile.logoUrl && (
           <img src={profile.logoUrl} alt="logo"
-            style={{ width: 48, height: 48, objectFit: "contain",
+            style={{ width: settings.logoSize ?? 48, height: settings.logoSize ?? 48, objectFit: "contain",
               margin: "0 auto 4px", display: "block" }} />
         )}
         {settings.showLogo && !profile.logoUrl && profile.storeName && (

@@ -37,6 +37,7 @@ interface PrintConfig {
   showAmountInWords: boolean;
   fontSize:          "small" | "medium" | "large";
   fontBold:          boolean;
+  logoSize:          number;
   primaryColor:      string;
   fontFamily:        string;
   copies:            number;
@@ -55,7 +56,7 @@ const DEFAULT_CONFIG: PrintConfig = {
   marginTop: 6, marginBottom: 6, marginLeft: 6, marginRight: 6,
   showLogo: true, showSignature: false, showBankDetails: false,
   showQR: true, showTerms: true, showAmountInWords: true,
-  fontSize: "medium", fontBold: false, primaryColor: "#F97316", fontFamily: "Arial",
+  fontSize: "medium", fontBold: false, logoSize: 48, primaryColor: "#F97316", fontFamily: "Arial",
   copies: 1, autoPrint: false,
   footerText: "Thank you for your business!",
   termsText: "Goods once sold will not be taken back.\nWarranty as per manufacturer policy.",
@@ -1700,6 +1701,7 @@ export default function BillDesignerPage() {
     copies:            savedSettings.copies,
     tableStyle:        savedSettings.tableStyle,
     fontBold:          savedSettings.fontBold ?? false,
+    logoSize:          savedSettings.logoSize  ?? 48,
   });
   const [saved,       setSaved]       = useState(false);
   const [isDesktop,   setIsDesktop]   = useState(true);
@@ -1761,6 +1763,7 @@ export default function BillDesignerPage() {
       copies:            config.copies,
       tableStyle:        config.tableStyle,
       fontBold:          config.fontBold,
+      logoSize:          config.logoSize,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -2127,6 +2130,19 @@ export default function BillDesignerPage() {
                     <Tog value={config.fontBold} onChange={v => C({ fontBold: v })} />
                     <span style={{ fontSize: 11, color: config.fontBold ? "#F97316" : "#94A3B8" }}>
                       {config.fontBold ? "On — thicker print" : "Off"}
+                    </span>
+                  </div>
+                </PR>
+                <PR label="Logo Size">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      type="range" min={24} max={96} step={4}
+                      value={config.logoSize}
+                      onChange={e => C({ logoSize: Number(e.target.value) })}
+                      style={{ flex: 1, cursor: "pointer", accentColor: "#F97316" }}
+                    />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", minWidth: 36 }}>
+                      {config.logoSize}px
                     </span>
                   </div>
                 </PR>

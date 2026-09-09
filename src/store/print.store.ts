@@ -16,6 +16,7 @@ export interface PrintSettings {
   fontFamily:        string;
   fontSize:          "small" | "medium" | "large";
   fontBold:          boolean;
+  logoSize:          number;   // px — thermal logo size, default 48
   showLogo:          boolean;
   showQR:            boolean;
   showTerms:         boolean;
@@ -38,6 +39,7 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   fontFamily:        "Arial",
   fontSize:          "medium",
   fontBold:          false,
+  logoSize:          48,
   showLogo:          true,
   showQR:            true,
   showTerms:         true,
