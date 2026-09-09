@@ -51,11 +51,6 @@ function getPreset(f: string): { start: string; end: string } {
   const now = new Date();
   const today = toStr(now);
   if (f === "Today") return { start: today, end: today };
-  if (f === "This Week") {
-    const mon = new Date(now);
-    mon.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
-    return { start: toStr(mon), end: today };
-  }
   if (f === "This Month") {
     return {
       start: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`,
@@ -169,8 +164,6 @@ export default function SaleInvoicesPage() {
 
   // ── Filter state ─────────────────────────────────────────
   const [filter,   setFilter]   = useState("All");
-  const [fromDate, setFromDate] = useState(today);
-  const [toDate,   setToDate]   = useState(today);
   const [search,   setSearch]   = useState("");
   const [debSearch, setDebSearch] = useState("");
   const [page,     setPage]     = useState(1);
@@ -217,14 +210,13 @@ export default function SaleInvoicesPage() {
     return () => clearTimeout(t);
   }, [highlightInvoice]);
 
-  const FILTERS = ["All", "This Month", "This Week", "Today", "Custom"];
+  const FILTERS = ["All", "This Month", "Today"];
 
-  // Resolve start/end from preset or custom
+  // Resolve start/end from preset
   const dateRange = useMemo(() => {
-    if (filter === "All")    return { start: "", end: "" };
-    if (filter === "Custom") return { start: fromDate, end: toDate };
+    if (filter === "All") return { start: "", end: "" };
     return getPreset(filter);
-  }, [filter, fromDate, toDate]);
+  }, [filter]);
 
   // ── Query ────────────────────────────────────────────────
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
@@ -412,7 +404,7 @@ export default function SaleInvoicesPage() {
         </div>
       </div>
 
-      {/* ── Toolbar: search + filters + date picker ──────────── */}
+      {/* ── Toolbar: search + filters ──────────────────────── */}
       <div style={{
         background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10,
         padding: "12px 14px", marginBottom: 14,
@@ -452,23 +444,6 @@ export default function SaleInvoicesPage() {
             </button>
           ))}
         </div>
-
-        {/* Custom date pickers — only when Custom is selected */}
-        {filter === "Custom" && (
-          <>
-            <div style={{ width: 1, height: 24, background: "#E2E8F0", flexShrink: 0 }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500, whiteSpace: "nowrap" }}>From</span>
-              <input type="date" value={fromDate}
-                onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
-                style={dateInp} />
-              <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>To</span>
-              <input type="date" value={toDate}
-                onChange={(e) => { setToDate(e.target.value); setPage(1); }}
-                style={dateInp} />
-            </div>
-          </>
-        )}
       </div>
 
       {/* ── Summary strip ────────────────────────────────────── */}
@@ -671,7 +646,6 @@ export default function SaleInvoicesPage() {
 // ── Styles ────────────────────────────────────────────────────
 const primaryBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
 const iconBtn:    React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
-const dateInp:    React.CSSProperties = { border: "1px solid hsl(var(--border))", borderRadius: 8, padding: "6px 10px", fontSize: 13, color: "hsl(var(--foreground))", background: "hsl(var(--card))", outline: "none", fontFamily: "inherit", cursor: "pointer" };
 const thStyle:    React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "hsl(var(--muted-foreground))", letterSpacing: "0.04em", whiteSpace: "nowrap" };
 const tdStyle:    React.CSSProperties = { padding: "12px 14px", fontSize: 13 };
 const chip:       React.CSSProperties = { fontSize: 12, background: "hsl(var(--muted))", borderRadius: 4, padding: "2px 6px", color: "hsl(var(--foreground))" };

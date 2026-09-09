@@ -58,7 +58,7 @@ export default function SaleOrderPage() {
   const [toDate,    setToDate]    = useState(today);
   const [statusF,   setStatusF]   = useState("ALL");
 
-  const PERIODS = ["All", "This Month", "This Week", "Today", "Custom"];
+  const PERIODS = ["All", "This Month",  "Today", ];
 
   const dateRange = useMemo(() => {
     if (period === "All")    return { start: "", end: "" };

@@ -15,7 +15,7 @@ import { http } from "@/lib/axios";
 // creates a paymentIn record via the sale POST route).
 //
 // Features:
-//   - Today / This Week / This Month / Custom date filter
+//   - Today / This Month / All date filter
 //   - Stat cards: today's total + count + month total
 //   - Payments grouped by day, each day shows subtotal
 //   - Payment method badge (Cash / UPI / Card / Split)
@@ -79,27 +79,19 @@ function MethodBadge({ method }: { method: string }) {
 export default function PaymentInPage() {
   const qc = useQueryClient();
   const today = toDateStr(new Date());
-  const [fromDate,   setFromDate]  = useState(today);
-  const [toDate,     setToDate]    = useState(today);
   const [showAdd,    setShowAdd]   = useState(false);
   const [isFetching, setIsFetch]   = useState(false);
   const [methodFilter, setMethodFilter] = useState("All");
   const [methodsExpanded, setMethodsExpanded] = useState(false);
-  const [datePreset,   setDatePreset]   = useState("Today");  // "All" | "This Month" | "This Week" | "Today" | "Custom"
+  const [datePreset,   setDatePreset]   = useState("Today");  // "All" | "This Month" | "Today"
 
   // ── Resolve from/to from preset ───────────────────────────
   const resolvedDates = useMemo(() => {
     if (datePreset === "All")        return { from: "", to: "" };
     if (datePreset === "Today")      return { from: today, to: today };
-    if (datePreset === "This Week")  {
-      const mon = new Date();
-      mon.setDate(mon.getDate() - mon.getDay() + (mon.getDay() === 0 ? -6 : 1));
-      return { from: toDateStr(mon), to: today };
-    }
     if (datePreset === "This Month") return { from: today.slice(0, 8) + "01", to: today };
-    // Custom — use fromDate / toDate state directly
-    return { from: fromDate, to: toDate };
-  }, [datePreset, fromDate, toDate, today]);
+    return { from: "", to: "" };
+  }, [datePreset, today]);
 
   // ── Stats — today's summary ───────────────────────────────
   const { data: statsData } = useQuery({
@@ -193,7 +185,7 @@ export default function PaymentInPage() {
           background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10,
           padding: "10px 14px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
         }}>
-          {["All", "This Month", "This Week", "Today", "Custom"].map((p) => (
+          {["All", "This Month", "Today"].map((p) => (
             <button key={p}
               onClick={() => { setDatePreset(p); setMethodFilter("All"); }}
               style={{
@@ -207,14 +199,6 @@ export default function PaymentInPage() {
               {p}
             </button>
           ))}
-          {datePreset === "Custom" && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 4 }}>
-              <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>From</span>
-              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={dateInp} />
-              <span style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>To</span>
-              <input type="date" value={toDate}   onChange={(e) => setToDate(e.target.value)}   style={dateInp} />
-            </div>
-          )}
         </div>
 
         {/* Stat cards */}
@@ -484,11 +468,6 @@ const primaryBtn: React.CSSProperties = {
 const iconBtn: React.CSSProperties = {
   width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))",
   background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-};
-const dateInp: React.CSSProperties = {
-  border: "1px solid hsl(var(--border))", borderRadius: 8, padding: "7px 12px",
-  fontSize: 13, color: "hsl(var(--foreground))", background: "hsl(var(--card))", outline: "none",
-  fontFamily: "inherit", cursor: "pointer",
 };
 const lbl: React.CSSProperties = {
   display: "block", fontSize: 12, fontWeight: 600, color: "hsl(var(--foreground))", marginBottom: 5,

@@ -372,7 +372,7 @@ export default function AllPurchasesPage() {
     (handleSearch as { _t?: ReturnType<typeof setTimeout> })._t = setTimeout(() => setDebSearch(val), 320);
   };
 
-  const FILTERS = ["All", "This Month", "This Week", "Today", "Custom"];
+  const FILTERS = ["All", "This Month", "Today", ];
 
   // Resolve date range from filter — same pattern as SaleInvoicesPage
   function toStr(d: Date) { return d.toISOString().slice(0, 10); }
