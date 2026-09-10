@@ -1070,8 +1070,15 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
   headerVariant?: "centered" | "leftright" | "boxed";
 }) {
   const hv = headerVariant ?? "centered";
+  const logoSz = config.logoSize ?? 48;    // use the slider value
+  const logoPlaceholderSz = Math.max(24, logoSz - 4);
+  // Preview width mirrors the paper selection
+  const previewW = config.paperType === "Thermal 58mm" ? 195
+    : config.paperType === "Thermal 72mm" ? 240
+    : config.paperType === "Thermal 76mm" ? 253
+    : 266;
   return (
-    <div style={{ width: 260, background: "#fff", fontFamily: config.fontFamily, fontSize: fs,
+    <div style={{ width: previewW, background: "#fff", fontFamily: config.fontFamily, fontSize: fs,
       color: "#1E293B", padding: `${config.marginTop}px ${config.marginRight}px ${config.marginBottom}px ${config.marginLeft}px`,
       minHeight: 300 }}>
       {/* Header */}
@@ -1080,10 +1087,10 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
           {config.showLogo && (
             profile.logoUrl ? (
               <img src={profile.logoUrl} alt="logo"
-                style={{ width: 44, height: 44, objectFit: "contain", borderRadius: 6, margin: "0 auto 5px", display: "block" }} />
+                style={{ width: logoSz, height: logoSz, objectFit: "contain", borderRadius: 6, margin: "0 auto 5px", display: "block" }} />
             ) : (
               <div style={{
-                width: 40, height: 40, borderRadius: "50%", background: c,
+                width: logoPlaceholderSz, height: logoPlaceholderSz, borderRadius: "50%", background: c,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 color: "#fff", fontWeight: 900, fontSize: fs + 8,
                 margin: "0 auto 5px",
@@ -1104,10 +1111,10 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
             {config.showLogo && (
               profile.logoUrl ? (
                 <img src={profile.logoUrl} alt="logo"
-                  style={{ width: 30, height: 30, objectFit: "contain", borderRadius: 6, flexShrink: 0 }} />
+                  style={{ width: logoSz, height: logoSz, objectFit: "contain", borderRadius: 6, flexShrink: 0 }} />
               ) : (
                 <div style={{
-                  width: 30, height: 30, borderRadius: 6, background: c,
+                  width: logoPlaceholderSz, height: logoPlaceholderSz, borderRadius: 6, background: c,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   color: "#fff", fontWeight: 900, fontSize: fs + 4, flexShrink: 0,
                 }}>
@@ -1130,10 +1137,10 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
           {config.showLogo && (
             profile.logoUrl ? (
               <img src={profile.logoUrl} alt="logo"
-                style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 6, margin: "0 auto 4px", display: "block" }} />
+                style={{ width: logoSz, height: logoSz, objectFit: "contain", borderRadius: 6, margin: "0 auto 4px", display: "block" }} />
             ) : (
               <div style={{
-                width: 32, height: 32, borderRadius: 6, background: c,
+                width: logoPlaceholderSz, height: logoPlaceholderSz, borderRadius: 6, background: c,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 color: "#fff", fontWeight: 900, fontSize: fs + 6,
                 margin: "0 auto 4px",
@@ -1436,9 +1443,9 @@ function TplThMinimal({ c, fs, config, profile }: { c: string; fs: number; confi
         {config.showLogo && (
           profile.logoUrl ? (
             <img src={profile.logoUrl} alt="logo"
-              style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 4, flexShrink: 0 }} />
+              style={{ width: config.logoSize ?? 48, height: config.logoSize ?? 48, objectFit: "contain", borderRadius: 4, flexShrink: 0 }} />
           ) : (
-            <div style={{ width: 28, height: 28, borderRadius: 4, background: "#000",
+            <div style={{ width: (config.logoSize ?? 48) - 4, height: (config.logoSize ?? 48) - 4, borderRadius: 4, background: "#000",
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "#fff", fontWeight: 900, fontSize: fs + 4, flexShrink: 0 }}>
               {(profile.storeName || "S").charAt(0).toUpperCase()}
@@ -2146,13 +2153,34 @@ export default function BillDesignerPage() {
                 <PR label="Logo Size">
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <input
-                      type="range" min={24} max={96} step={4}
+                      type="range" min={24} max={120} step={4}
                       value={config.logoSize}
                       onChange={e => C({ logoSize: Number(e.target.value) })}
                       style={{ flex: 1, cursor: "pointer", accentColor: "#F97316" }}
                     />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", minWidth: 36 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", minWidth: 40, textAlign: "right" }}>
                       {config.logoSize}px
+                    </span>
+                  </div>
+                  {/* Live size preview dot */}
+                  <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                    {profile.logoUrl ? (
+                      <img src={profile.logoUrl} alt="preview"
+                        style={{ width: config.logoSize, height: config.logoSize, objectFit: "contain",
+                          borderRadius: 6, border: "1px solid #E2E8F0", background: "#F8FAFC",
+                          flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: config.logoSize, height: config.logoSize, borderRadius: "50%",
+                        background: config.primaryColor, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#fff", fontWeight: 900, fontSize: Math.max(10, config.logoSize * 0.4) }}>
+                        {(profile.storeName || "S").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span style={{ fontSize: 11, color: "#94A3B8" }}>
+                      {config.logoSize < 40 ? "Small — may be hard to see on print" :
+                       config.logoSize > 80 ? "Large — takes significant space" :
+                       "Good size for thermal receipts"}
                     </span>
                   </div>
                 </PR>
