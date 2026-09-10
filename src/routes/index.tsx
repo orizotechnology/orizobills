@@ -14,6 +14,7 @@ function PageLoader() {
 // Lazy imports
 const DashboardPage       = lazy(() => import("@/app/dashboard/DashboardPage"));
 const PosPage             = lazy(() => import("@/app/pos/PosPage"));
+const ProfilePage         = lazy(() => import("@/app/profile/ProfilePage"));
 const ProductsPage        = lazy(() => import("@/app/products/ProductsPage"));
 const CategoriesPage      = lazy(() => import("@/app/products/CategoriesPage"));
 const LowStockPage        = lazy(() => import("@/app/products/LowStockPage"));
@@ -60,6 +61,7 @@ export function AppRoutes() {
         {/* Core */}
         <Route path="/app/dashboard"        element={<W><DashboardPage /></W>} />
         <Route path="/app/pos"              element={<PosPage />} />
+        <Route path="/app/profile"          element={<W><ProfilePage /></W>} />
 
         {/* Products */}
         <Route path="/app/products"                    element={<Navigate to="/app/products/all" replace />} />

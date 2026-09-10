@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -41,7 +41,6 @@ import {
 } from "lucide-react";
 import { useUIStore } from "@/store";
 import { useAuthStore } from "@/store/auth.store";
-import { ProfileDrawer } from "@/components/profile/ProfileDrawer";
 import type { LucideIcon } from "lucide-react";
 
 // =============================================================
@@ -256,12 +255,13 @@ function NavEntry({ item, expanded, sidebarCollapsed, location, onToggle }: NavE
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
   const { session } = useAuthStore();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     return { "/app/sales": location.pathname.startsWith("/app/sales") };
   });
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileOpen, _setProfileOpen] = useState(false); // kept to avoid unused-var; profile is now a page
 
   const toggleExpand = (to: string) => {
     setExpanded((prev) => ({ ...prev, [to]: !prev[to] }));
@@ -398,7 +398,7 @@ export function Sidebar() {
 
       {/* ── User profile ──────────────────────────────────── */}
       <button
-        onClick={() => setProfileOpen(true)}
+        onClick={() => navigate("/app/profile")}
         style={{
           display: "flex", alignItems: "center", gap: 10,
           padding: "14px 14px 16px",
@@ -451,8 +451,7 @@ export function Sidebar() {
         </AnimatePresence>
       </button>
 
-      {/* ── Profile drawer ────────────────────────────────── */}
-      <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
+      {/* Profile is now a full page at /app/profile */}
     </motion.div>
   );
 }
