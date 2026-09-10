@@ -131,20 +131,24 @@ function ThermalReceipt(props: ReceiptProps) {
   } = props;
 
   const fs  = settings.fontSize === "small" ? 11 : settings.fontSize === "large" ? 15 : 13;
-  // Physical 80mm thermal = ~302px at 96dpi; 58mm = ~220px. Use slightly less to account for margins.
-  const w   = settings.paperType === "Thermal 58mm" ? 210 : 295;
+  // Receipt fills 100% of the printable area — width is driven by @page size in print.css.
+  // We keep a screen-preview width that matches the selected paper roll.
+  const previewW = settings.paperType === "Thermal 58mm" ? 200
+    : settings.paperType === "Thermal 72mm" ? 240
+    : settings.paperType === "Thermal 76mm" ? 255
+    : 272; // 80mm default
   const pad = `${settings.marginTop}px ${settings.marginRight}px ${settings.marginBottom}px ${settings.marginLeft}px`;
-  // Safe print font — always available, renders crisply on thermal
   const font = `${settings.fontFamily || "Arial"}, Arial, sans-serif`;
   const bold = settings.fontBold ? 700 : 400;
+  // QR size: use 70% of preview width so it's big enough to scan
+  const qrSize = Math.round(previewW * 0.68);
 
   const change     = Math.max(0, paidAmount - totalAmount);
   const isUpi      = paymentMode === "UPI";
   const isSplit    = paymentMode === "Split";
   const needsQr    = (isUpi || isSplit) && !!profile.upiId && settings.showQR;
+
   const qrAmount   = isSplit && splitUpiAmt !== undefined ? splitUpiAmt : totalAmount;
-  const innerWidth = w - settings.marginLeft - settings.marginRight;
-  const qrSize     = Math.min(innerWidth - 4, 90);
 
   const cashPortion = isSplit && splitUpiAmt !== undefined
     ? totalAmount - splitUpiAmt
@@ -155,7 +159,10 @@ function ThermalReceipt(props: ReceiptProps) {
 
   return (
     <div className="pos-receipt" style={{
-      width: w, background: "#fff",
+      /* Screen: show a preview at the expected roll width.
+         Print: print.css overrides to width:100% so content fills the actual paper. */
+      width: previewW, maxWidth: "100%", boxSizing: "border-box",
+      background: "#fff",
       fontFamily: font, fontSize: fs,
       fontWeight: bold,
       color: "#000", padding: pad,

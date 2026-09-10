@@ -23,7 +23,7 @@ interface Template {
 }
 
 interface PrintConfig {
-  paperType:         "A4" | "A5" | "Thermal 80mm" | "Thermal 58mm";
+  paperType:         "A4" | "A5" | "Thermal 80mm" | "Thermal 58mm" | "Thermal 72mm" | "Thermal 76mm";
   orientation:       "portrait" | "landscape";
   marginTop:         number;
   marginBottom:      number;
@@ -1481,7 +1481,12 @@ function InvoicePreview({ config, template, profile }: {
   const c = config.primaryColor;
   const fs = config.fontSize === "small" ? 10 : config.fontSize === "large" ? 13 : 11;
   const isTherm = template.type === "Thermal";
-  const w = isTherm ? 260 : (config.paperType === "A5" ? 380 : 480);
+  const w = isTherm ? (
+    config.paperType === "Thermal 58mm" ? 195
+    : config.paperType === "Thermal 72mm" ? 240
+    : config.paperType === "Thermal 76mm" ? 253
+    : 266   // 80mm
+  ) : (config.paperType === "A5" ? 380 : 480);
 
   const wrapStyle: React.CSSProperties = {
     width: w,
@@ -2010,7 +2015,12 @@ export default function BillDesignerPage() {
                 <PropSection title="Template Settings" icon={<span>âš™</span>} defaultOpen>
                   <PR label="Paper Size">
                     <select value={config.paperType} onChange={e => C({ paperType: e.target.value as PrintConfig["paperType"] })} style={sel}>
-                      <option>A4</option><option>A5</option><option>Thermal 80mm</option><option>Thermal 58mm</option>
+                      <option value="A4">A4 (210mm)</option>
+                      <option value="A5">A5 (148mm)</option>
+                      <option value="Thermal 80mm">Thermal 80mm — most common</option>
+                      <option value="Thermal 76mm">Thermal 76mm</option>
+                      <option value="Thermal 72mm">Thermal 72mm</option>
+                      <option value="Thermal 58mm">Thermal 58mm — narrow</option>
                     </select>
                   </PR>
                   <PR label="Primary Color">
@@ -2156,6 +2166,14 @@ export default function BillDesignerPage() {
             {/* Paper & Print Settings (always visible at bottom) */}
             <div style={{ margin: "0 14px 14px", borderTop: "1px solid #F1F5F9", paddingTop: 14 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 10 }}>Paper & Print</div>
+              <PR label="Paper Width">
+                <select value={config.paperType} onChange={e => C({ paperType: e.target.value as PrintConfig["paperType"] })} style={sel}>
+                  <option value="Thermal 80mm">80mm — most common</option>
+                  <option value="Thermal 76mm">76mm</option>
+                  <option value="Thermal 72mm">72mm</option>
+                  <option value="Thermal 58mm">58mm — narrow</option>
+                </select>
+              </PR>
               <PR label="Orientation">
                 <div style={{ display: "flex", gap: 6 }}>
                   {(["portrait", "landscape"] as const).map(o => (

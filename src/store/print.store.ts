@@ -7,7 +7,7 @@ import { persist } from "zustand/middleware";
 // so that PosPage uses the same settings when printing receipts.
 // =============================================================
 
-export type PaperType = "A4" | "A5" | "Thermal 80mm" | "Thermal 58mm";
+export type PaperType = "A4" | "A5" | "Thermal 80mm" | "Thermal 58mm" | "Thermal 72mm" | "Thermal 76mm";
 
 export interface PrintSettings {
   templateId:        string;
