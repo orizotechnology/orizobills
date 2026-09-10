@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   X, Check, User, Lock, Store, Phone, Mail,
-  CreditCard, Globe, Eye, EyeOff, LogOut, AlertCircle,
+  CreditCard, Globe, Eye, EyeOff, LogOut, AlertCircle, Upload, Trash2, ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
 import { useBusinessStore } from "@/store/business.store";
+import { usePrintStore } from "@/store/print.store";
 
 // =============================================================
 // PROFILE PAGE
@@ -19,6 +20,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { session, admin, updateAdminName, updateAdminPassword, logout } = useAuthStore();
   const { profile, updateProfile } = useBusinessStore();
+  const { settings: printSettings, updateSettings } = usePrintStore();
 
   const isAdmin    = session?.role === "admin";
   const userName   = session?.name ?? "";
@@ -42,6 +44,9 @@ export default function ProfilePage() {
   const [upiId,     setUpiId]     = useState(profile.upiId);
   const [website,   setWebsite]   = useState(profile.website);
 
+  // ── Logo size ──────────────────────────────────────────────
+  const [logoSize, setLogoSize] = useState(printSettings.logoSize ?? 48);
+
   // Keep local state in sync with store (in case page is navigated back to)
   useEffect(() => {
     setName(userName);
@@ -51,19 +56,39 @@ export default function ProfilePage() {
     setEmail(profile.email);
     setUpiId(profile.upiId);
     setWebsite(profile.website);
+    setLogoSize(printSettings.logoSize ?? 48);
     setCurrentPw(""); setNewPw(""); setConfirmPw("");
     setPwError(null);
   }, []);
 
+  // ── Logo upload / remove ───────────────────────────────────
+  const handleLogoUpload = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/png,image/jpeg,image/svg+xml,image/webp";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        if (dataUrl) updateProfile({ logoUrl: dataUrl });
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
+  const handleLogoRemove = () => updateProfile({ logoUrl: "" });
+
   // ── Save all ───────────────────────────────────────────────
   const handleSaveAll = () => {
-    // Save name
     const trimmedName = name.trim();
     if (trimmedName && trimmedName !== userName && isAdmin) {
       updateAdminName(trimmedName);
     }
-    // Save business
     updateProfile({ storeName, address, phone, email, upiId, website });
+    updateSettings({ logoSize });
     toast.success("Profile saved");
     navigate(-1);
   };
@@ -86,6 +111,24 @@ export default function ProfilePage() {
 
   return (
     <div style={{ minHeight: "100%", background: "#F8FAFC" }}>
+      <style>{`
+        input[type=range].logo-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 20px; height: 20px;
+          border-radius: 50%;
+          background: #0F172A;
+          cursor: pointer;
+          border: none;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        }
+        input[type=range].logo-slider::-moz-range-thumb {
+          width: 20px; height: 20px;
+          border-radius: 50%;
+          background: #0F172A;
+          cursor: pointer;
+          border: none;
+        }
+      `}</style>
 
       {/* ── Top header ───────────────────────────────────────── */}
       <div style={{
@@ -204,6 +247,91 @@ export default function ProfilePage() {
               style={{ ...inp, resize: "none", lineHeight: 1.5 }}
             />
           </Field>
+        </Card>
+
+        {/* ── Logo & Bill Appearance ──────────────────────── */}
+        <Card title="Logo & Bill Appearance" icon={<ImageIcon size={15} />}>
+
+          {/* Logo upload area */}
+          <Field label="Business Logo">
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              {/* Preview box */}
+              <div style={{
+                width: logoSize, height: logoSize, flexShrink: 0,
+                borderRadius: 10, border: "1.5px solid #E2E8F0",
+                background: "#F8FAFC", overflow: "hidden",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "width 0.15s, height 0.15s",
+              }}>
+                {profile.logoUrl ? (
+                  <img src={profile.logoUrl} alt="logo"
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                ) : (
+                  <ImageIcon size={Math.max(16, logoSize * 0.35)} color="#CBD5E1" />
+                )}
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <button onClick={handleLogoUpload}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 7,
+                    padding: "8px 16px", borderRadius: 8,
+                    border: "1.5px solid #E2E8F0", background: "#fff",
+                    color: "#475569", fontSize: 13, fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#F97316"; (e.currentTarget as HTMLButtonElement).style.color = "#F97316"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#E2E8F0"; (e.currentTarget as HTMLButtonElement).style.color = "#475569"; }}
+                >
+                  <Upload size={14} /> {profile.logoUrl ? "Change Logo" : "Upload Logo"}
+                </button>
+                {profile.logoUrl && (
+                  <button onClick={handleLogoRemove}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 7,
+                      padding: "8px 16px", borderRadius: 8,
+                      border: "1.5px solid #FECDD3", background: "#fff",
+                      color: "#EF4444", fontSize: 13, fontWeight: 600,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.04)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                  >
+                    <Trash2 size={14} /> Remove
+                  </button>
+                )}
+                <div style={{ fontSize: 11, color: "#94A3B8" }}>PNG, JPG, SVG, WebP</div>
+              </div>
+            </div>
+          </Field>
+
+          {/* Logo Size slider — same style as Paper Width */}
+          <div style={{ marginTop: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>Logo Size</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{logoSize} px</span>
+            </div>
+            <input
+              type="range"
+              min={24} max={120} step={4}
+              value={logoSize}
+              onChange={(e) => setLogoSize(Number(e.target.value))}
+              className="logo-slider"
+              style={{
+                width: "100%", height: 4, cursor: "pointer",
+                accentColor: "#0F172A", appearance: "none",
+                WebkitAppearance: "none",
+                background: `linear-gradient(to right, #0F172A ${((logoSize - 24) / (120 - 24)) * 100}%, #E2E8F0 ${((logoSize - 24) / (120 - 24)) * 100}%)`,
+                borderRadius: 4, outline: "none", border: "none",
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+              <span style={{ fontSize: 11, color: "#94A3B8" }}>24 px</span>
+              <span style={{ fontSize: 11, color: "#94A3B8" }}>120 px</span>
+            </div>
+          </div>
+
         </Card>
 
         {/* ── Change Password ──────────────────────────────── */}
