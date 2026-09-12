@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ChevronDown, ChevronRight, Monitor, Smartphone,
   Copy, Trash2, RefreshCw, Star, Printer,
@@ -1686,9 +1686,14 @@ export default function BillDesignerPage() {
   const { profile, updateProfile } = useBusinessStore();
   const { settings: savedSettings, updateSettings } = usePrintStore();
 
-  // ── Build config from persisted store ─────────────────────
-  // Called on mount AND whenever savedSettings changes (e.g. after Save).
-  const configFromStore = useCallback((): PrintConfig => ({
+  // Declare all state first (rules of hooks — no hooks before useState)
+  const isTherm = savedSettings.paperType.startsWith("Thermal");
+  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">(isTherm ? "Thermal" : "A4");
+  const [selectedId,  setSelectedId]  = useState(savedSettings.templateId || (isTherm ? "th-retail" : "modern"));
+  const [rightTab,    setRightTab]    = useState<"properties" | "arrange">("properties");
+  const [zoom,        setZoom]        = useState(100);
+  const [showPreview, setShowPreview] = useState(false);
+  const [config,      setConfig]      = useState<PrintConfig>(() => ({
     ...DEFAULT_CONFIG,
     paperType:         savedSettings.paperType,
     primaryColor:      savedSettings.primaryColor,
@@ -1709,27 +1714,42 @@ export default function BillDesignerPage() {
     tableStyle:        savedSettings.tableStyle,
     fontBold:          savedSettings.fontBold ?? false,
     logoSize:          savedSettings.logoSize  ?? 48,
-  }), [savedSettings]);
-
-  const isTherm = savedSettings.paperType.startsWith("Thermal");
-  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">(isTherm ? "Thermal" : "A4");
-  const [selectedId,  setSelectedId]  = useState(savedSettings.templateId || (isTherm ? "th-retail" : "modern"));
-  const [rightTab,    setRightTab]    = useState<"properties" | "arrange">("properties");
-  const [zoom,        setZoom]        = useState(100);
-  const [showPreview, setShowPreview] = useState(false);
-  const [config,      setConfig]      = useState<PrintConfig>(configFromStore);
+  }));
   const [saved,       setSaved]       = useState(false);
   const [isDesktop,   setIsDesktop]   = useState(true);
   const [defaultMsg,  setDefaultMsg]  = useState("");
 
-  // ── Re-sync config whenever we return to this page ────────
-  // This fires when savedSettings changes (after a save) OR when the
-  // component remounts (navigate away then back).
+  // ── Re-sync config whenever savedSettings changes ─────────
+  // Runs on mount AND after every Save (Zustand updates savedSettings → effect fires)
+  // Uses individual field comparisons via a stable ref to avoid stale-closure issues
+  const savedRef = useRef(savedSettings);
   useEffect(() => {
-    setConfig(configFromStore());
-    const therm = savedSettings.paperType.startsWith("Thermal");
+    const s = savedRef.current = savedSettings;
+    setConfig({
+      ...DEFAULT_CONFIG,
+      paperType:         s.paperType,
+      primaryColor:      s.primaryColor,
+      fontFamily:        s.fontFamily,
+      fontSize:          s.fontSize,
+      showLogo:          s.showLogo ?? true,
+      showQR:            s.showQR,
+      showTerms:         s.showTerms,
+      showAmountInWords: s.showAmountInWords,
+      showSignature:     s.showSignature,
+      footerText:        s.footerText,
+      termsText:         s.termsText,
+      marginTop:         s.marginTop,
+      marginBottom:      s.marginBottom,
+      marginLeft:        s.marginLeft,
+      marginRight:       s.marginRight,
+      copies:            s.copies,
+      tableStyle:        s.tableStyle,
+      fontBold:          s.fontBold ?? false,
+      logoSize:          s.logoSize  ?? 48,
+    });
+    const therm = s.paperType.startsWith("Thermal");
     setActiveTab(therm ? "Thermal" : "A4");
-    setSelectedId(savedSettings.templateId || (therm ? "th-retail" : "modern"));
+    setSelectedId(s.templateId || (therm ? "th-retail" : "modern"));
   }, [savedSettings]);
 
   const handleLogoUpload = () => {
