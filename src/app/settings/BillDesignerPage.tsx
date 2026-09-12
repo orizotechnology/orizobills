@@ -1686,14 +1686,9 @@ export default function BillDesignerPage() {
   const { profile, updateProfile } = useBusinessStore();
   const { settings: savedSettings, updateSettings } = usePrintStore();
 
-  // Seed from persisted settings on first render
-  const isTherm = savedSettings.paperType.startsWith("Thermal");
-  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">(isTherm ? "Thermal" : "A4");
-  const [selectedId,  setSelectedId]  = useState(savedSettings.templateId || (isTherm ? "th-retail" : "modern"));
-  const [rightTab,    setRightTab]    = useState<"properties" | "arrange">("properties");
-  const [zoom,        setZoom]        = useState(100);
-  const [showPreview, setShowPreview] = useState(false);
-  const [config,      setConfig]      = useState<PrintConfig>({
+  // ── Build config from persisted store ─────────────────────
+  // Called on mount AND whenever savedSettings changes (e.g. after Save).
+  const configFromStore = useCallback((): PrintConfig => ({
     ...DEFAULT_CONFIG,
     paperType:         savedSettings.paperType,
     primaryColor:      savedSettings.primaryColor,
@@ -1714,10 +1709,28 @@ export default function BillDesignerPage() {
     tableStyle:        savedSettings.tableStyle,
     fontBold:          savedSettings.fontBold ?? false,
     logoSize:          savedSettings.logoSize  ?? 48,
-  });
+  }), [savedSettings]);
+
+  const isTherm = savedSettings.paperType.startsWith("Thermal");
+  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">(isTherm ? "Thermal" : "A4");
+  const [selectedId,  setSelectedId]  = useState(savedSettings.templateId || (isTherm ? "th-retail" : "modern"));
+  const [rightTab,    setRightTab]    = useState<"properties" | "arrange">("properties");
+  const [zoom,        setZoom]        = useState(100);
+  const [showPreview, setShowPreview] = useState(false);
+  const [config,      setConfig]      = useState<PrintConfig>(configFromStore);
   const [saved,       setSaved]       = useState(false);
   const [isDesktop,   setIsDesktop]   = useState(true);
   const [defaultMsg,  setDefaultMsg]  = useState("");
+
+  // ── Re-sync config whenever we return to this page ────────
+  // This fires when savedSettings changes (after a save) OR when the
+  // component remounts (navigate away then back).
+  useEffect(() => {
+    setConfig(configFromStore());
+    const therm = savedSettings.paperType.startsWith("Thermal");
+    setActiveTab(therm ? "Thermal" : "A4");
+    setSelectedId(savedSettings.templateId || (therm ? "th-retail" : "modern"));
+  }, [savedSettings]);
 
   const handleLogoUpload = () => {
     const inp = document.createElement("input");
