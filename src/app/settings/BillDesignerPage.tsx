@@ -1687,10 +1687,13 @@ export default function BillDesignerPage() {
   const { settings: savedSettings, updateSettings } = usePrintStore();
 
   // Declare all state first (rules of hooks — no hooks before useState)
-  // Always default to Thermal — A4 can be selected manually in the designer
-  const isTherm = !savedSettings.paperType.startsWith("A");  // A4/A5 = false, all Thermal = true
-  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">("Thermal");
-  const [selectedId,  setSelectedId]  = useState(savedSettings.templateId?.startsWith("th-") ? savedSettings.templateId : "th-retail");
+  const savedIsTherm = !savedSettings.paperType.startsWith("A");
+  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">(savedIsTherm ? "Thermal" : "A4");
+  const [selectedId,  setSelectedId]  = useState(
+    savedIsTherm
+      ? (savedSettings.templateId?.startsWith("th-") ? savedSettings.templateId : "th-retail")
+      : (savedSettings.templateId && !savedSettings.templateId.startsWith("th-") ? savedSettings.templateId : "modern")
+  );
   const [rightTab,    setRightTab]    = useState<"properties" | "arrange">("properties");
   const [zoom,        setZoom]        = useState(100);
   const [showPreview, setShowPreview] = useState(false);
@@ -1750,7 +1753,11 @@ export default function BillDesignerPage() {
     });
     const therm = !s.paperType.startsWith("A");
     setActiveTab(therm ? "Thermal" : "A4");
-    setSelectedId(s.templateId?.startsWith("th-") ? s.templateId : "th-retail");
+    setSelectedId(
+      therm
+        ? (s.templateId?.startsWith("th-") ? s.templateId : "th-retail")
+        : (s.templateId && !s.templateId.startsWith("th-") ? s.templateId : "modern")
+    );
   }, [savedSettings]);
 
   const handleLogoUpload = () => {
@@ -1788,17 +1795,19 @@ export default function BillDesignerPage() {
   const selectedTpl = TEMPLATES.find(t => t.id === selectedId) ?? TEMPLATES[0];
 
   const handleSave = () => {
-    // Persist chosen template + config to print store so POS uses it.
-    // Guard: if somehow paperType is A4/A5 but no A4 template is active, reset to Thermal 80mm.
-    const safePaperType = (config.paperType === "A4" || config.paperType === "A5")
-      ? "Thermal 80mm" as const
-      : config.paperType as import("@/store/print.store").PaperType;
-    const safeTemplateId = safePaperType.startsWith("Thermal") && !selectedId.startsWith("th-")
-      ? "th-retail"
-      : selectedId;
+    // Save the currently active mode (A4 or Thermal) to the print store.
+    // The paperType in config reflects the user's chosen paper size.
+    // For A4 mode: default to "A4" if somehow not set. For Thermal: default to "Thermal 80mm".
+    const isA4Mode = activeTab === "A4";
+    const finalPaperType = isA4Mode
+      ? ((config.paperType === "A4" || config.paperType === "A5") ? config.paperType : "A4") as import("@/store/print.store").PaperType
+      : (config.paperType.startsWith("Thermal") ? config.paperType : "Thermal 80mm") as import("@/store/print.store").PaperType;
+    const finalTemplateId = isA4Mode
+      ? (selectedId && !selectedId.startsWith("th-") ? selectedId : "modern")
+      : (selectedId?.startsWith("th-") ? selectedId : "th-retail");
     updateSettings({
-      templateId:        safeTemplateId,
-      paperType:         safePaperType,
+      templateId:        finalTemplateId,
+      paperType:         finalPaperType,
       primaryColor:      config.primaryColor,
       fontFamily:        config.fontFamily,
       fontSize:          config.fontSize,
@@ -1960,8 +1969,12 @@ export default function BillDesignerPage() {
               {visibleTemplates.map(tpl => (
                 <div key={tpl.id} onClick={() => {
                     setSelectedId(tpl.id);
-                    // Only set paperType for Thermal templates — never let A4 template clicks override to A4
-                    C({ primaryColor: tpl.color, ...(tpl.type === "Thermal" ? { paperType: "Thermal 80mm" as const } : {}) });
+                    // Set paperType based on template type
+                    if (tpl.type === "Thermal") {
+                      C({ primaryColor: tpl.color, paperType: "Thermal 80mm" as const });
+                    } else {
+                      C({ primaryColor: tpl.color, paperType: "A4" as const });
+                    }
                   }}
                   style={{ cursor: "pointer", borderRadius: 8,
                     border: `2px solid ${selectedId === tpl.id ? "#F97316" : "#E2E8F0"}`,
@@ -2045,6 +2058,46 @@ export default function BillDesignerPage() {
 
         {/* â”€â”€ RIGHT: Properties panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{ background: "#fff", borderLeft: "1px solid #E2E8F0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+          {/* ── Print Mode selector — top of right panel ── */}
+          <div style={{ padding: "10px 14px 8px", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 6 }}>Print Mode</div>
+            <div style={{ display: "flex", background: "#F1F5F9", borderRadius: 8, padding: 3, gap: 3 }}>
+              {([
+                { key: "Thermal", label: "🧾 Thermal", desc: "80mm / 58mm roll" },
+                { key: "A4",      label: "📄 A4 / A5",  desc: "Full page" },
+              ] as const).map(({ key, label, desc }) => (
+                <button key={key}
+                  onClick={() => {
+                    setActiveTab(key);
+                    // Switch paper type to match mode
+                    if (key === "Thermal") {
+                      C({ paperType: "Thermal 80mm" });
+                      // Switch to first thermal template if current is A4
+                      if (!selectedId.startsWith("th-")) setSelectedId("th-retail");
+                    } else {
+                      C({ paperType: "A4" });
+                      // Switch to first A4 template if current is thermal
+                      if (selectedId.startsWith("th-")) setSelectedId("modern");
+                    }
+                  }}
+                  style={{
+                    flex: 1, padding: "6px 4px", borderRadius: 6, border: "none",
+                    background: activeTab === key ? "#fff" : "transparent",
+                    color: activeTab === key ? "#0F172A" : "#64748B",
+                    fontSize: 12, fontWeight: activeTab === key ? 700 : 500,
+                    cursor: "pointer", fontFamily: "inherit", outline: "none",
+                    boxShadow: activeTab === key ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
+                    transition: "all 0.15s",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
+                  }}>
+                  <span>{label}</span>
+                  <span style={{ fontSize: 9, color: activeTab === key ? "#64748B" : "#94A3B8", fontWeight: 400 }}>{desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div style={{ display: "flex", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
             {(["properties", "arrange"] as const).map(t => (
               <button key={t} onClick={() => setRightTab(t)}
@@ -2064,12 +2117,19 @@ export default function BillDesignerPage() {
                 <PropSection title="Template Settings" icon={<span>âš™</span>} defaultOpen>
                   <PR label="Paper Size">
                     <select value={config.paperType} onChange={e => C({ paperType: e.target.value as PrintConfig["paperType"] })} style={sel}>
-                      <option value="A4">A4 (210mm)</option>
-                      <option value="A5">A5 (148mm)</option>
-                      <option value="Thermal 80mm">Thermal 80mm — most common</option>
-                      <option value="Thermal 76mm">Thermal 76mm</option>
-                      <option value="Thermal 72mm">Thermal 72mm</option>
-                      <option value="Thermal 58mm">Thermal 58mm — narrow</option>
+                      {activeTab === "A4" ? (
+                        <>
+                          <option value="A4">A4 (210 × 297 mm)</option>
+                          <option value="A5">A5 (148 × 210 mm)</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="Thermal 80mm">Thermal 80mm — most common</option>
+                          <option value="Thermal 76mm">Thermal 76mm</option>
+                          <option value="Thermal 72mm">Thermal 72mm</option>
+                          <option value="Thermal 58mm">Thermal 58mm — narrow</option>
+                        </>
+                      )}
                     </select>
                   </PR>
                   <PR label="Primary Color">

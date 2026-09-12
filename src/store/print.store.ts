@@ -68,16 +68,7 @@ export const usePrintStore = create<PrintState>()(
         set((s) => ({ settings: { ...s.settings, ...patch } })),
     }),
     {
-      name: "orizo-print-v3",   // v3 — forces fresh defaults; corrects accidental A4 saves
-      onRehydrateStorage: () => (state) => {
-        // If the user somehow saved A4/A5, auto-correct back to Thermal 80mm
-        if (state && (state.settings.paperType === "A4" || state.settings.paperType === "A5")) {
-          state.updateSettings({
-            paperType:  "Thermal 80mm",
-            templateId: "th-retail",
-          });
-        }
-      },
+      name: "orizo-print-v3",
     }
   )
 );
