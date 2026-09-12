@@ -14,58 +14,69 @@
 
 /* ── Print: show ONLY the portal ─────────────────────────── */
 @media print {
+  /* Hide the app shell */
   body > #root {
     display: none !important;
   }
 
+  /* Show the receipt portal */
   body > #pos-print-area {
     display:    block !important;
     visibility: visible !important;
     position:   static !important;
     left:       auto !important;
-    width:      100% !important;
   }
 
-  /* ── Default @page: Thermal 80mm, zero margins ──
-     The receipt itself carries its own padding.
-     margin: 0 means the full roll width is usable.     */
+  /* ── @page: request thermal size.
+     NOTE: Many browsers/PDF drivers ignore this — the receipt width
+     below is the reliable fallback that makes content look thermal
+     regardless of what paper the OS uses.                          */
   @page {
-    margin: 0;
+    margin: 4mm 2mm;
     size:   80mm auto;
   }
 
-  /* ── Per-paper-width overrides via data-paper attribute ─
-     Set document.body.setAttribute("data-paper", paperType)
-     before calling window.print().                         */
-  body[data-paper="Thermal 58mm"]  @page { size: 58mm  auto; margin: 0; }
-  body[data-paper="Thermal 72mm"]  @page { size: 72mm  auto; margin: 0; }
-  body[data-paper="Thermal 76mm"]  @page { size: 76mm  auto; margin: 0; }
-  body[data-paper="Thermal 80mm"]  @page { size: 80mm  auto; margin: 0; }
-  body[data-paper="A5"]            @page { size: A5  portrait;  margin: 8mm;  }
-  body[data-paper="A4"]            @page { size: A4  portrait;  margin: 10mm; }
-
-  /* Force colour fidelity — prevents browsers washing out backgrounds */
+  /* Force colour fidelity */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust:         exact !important;
   }
 
-  /* Receipt fills 100% of whatever printable area the driver provides */
+  /* ── The receipt wrapper — constrain to thermal roll width ──
+     This is what actually makes the bill look thermal even when
+     the browser uses A4 paper. The content is left-aligned in a
+     narrow column; the rest of the page is white space.         */
   .pos-receipt {
-    width:     100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
+    box-sizing:        border-box !important;
     page-break-inside: avoid;
     break-inside:      avoid;
-    background: #ffffff !important;
+    background:        #ffffff !important;
   }
+
+  /* Thermal widths — set inline via data-paper attribute on body */
+  body[data-paper="Thermal 58mm"] .pos-receipt { width: 58mm  !important; max-width: 58mm  !important; }
+  body[data-paper="Thermal 72mm"] .pos-receipt { width: 72mm  !important; max-width: 72mm  !important; }
+  body[data-paper="Thermal 76mm"] .pos-receipt { width: 76mm  !important; max-width: 76mm  !important; }
+  body[data-paper="Thermal 80mm"] .pos-receipt { width: 80mm  !important; max-width: 80mm  !important; }
+
+  /* Default when no data-paper attribute — treat as 80mm thermal */
+  body:not([data-paper]) .pos-receipt,
+  body[data-paper=""] .pos-receipt {
+    width:     80mm !important;
+    max-width: 80mm !important;
+  }
+
+  /* A4 / A5 receipts use full page width */
+  body[data-paper="A4"] .pos-receipt { width: 100% !important; max-width: 100% !important; }
+  body[data-paper="A5"] .pos-receipt { width: 100% !important; max-width: 100% !important; }
 
   .pos-receipt + .pos-receipt {
     page-break-before: always;
     break-before:      page;
+    margin-top:        8mm;
   }
 
-  /* Thermal printers: force ALL text pure black for maximum darkness */
+  /* Thermal: force pure black text for maximum thermal ink density */
   body[data-paper^="Thermal"] .pos-receipt,
   body[data-paper^="Thermal"] .pos-receipt *,
   body:not([data-paper]) .pos-receipt,
