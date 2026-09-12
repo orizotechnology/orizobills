@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Package, TrendingUp, AlertTriangle, TrendingDown, RefreshCw, X, Loader2, CheckCircle2, Edit2, Plus, Search, Trash2, Download } from "lucide-react";
+import { Package, TrendingUp, AlertTriangle, TrendingDown, RefreshCw, X, Loader2, CheckCircle2, Edit2, Plus, Search, Trash2, Download, RotateCcw } from "lucide-react";
 import { http } from "@/lib/axios";
 import { useInfiniteScroll } from "@/hooks";
 
@@ -116,6 +116,7 @@ export default function InventoryPage() {
   const [debSearch,    setDebSearch]    = useState("");
   const [selected,     setSelected]     = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [syncing,      setSyncing]      = useState(false);
 
   // Debounce search — reset to page 1 on each keystroke
   const handleSearch = (val: string) => {
@@ -172,6 +173,23 @@ export default function InventoryPage() {
     await qc.invalidateQueries({ queryKey: ["inventory"], refetchType: "active" });
     await refetch();
   }, [qc, refetch]);
+
+  // Sync all: set openingStock = currentStock, reset stockIn/stockOut for every product
+  const handleSyncAll = useCallback(async () => {
+    const ok = window.confirm(
+      "This will set Opening Stock = Current Stock and reset Stock In / Stock Out to 0 for ALL products.\n\nThis fixes the out-of-stock issue. Continue?"
+    );
+    if (!ok) return;
+    setSyncing(true);
+    try {
+      await http.post<{ success: boolean }>("/inventory/sync-opening", {});
+      await qc.invalidateQueries({ queryKey: ["inventory"] });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSyncing(false);
+    }
+  }, [qc]);
 
   const toggleOne = (id: string) => {
     setSelected((prev) => {
@@ -250,6 +268,12 @@ export default function InventoryPage() {
         <div style={{ display: "flex", gap: 10 }}>
           <button type="button" onClick={() => void handleRefresh()} style={iconBtn} title="Refresh">
             <RefreshCw size={15} color={ORANGE.dark} style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
+          </button>
+          <button type="button" onClick={() => void handleSyncAll()} disabled={syncing} style={{ ...iconBtn, gap: 6, padding: "7px 12px", display: "flex", alignItems: "center" }} title="Sync opening stock = current stock for all products">
+            {syncing
+              ? <Loader2 size={14} color={ORANGE.dark} style={{ animation: "spin 0.7s linear infinite" }} />
+              : <RotateCcw size={14} color={ORANGE.dark} />}
+            <span style={{ fontSize: 12, fontWeight: 600, color: ORANGE.dark }}>Sync Stock</span>
           </button>
           <button type="button" onClick={() => setShowCreate(true)} style={primaryBtn}>
             <Plus size={15} /> Add Product
@@ -433,7 +457,7 @@ export default function InventoryPage() {
 /* ---------------- Adjust existing stock ---------------- */
 
 function AdjustStockDialog({ item, onClose, onSaved }: { item: InventoryItem; onClose: () => void; onSaved: () => void }) {
-  const [openingStock, setOpeningStock] = useState(String(item.openingStock));
+  const [openingStock, setOpeningStock] = useState(String(item.currentStock));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -449,7 +473,8 @@ function AdjustStockDialog({ item, onClose, onSaved }: { item: InventoryItem; on
     finally { setLoading(false); }
   };
 
-  const newCurrent = (parseFloat(openingStock) || 0) + item.stockIn - item.stockOut;
+  // After adjustment, stockIn and stockOut are reset to 0, so newCurrent = newOpeningStock
+  const newCurrent = parseFloat(openingStock) || 0;
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
@@ -458,26 +483,29 @@ function AdjustStockDialog({ item, onClose, onSaved }: { item: InventoryItem; on
         style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid #F1F5F9" }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: "#0F172A" }}>Adjust Opening Stock</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: "#0F172A" }}>Adjust Stock</div>
             <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>{item.productName} · {item.productCode}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: "20px" }}>
-          <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "12px 14px", marginBottom: 18, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            {[{ label: "Stock In", value: `+${item.stockIn}`, color: ORANGE.base }, { label: "Stock Out", value: `-${item.stockOut}`, color: ORANGE.dark }, { label: "New Total", value: String(newCurrent), color: newCurrent <= 0 ? ORANGE.dark : "#0F172A" }].map((s) => (
+          <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "12px 14px", marginBottom: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {[
+              { label: "Current Stock", value: String(item.currentStock), color: "#0F172A" },
+              { label: "After Adjustment", value: String(newCurrent), color: newCurrent <= 0 ? ORANGE.dark : ORANGE.base },
+            ].map((s) => (
               <div key={s.label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{s.label}</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: s.color, marginTop: 2 }}>{s.value}</div>
               </div>
             ))}
           </div>
-          <label style={labelStyle}>Opening Stock ({item.unit})</label>
+          <label style={labelStyle}>Set Stock Quantity ({item.unit})</label>
           <input type="text" inputMode="decimal" value={openingStock} onChange={(e) => { setOpeningStock(e.target.value); setError(""); }} style={inputStyle} autoFocus
             onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = ORANGE.base; }}
             onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "hsl(var(--border))"; }} />
           <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 5 }}>
-            Current stock will become <strong style={{ color: ORANGE.base }}>{newCurrent}</strong> {item.unit}
+            Stock will be set to exactly <strong style={{ color: ORANGE.base }}>{newCurrent} {item.unit}</strong>. Stock In / Stock Out will reset to 0.
           </div>
           {error && <div style={{ fontSize: 12, color: ORANGE.dark, marginTop: 8 }}>{error}</div>}
           <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
@@ -485,7 +513,7 @@ function AdjustStockDialog({ item, onClose, onSaved }: { item: InventoryItem; on
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = ORANGE.base; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(var(--border))"; }}>Cancel</button>
             <button type="submit" disabled={loading} style={{ ...primaryBtnFull, flex: 2, justifyContent: "center" }}>
-              {loading ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> Saving…</> : <><CheckCircle2 size={14} /> Apply Adjustment</>}
+              {loading ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> Saving…</> : <><CheckCircle2 size={14} /> Set Stock</>}
             </button>
           </div>
         </form>

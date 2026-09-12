@@ -76,12 +76,35 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
+      // Reset stockIn and stockOut to 0 so currentStock = openingStock exactly.
+      // This makes the opening stock the definitive current quantity.
       await req.prisma.inventoryItem.upsert({
-        where: { productId: req.params.productId },
+        where:  { productId: req.params.productId },
         create: { productId: req.params.productId, openingStock: parse.data.openingStock, stockIn: 0, stockOut: 0, lowStockAlert: 5 },
-        update: { openingStock: parse.data.openingStock },
+        update: { openingStock: parse.data.openingStock, stockIn: 0, stockOut: 0 },
       });
       return reply.send(successResponse(null, "Stock adjusted"));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  // POST /api/inventory/sync-opening — set openingStock = currentStock for ALL products
+  // This corrects drift where opening stock doesn't match the actual qty shown.
+  fastify.post("/sync-opening", async (_req, reply) => {
+    try {
+      const rows = await _req.prisma.inventoryItem.findMany();
+      let updated = 0;
+      for (const row of rows) {
+        const current = parseFloat(String(row.openingStock))
+          + parseFloat(String(row.stockIn))
+          - parseFloat(String(row.stockOut));
+        const newOpening = Math.max(0, current);
+        await _req.prisma.inventoryItem.update({
+          where: { id: row.id },
+          data:  { openingStock: newOpening, stockIn: 0, stockOut: 0 },
+        });
+        updated++;
+      }
+      return reply.send(successResponse({ updated }, `Synced opening stock for ${updated} products`));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 }
