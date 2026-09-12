@@ -72,15 +72,15 @@ export default function PosPage() {
   const cgst          = rows.reduce((s, r) => s + r.taxAmt / 2, 0);
   const sgst          = cgst;
   const rawTotal      = Math.max(0, taxableAmt + cgst + sgst);
-  // Round to nearest ₹5
-  const totalAmount   = Math.round(rawTotal / 5) * 5;
-  const roundingAdj   = +(totalAmount - rawTotal).toFixed(2);
+  // No rounding — use exact calculated total so bill, QR, and DB all match
+  const totalAmount   = +rawTotal.toFixed(2);
+  const roundingAdj   = 0;
   const totalItems    = rows.length;
   const totalQty      = rows.reduce((s, r) => s + r.qty, 0);
   const totalTax      = rows.reduce((s, r) => s + r.taxAmt, 0);
 
-  // All amounts are whole rupees after rounding — no decimals needed
-  const fmtAmt = (n: number) => String(Math.round(n));
+  // Format amounts: show decimals only when non-zero
+  const fmtAmt = (n: number) => { const s = n.toFixed(2); return "₹" + (s.endsWith(".00") ? String(Math.round(n)) : s); };
 
   // Sync discountStr when active bill switches (tab change)
   useEffect(() => {
@@ -125,6 +125,7 @@ export default function PosPage() {
         paymentMethod: bill.paymentMode,
         discountPct:   bill.discount,
         paidAmt:       paid,
+        totalAmt:      totalAmount,   // send frontend-rounded total so backend stores the same value the bill shows
         items: validRows.map((r) => ({
           itemName:    r.product,   itemCode:    r.code,
           productId:   r.productId, quantity:    r.qty,
