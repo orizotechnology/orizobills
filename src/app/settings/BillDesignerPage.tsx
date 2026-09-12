@@ -1687,9 +1687,10 @@ export default function BillDesignerPage() {
   const { settings: savedSettings, updateSettings } = usePrintStore();
 
   // Declare all state first (rules of hooks — no hooks before useState)
-  const isTherm = savedSettings.paperType.startsWith("Thermal");
-  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">(isTherm ? "Thermal" : "A4");
-  const [selectedId,  setSelectedId]  = useState(savedSettings.templateId || (isTherm ? "th-retail" : "modern"));
+  // Always default to Thermal — A4 can be selected manually in the designer
+  const isTherm = !savedSettings.paperType.startsWith("A");  // A4/A5 = false, all Thermal = true
+  const [activeTab,   setActiveTab]   = useState<"A4" | "Thermal">("Thermal");
+  const [selectedId,  setSelectedId]  = useState(savedSettings.templateId?.startsWith("th-") ? savedSettings.templateId : "th-retail");
   const [rightTab,    setRightTab]    = useState<"properties" | "arrange">("properties");
   const [zoom,        setZoom]        = useState(100);
   const [showPreview, setShowPreview] = useState(false);
@@ -1747,9 +1748,9 @@ export default function BillDesignerPage() {
       fontBold:          s.fontBold ?? false,
       logoSize:          s.logoSize  ?? 48,
     });
-    const therm = s.paperType.startsWith("Thermal");
+    const therm = !s.paperType.startsWith("A");
     setActiveTab(therm ? "Thermal" : "A4");
-    setSelectedId(s.templateId || (therm ? "th-retail" : "modern"));
+    setSelectedId(s.templateId?.startsWith("th-") ? s.templateId : "th-retail");
   }, [savedSettings]);
 
   const handleLogoUpload = () => {
@@ -1787,10 +1788,17 @@ export default function BillDesignerPage() {
   const selectedTpl = TEMPLATES.find(t => t.id === selectedId) ?? TEMPLATES[0];
 
   const handleSave = () => {
-    // Persist chosen template + config to print store so POS uses it
+    // Persist chosen template + config to print store so POS uses it.
+    // Guard: if somehow paperType is A4/A5 but no A4 template is active, reset to Thermal 80mm.
+    const safePaperType = (config.paperType === "A4" || config.paperType === "A5")
+      ? "Thermal 80mm" as const
+      : config.paperType as import("@/store/print.store").PaperType;
+    const safeTemplateId = safePaperType.startsWith("Thermal") && !selectedId.startsWith("th-")
+      ? "th-retail"
+      : selectedId;
     updateSettings({
-      templateId:        selectedId,
-      paperType:         config.paperType as import("@/store/print.store").PaperType,
+      templateId:        safeTemplateId,
+      paperType:         safePaperType,
       primaryColor:      config.primaryColor,
       fontFamily:        config.fontFamily,
       fontSize:          config.fontSize,
@@ -1952,7 +1960,8 @@ export default function BillDesignerPage() {
               {visibleTemplates.map(tpl => (
                 <div key={tpl.id} onClick={() => {
                     setSelectedId(tpl.id);
-                    C({ primaryColor: tpl.color, paperType: tpl.type === "Thermal" ? "Thermal 80mm" : "A4" });
+                    // Only set paperType for Thermal templates — never let A4 template clicks override to A4
+                    C({ primaryColor: tpl.color, ...(tpl.type === "Thermal" ? { paperType: "Thermal 80mm" as const } : {}) });
                   }}
                   style={{ cursor: "pointer", borderRadius: 8,
                     border: `2px solid ${selectedId === tpl.id ? "#F97316" : "#E2E8F0"}`,
