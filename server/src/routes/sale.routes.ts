@@ -195,18 +195,25 @@ export async function saleRoutes(fastify: FastifyInstance) {
       customerName: z.string().default("Walk-in Customer"), customerId: z.string().optional(),
       invoiceDate: z.string(), paymentMethod: z.string().default("Cash"),
       discountPct: z.number().min(0).default(0), notes: z.string().optional(),
-      paidAmt: z.number().min(0).default(0), items: z.array(saleItemSchema).min(1),
+      paidAmt: z.number().min(0).default(0),
+      // totalAmt is optionally sent by the frontend (rounded value shown on the bill).
+      // When provided, we use it directly so the stored total matches exactly what the bill shows.
+      totalAmt: z.number().min(0).optional(),
+      items: z.array(saleItemSchema).min(1),
     });
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
       const invoiceNumber = await getNextSaleNumber(req.prisma);
-      const { items, paidAmt, discountPct, ...rest } = parse.data;
+      const { items, paidAmt, discountPct, totalAmt: clientTotalAmt, ...rest } = parse.data;
       const subtotal    = items.reduce((s: number, i: any) => s + i.unitPrice * i.quantity, 0);
       const discountAmt = subtotal * (discountPct / 100);
       const cgst        = items.reduce((s: number, i: any) => s + i.taxAmount / 2, 0);
       const sgst        = cgst;
-      const totalAmt    = subtotal - discountAmt + cgst + sgst;
+      const rawTotal    = subtotal - discountAmt + cgst + sgst;
+      // Use the frontend-rounded total if provided; otherwise fall back to raw calculation.
+      // This ensures the stored totalAmt matches what's printed on the bill and encoded in the QR.
+      const totalAmt    = clientTotalAmt ?? rawTotal;
       const balanceDue  = Math.max(0, totalAmt - paidAmt);
       const status      = balanceDue === 0 ? "PAID" : paidAmt > 0 ? "PARTIAL" : "UNPAID";
 
@@ -261,6 +268,9 @@ export async function saleRoutes(fastify: FastifyInstance) {
       discountPct:   z.number().min(0).default(0),
       notes:         z.string().optional(),
       paidAmt:       z.number().min(0).default(0),
+      // totalAmt is optionally sent by the frontend (rounded value shown on the bill).
+      // When provided, we use it directly so the stored total matches exactly what the bill shows.
+      totalAmt:      z.number().min(0).optional(),
       items:         z.array(saleItemSchema).min(1),
     });
     const parse = schema.safeParse(req.body);
@@ -279,12 +289,14 @@ export async function saleRoutes(fastify: FastifyInstance) {
           "Invoice not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND,
         ));
 
-      const { items, paidAmt, discountPct, ...rest } = parse.data;
+      const { items, paidAmt, discountPct, totalAmt: clientTotalAmt, ...rest } = parse.data;
       const subtotal    = items.reduce((s: number, i: {unitPrice:number;quantity:number}) => s + i.unitPrice * i.quantity, 0);
       const discountAmt = subtotal * (discountPct / 100);
       const cgst        = items.reduce((s: number, i: {taxAmount:number}) => s + i.taxAmount / 2, 0);
       const sgst        = cgst;
-      const totalAmt    = subtotal - discountAmt + cgst + sgst;
+      const rawTotal    = subtotal - discountAmt + cgst + sgst;
+      // Use the frontend-rounded total if provided; otherwise fall back to raw calculation.
+      const totalAmt    = clientTotalAmt ?? rawTotal;
       const balanceDue  = Math.max(0, totalAmt - paidAmt);
       const status      = balanceDue === 0 ? "PAID" : paidAmt > 0 ? "PARTIAL" : "UNPAID";
 

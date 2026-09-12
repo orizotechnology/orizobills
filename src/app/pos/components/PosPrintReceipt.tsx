@@ -40,7 +40,8 @@ export interface ReceiptProps {
 // ── helpers ───────────────────────────────────────────────────
 
 function fmt(n: number): string {
-  return "₹" + Math.round(n);
+  const s = n.toFixed(2);
+  return "₹" + (s.endsWith(".00") ? String(Math.round(n)) : s);
 }
 
 function fmtDate(d: Date): string {
@@ -277,7 +278,7 @@ function ThermalReceipt(props: ReceiptProps) {
             <span style={{ color: "#000" }}>SGST</span><span style={{ fontWeight: 600 }}>{fmt(sgst)}</span>
           </div>
         )}
-        {/* Rounding is applied to the total but not shown on the bill */}
+        {/* Rounding adjustment is zero — no ₹5 rounding applied */}
 
         <Solid />
 
@@ -545,7 +546,7 @@ function A4Receipt(props: ReceiptProps) {
               ? ["Taxable Amount", fmt(taxableAmt), "#000"] : null,
             cgst > 0 ? ["CGST",   fmt(cgst),       "#000"] : null,
             sgst > 0 ? ["SGST",   fmt(sgst),       "#000"] : null,
-            // Rounding is applied to the total but not printed on the bill
+            // No ₹5 rounding — exact total is used throughout
           ].filter(Boolean).map(([label, value, color]) => (
             <div key={label as string} style={{
               display: "flex", justifyContent: "space-between",
