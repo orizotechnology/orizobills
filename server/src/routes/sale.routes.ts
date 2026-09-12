@@ -99,7 +99,11 @@ export async function saleRoutes(fastify: FastifyInstance) {
         purchaseDateWhere = { billDate:    { gte: start, lt: end } };
       }
 
-      const [salesAgg, purchasesAgg, outstanding] = await Promise.all([
+      // Today's date range (midnight → now)
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const todayEnd   = new Date(); todayEnd.setHours(23, 59, 59, 999);
+
+      const [salesAgg, purchasesAgg, outstanding, todaySalesAgg, todayExpensesAgg, inventoryRows] = await Promise.all([
         req.prisma.saleInvoice.aggregate({
           _sum: { totalAmt: true, paidAmt: true },
           where: { status: { not: "CANCELLED" }, ...dateWhere },
@@ -110,16 +114,44 @@ export async function saleRoutes(fastify: FastifyInstance) {
         }),
         req.prisma.saleInvoice.aggregate({
           _sum: { balanceDue: true },
-          where: { balanceDue: { gt: 0 }, status: { not: "CANCELLED" }, ...dateWhere },
+          where: { balanceDue: { gt: 0 }, status: { not: "CANCELLED" } },
+        }),
+        // Today's sales — always today regardless of month filter
+        req.prisma.saleInvoice.aggregate({
+          _sum: { totalAmt: true },
+          where: { status: { not: "CANCELLED" }, invoiceDate: { gte: todayStart, lte: todayEnd } },
+        }),
+        // Today's expenses — always today regardless of month filter
+        req.prisma.expense.aggregate({
+          _sum: { amount: true },
+          where: { expenseDate: { gte: todayStart, lte: todayEnd } },
+        }),
+        // All inventory items for total stock value
+        req.prisma.inventoryItem.findMany({
+          include: { product: { select: { salePrice: true, isActive: true } } },
         }),
       ]);
+
       const totalSales     = parseFloat(String(salesAgg._sum.totalAmt ?? 0));
       const totalPurchases = parseFloat(String(purchasesAgg._sum.totalAmt ?? 0));
+
+      // Total stock value = sum of (currentStock × salePrice) for all active products
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const totalStockValue = inventoryRows.reduce((sum: number, row: any) => {
+        if (!row.product?.isActive) return sum;
+        const current    = parseFloat(row.openingStock) + parseFloat(row.stockIn) - parseFloat(row.stockOut);
+        const salePrice  = parseFloat(row.product?.salePrice ?? "0");
+        return sum + Math.max(0, current) * salePrice;
+      }, 0);
+
       return reply.send(successResponse({
         totalSales,
         totalPurchases,
-        totalProfit:  totalSales - totalPurchases,
-        outstanding:  parseFloat(String(outstanding._sum.balanceDue ?? 0)),
+        totalProfit:     totalSales - totalPurchases,
+        outstanding:     parseFloat(String(outstanding._sum.balanceDue ?? 0)),
+        todaySales:      parseFloat(String(todaySalesAgg._sum.totalAmt ?? 0)),
+        todayExpenses:   parseFloat(String(todayExpensesAgg._sum.amount ?? 0)),
+        totalStockValue: parseFloat(totalStockValue.toFixed(2)),
       }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });

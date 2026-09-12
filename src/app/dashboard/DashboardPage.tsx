@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag, ShoppingCart, TrendingUp,
   IndianRupee, CalendarDays, ChevronDown, ChevronLeft, ChevronRight,
+  Receipt, Package,
 } from "lucide-react";
 import { StatCard } from "./components/StatCard";
 import { SalesChart } from "./components/SalesChart";
@@ -23,6 +24,9 @@ interface StatsResp {
     totalPurchases: number;
     totalProfit: number;
     outstanding: number;
+    todaySales: number;
+    todayExpenses: number;
+    totalStockValue: number;
   };
 }
 
@@ -105,31 +109,43 @@ export default function DashboardPage() {
   };
   const isCurrentMonth = selYear === now.getFullYear() && selMonth === now.getMonth() + 1;
 
-  const STATS = [
+  // ── Row 1: Today's Sales + This Month's Sales ───────────
+  const ROW1 = [
     {
-      title: "Total Sales",
-      value: isLoading ? "…" : fmt(stats?.totalSales ?? 0),
-      change: 0, changeLabel: MONTH_NAMES[selMonth - 1],
+      title: "Today's Sales",
+      value: isLoading ? "…" : fmt(stats?.todaySales ?? 0),
+      change: 0, changeLabel: "today",
       icon: <ShoppingBag size={20} strokeWidth={1.7} />,
     },
     {
-      title: "Total Purchases",
-      value: isLoading ? "…" : fmt(stats?.totalPurchases ?? 0),
+      title: `${MONTH_NAMES[selMonth - 1]} Sales`,
+      value: isLoading ? "…" : fmt(stats?.totalSales ?? 0),
       change: 0, changeLabel: MONTH_NAMES[selMonth - 1],
       icon: <ShoppingCart size={20} strokeWidth={1.7} />,
     },
+  ];
+
+  // ── Row 2: Today's Expenses + Total Stock Value + Outstanding ─
+  const ROW2 = [
     {
-      title: "Total Profit",
-      value: isLoading ? "…" : fmt(stats?.totalProfit ?? 0),
-      change: 0, changeLabel: MONTH_NAMES[selMonth - 1],
-      icon: <TrendingUp size={20} strokeWidth={1.7} />,
-      valueColor: !isLoading && (stats?.totalProfit ?? 0) < 0 ? "#EF4444" : undefined,
+      title: "Today's Expenses",
+      value: isLoading ? "…" : fmt(stats?.todayExpenses ?? 0),
+      change: 0, changeLabel: "today",
+      icon: <Receipt size={20} strokeWidth={1.7} />,
+      valueColor: !isLoading && (stats?.todayExpenses ?? 0) > 0 ? "#EF4444" : undefined,
+    },
+    {
+      title: "Stock Value",
+      value: isLoading ? "…" : fmt(stats?.totalStockValue ?? 0),
+      change: 0, changeLabel: "current",
+      icon: <Package size={20} strokeWidth={1.7} />,
     },
     {
       title: "Outstanding",
       value: isLoading ? "…" : fmt(stats?.outstanding ?? 0),
       change: 0, changeLabel: "unpaid",
       icon: <IndianRupee size={20} strokeWidth={1.7} />,
+      valueColor: !isLoading && (stats?.outstanding ?? 0) > 0 ? "#F97316" : undefined,
     },
   ];
 
@@ -219,8 +235,15 @@ export default function DashboardPage() {
 
       {/* ── Stats + Quick Actions ─────────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 16, alignItems: "stretch" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", gap: 14 }}>
-          {STATS.map((s, i) => <StatCard key={s.title} {...s} index={i} />)}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Row 1: Today's Sales + This Month's Sales */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            {ROW1.map((s, i) => <StatCard key={s.title} {...s} index={i} />)}
+          </div>
+          {/* Row 2: Today's Expenses + Stock Value + Outstanding */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            {ROW2.map((s, i) => <StatCard key={s.title} {...s} index={i + 2} />)}
+          </div>
         </div>
         <QuickActions compact />
       </div>
