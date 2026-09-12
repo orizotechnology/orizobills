@@ -38,6 +38,7 @@ export default function PosPage() {
   const [showCustDlg,   setShowCustDlg]   = useState(false);
   const [showAddProdDlg, setShowAddProdDlg] = useState(false);
   const [printing,      setPrinting]      = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   // Tracks the last saved invoice snapshot for printing
   const [printData,     setPrintData]     = useState<{
     invoiceNo: string; customerName: string; invoiceDate: Date;
@@ -238,6 +239,21 @@ export default function PosPage() {
   // ── Keyboard shortcuts ──────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Escape — if a dialog is already open close it, otherwise ask to exit POS
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (showCustDlg)     { setShowCustDlg(false);    return; }
+        if (showAddProdDlg)  { setShowAddProdDlg(false); return; }
+        if (showExitConfirm) { setShowExitConfirm(false); return; }
+        setShowExitConfirm(true);
+        return;
+      }
+      // Enter — confirm exit when the dialog is showing
+      if (e.key === "Enter" && showExitConfirm) {
+        e.preventDefault();
+        navigate("/app/dashboard");
+        return;
+      }
       if (e.key === "F2")  { e.preventDefault(); void handleSave(false); }
       if (e.key === "F3")  { e.preventDefault(); addBill(); }
       if (e.key === "F5")  { e.preventDefault(); navigate("/app/sales/invoices"); }
@@ -245,7 +261,7 @@ export default function PosPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleSave, addBill, navigate]);
+  }, [handleSave, addBill, navigate, showCustDlg, showAddProdDlg, showExitConfirm]);
 
   if (!bill) return null;
 
@@ -566,6 +582,72 @@ export default function PosPage() {
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* ── ESC Exit Confirm Dialog ──────────────────────────── */}
+      <AnimatePresence>
+        {showExitConfirm && (
+          <motion.div
+            key="exit-confirm"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{
+              position: "fixed", inset: 0, zIndex: 4000,
+              background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+            onClick={() => setShowExitConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1,    y: 0  }}
+              exit={{    opacity: 0, scale: 0.95, y: 10  }}
+              transition={{ duration: 0.18 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#fff", borderRadius: 16,
+                padding: "28px 32px", width: 380, textAlign: "center",
+                boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
+              }}
+            >
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🚪</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>
+                Exit POS?
+              </div>
+              <div style={{ fontSize: 13, color: "#64748B", marginBottom: 24, lineHeight: 1.6 }}>
+                Unsaved items will remain in the bill tabs.<br />
+                Press <kbd style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 4, padding: "1px 6px", fontSize: 12, fontFamily: "monospace" }}>Enter</kbd> to confirm or{" "}
+                <kbd style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 4, padding: "1px 6px", fontSize: 12, fontFamily: "monospace" }}>Esc</kbd> to stay.
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => setShowExitConfirm(false)}
+                  style={{
+                    flex: 1, padding: "10px 0", borderRadius: 8,
+                    border: "1.5px solid #E2E8F0", background: "#fff",
+                    fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#F97316"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#E2E8F0"; }}
+                >
+                  Stay (Esc)
+                </button>
+                <button
+                  autoFocus
+                  onClick={() => navigate("/app/dashboard")}
+                  style={{
+                    flex: 1, padding: "10px 0", borderRadius: 8,
+                    border: "none", background: "#F97316",
+                    fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#EA6C0A"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#F97316"; }}
+                >
+                  Exit (Enter)
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
