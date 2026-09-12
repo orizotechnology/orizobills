@@ -374,12 +374,6 @@ function ThermalReceipt(props: ReceiptProps) {
                 (Cash {fmt(cashPortion)} + UPI {fmt(qrAmount)})
               </div>
             )}
-            <div style={{ fontSize: fs - 2, color: "#000", marginBottom: 2 }}>
-              {profile.upiId}
-            </div>
-            <div style={{ fontSize: fs - 3, color: "#555" }}>
-              Amount pre-filled · cannot be changed
-            </div>
           </div>
           <Dash />
         </>
@@ -527,10 +521,6 @@ function A4Receipt(props: ReceiptProps) {
               {isSplit ? "Scan to pay UPI portion" : "Scan to pay"}
             </div>
             <div style={{ fontSize: fs + 1, fontWeight: 900, color: c }}>{fmt(qrAmount)}</div>
-            <div style={{ fontSize: fs - 3, color: "#94A3B8" }}>Amount is fixed — cannot be changed</div>
-            {profile.upiId && (
-              <div style={{ fontSize: fs - 2, color: "#64748B", marginTop: 2 }}>{profile.upiId}</div>
-            )}
           </div>
         )}
 
@@ -654,12 +644,6 @@ function A4Receipt(props: ReceiptProps) {
           {/* Big amount below QR */}
           <div style={{ fontSize: fs + 12, fontWeight: 900, color: c, letterSpacing: -1, lineHeight: 1, marginTop: 4 }}>
             {fmt(qrAmount)}
-          </div>
-          <div style={{ fontSize: fs, color: "#475569", fontWeight: 600 }}>
-            {profile.upiId}
-          </div>
-          <div style={{ fontSize: fs - 2, color: "#94A3B8" }}>
-            Amount is pre-filled in UPI app · cannot be changed by customer
           </div>
         </div>
       )}
