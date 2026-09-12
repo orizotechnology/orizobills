@@ -156,7 +156,7 @@ export default function DashboardPage() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>
-            Hello, {session?.name ?? "there"} 👋
+            Hello, {session?.name ?? "there"}
           </div>
           <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 5 }}>
             Here's what's happening with your business.
