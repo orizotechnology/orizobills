@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { RefreshCw, AlertTriangle, RotateCcw, Plus, Search } from "lucide-react";
+import { RefreshCw, AlertTriangle, Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { http } from "@/lib/axios";
 
@@ -31,6 +31,15 @@ export default function SaleReturnPage() {
   const [search,   setSearch]   = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate,   setToDate]   = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<SaleReturn | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => http.delete<{ success: boolean }>(`/sales/returns/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sale-returns"] });
+      setDeleteTarget(null);
+    },
+  });
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["sale-returns", page],
@@ -163,14 +172,14 @@ export default function SaleReturnPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-              {["Return No", "Customer", "Date", "Amount", "Status"].map((h) => (
+              {["Return No", "Customer", "Date", "Amount", "Status", ""].map((h) => (
                 <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={5} style={{ padding: "48px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>
+              <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                   <div style={{ width: 18, height: 18, border: "2px solid #F97316", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
                   Loading returns…
@@ -178,14 +187,14 @@ export default function SaleReturnPage() {
               </td></tr>
             )}
             {isError && (
-              <tr><td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#EF4444", fontSize: 13 }}>
+              <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#EF4444", fontSize: 13 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                   <AlertTriangle size={18} /> Backend not connected
                 </div>
               </td></tr>
             )}
             {!isLoading && !isError && returns.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: "64px", textAlign: "center" }}>
+              <tr><td colSpan={6} style={{ padding: "64px", textAlign: "center" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                   <div style={{ fontWeight: 600, color: "#94A3B8" }}>
                     {search ? `No returns matching "${search}"` : "No sale returns yet"}
@@ -211,6 +220,24 @@ export default function SaleReturnPage() {
                       {r.status}
                     </span>
                   </td>
+                  <td style={tdStyle}>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        onClick={() => navigate(`/app/sales/returns/${r.id}/edit`)}
+                        style={rowIconBtn} title="Edit"
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#F97316"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#CBD5E1"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(r)}
+                        style={rowIconBtn} title="Delete"
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#EF4444"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF1F2"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#CBD5E1"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
                 </motion.tr>
               ))}
             </AnimatePresence>
@@ -227,12 +254,45 @@ export default function SaleReturnPage() {
         )}
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* ── Delete confirm ───────────────────────────────── */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center" }}
+            onClick={() => setDeleteTarget(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: "#fff", borderRadius: 14, padding: "24px 28px", width: 360, boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>Delete Return?</div>
+              <div style={{ fontSize: 13, color: "#64748B", marginBottom: 20 }}>
+                Return <strong>{deleteTarget.returnNumber}</strong> will be permanently deleted.
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setDeleteTarget(null)}
+                  style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "1.5px solid #E2E8F0", background: "#fff", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteMutation.mutate(deleteTarget.id)}
+                  disabled={deleteMutation.isPending}
+                  style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: "#EF4444", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>
+                  {deleteMutation.isPending ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 const primaryBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
 const iconBtn:    React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
+const rowIconBtn: React.CSSProperties = { width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: "#CBD5E1", display: "flex", alignItems: "center", justifyContent: "center" };
 const dateInp:    React.CSSProperties = { border: "1px solid hsl(var(--border))", borderRadius: 8, padding: "6px 10px", fontSize: 13, color: "hsl(var(--foreground))", background: "hsl(var(--card))", outline: "none", fontFamily: "inherit", cursor: "pointer" };
 const thStyle:    React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "hsl(var(--muted-foreground))", letterSpacing: "0.04em", whiteSpace: "nowrap" };
 const tdStyle:    React.CSSProperties = { padding: "12px 14px", fontSize: 13 };

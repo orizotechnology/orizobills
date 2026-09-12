@@ -1,21 +1,16 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, Search, FileText, Trash2, RefreshCw, Printer, Pencil,
+  Plus, Search, FileText, Trash2, RefreshCw, Pencil,
   AlertTriangle, X, AlertCircle, TrendingUp, IndianRupee,
 } from "lucide-react";
 import { toast } from "sonner";
 import { http } from "@/lib/axios";
 import { useDialogKeyboard } from "@/hooks";
-import { PosPrintReceipt, generateQrDataUrl } from "@/app/pos/components/PosPrintReceipt";
-import { usePrintStore } from "@/store/print.store";
-import { useBusinessStore } from "@/store/business.store";
 import { usePosStore } from "@/store/pos.store";
 import type { ProductRow } from "@/app/pos/components/ProductTable";
-import "@/styles/print.css";
 
 // =============================================================
 // TYPES
@@ -158,8 +153,6 @@ export default function SaleInvoicesPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const today    = toStr(new Date());
-  const { settings: printSettings } = usePrintStore();
-  const { profile } = useBusinessStore();
   const { loadInvoiceForEdit } = usePosStore();
 
   // ── Filter state ─────────────────────────────────────────
@@ -176,10 +169,6 @@ export default function SaleInvoicesPage() {
     clearTimeout((handleSearch as { _t?: ReturnType<typeof setTimeout> })._t);
     (handleSearch as { _t?: ReturnType<typeof setTimeout> })._t = setTimeout(() => setDebSearch(val), 320);
   };
-  // Print state
-  const [printData,  setPrintData]  = useState<{ invoiceNo: string; customerName: string; invoiceDate: Date; rows: ProductRow[]; mrpTotal: number; subTotal: number; discTotal: number; taxableAmt: number; cgst: number; sgst: number; roundingAdj: number; totalAmount: number; paidAmount: number; paymentMode: string; qrDataUrl?: string } | null>(null);
-  const [printingId, setPrintingId] = useState<string | null>(null);
-  const pendingPrintRef = useRef(false);
   // Invoice number to highlight (passed via router state from POS)
   const [highlightInvoice, setHighlightInvoice] = useState<string | null>(null);
   const highlightRowRef = useRef<HTMLTableRowElement | null>(null);
@@ -258,81 +247,6 @@ export default function SaleInvoicesPage() {
       setDeleteTarget(null);
     },
   });
-
-  // ── Fire window.print() after printData is committed to DOM ─
-  useEffect(() => {
-    if (pendingPrintRef.current && printData) {
-      pendingPrintRef.current = false;
-      document.body.setAttribute("data-paper", printSettings.paperType);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          window.print();
-          setPrintingId(null);
-          document.body.removeAttribute("data-paper");
-        });
-      });
-    }
-  }, [printData]);
-
-  // ── Fetch full invoice and trigger print ──────────────────
-  const handlePrint = async (inv: SaleInvoice) => {
-    if (printingId) return;
-    setPrintingId(inv.id);
-    try {
-      type InvDetail = {
-        id: string; invoiceNumber: string; customerName: string; invoiceDate: string;
-        paymentMethod: string; subtotal: number; discountAmt: number; cgst: number; sgst: number;
-        totalAmt: number; paidAmt: number;
-        items: { id: string; itemName: string; itemCode: string | null; quantity: number; mrp: number; unitPrice: number; discountPct: number; discountAmt: number; taxPercent: number; taxAmount: number; totalAmount: number }[];
-      };
-      const res = await http.get<{ success: boolean; data: InvDetail }>(`/sales/${inv.id}`);
-      if (!res.success || !res.data) { toast.error("Could not load invoice details"); setPrintingId(null); return; }
-      const d = res.data;
-      const rows: ProductRow[] = d.items.map((item, i) => ({
-        id:      String(i),
-        product: item.itemName,
-        code:    item.itemCode ?? "",
-        qty:     Number(item.quantity),
-        mrp:     Number(item.mrp),
-        price:   Number(item.unitPrice),
-        discPct: Number(item.discountPct),
-        discAmt: Number(item.discountAmt),
-        taxPct:  Number(item.taxPercent),
-        taxAmt:  Number(item.taxAmount),
-        total:   Number(item.totalAmount),
-      }));
-      const mrpTotal  = rows.reduce((s, r) => s + r.mrp * r.qty, 0);
-      const subTotal  = Number(d.subtotal);
-      const discTotal = Number(d.discountAmt);
-      const taxableAmt = Math.max(0, subTotal - discTotal);
-      const cgst      = Number(d.cgst);
-      const sgst      = Number(d.sgst);
-      const rawTotal  = taxableAmt + cgst + sgst;
-      const totalAmount = Number(d.totalAmt);
-      const roundingAdj = +(totalAmount - rawTotal).toFixed(2);
-      const snapshot = {
-        invoiceNo:    d.invoiceNumber,
-        customerName: d.customerName,
-        invoiceDate:  new Date(d.invoiceDate),
-        rows,
-        mrpTotal, subTotal, discTotal, taxableAmt, cgst, sgst,
-        roundingAdj, totalAmount,
-        paidAmount:  Number(d.paidAmt),
-        paymentMode: d.paymentMethod,
-      };
-      // Pre-generate QR before committing to DOM
-      const upiAmt = d.paymentMethod === "Split" ? totalAmount : totalAmount;
-      const needsQr = (d.paymentMethod === "UPI" || d.paymentMethod === "Split") && !!profile.upiId;
-      const qrDataUrl = needsQr
-        ? (await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 270) ?? undefined)
-        : undefined;
-      pendingPrintRef.current = true;
-      setPrintData({ ...snapshot, qrDataUrl });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load invoice");
-      setPrintingId(null);
-    }
-  };
 
   // ── Load invoice into POS for editing ───────────────────
   const handleEdit = async (inv: SaleInvoice) => {
@@ -551,21 +465,10 @@ export default function SaleInvoicesPage() {
                     <td style={tdStyle}>
                       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <button
-                          onClick={() => void handlePrint(inv)}
-                          disabled={printingId === inv.id}
-                          style={{ ...rowIconBtn, color: printingId === inv.id ? "#F97316" : "#CBD5E1" }}
-                          title="Print Receipt"
-                          onMouseEnter={(e) => { if (printingId !== inv.id) { (e.currentTarget as HTMLButtonElement).style.color = "#F97316"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; } }}
-                          onMouseLeave={(e) => { if (printingId !== inv.id) { (e.currentTarget as HTMLButtonElement).style.color = "#CBD5E1"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; } }}>
-                          {printingId === inv.id
-                            ? <span style={{ width: 13, height: 13, border: "2px solid #F97316", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
-                            : <Printer size={13} />}
-                        </button>
-                        <button
                           onClick={() => void handleEdit(inv)}
                           style={rowIconBtn}
                           title="Edit Invoice"
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#3B82F6"; (e.currentTarget as HTMLButtonElement).style.background = "#EFF6FF"; }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#F97316"; (e.currentTarget as HTMLButtonElement).style.background = "#FFF7ED"; }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#CBD5E1"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
                           <Pencil size={13} />
                         </button>
@@ -609,36 +512,6 @@ export default function SaleInvoicesPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }
 @keyframes highlight-fade { 0%,20% { background: rgba(249,115,22,0.14); } 100% { background: transparent; } }`}</style>
-
-      {/* ── Print receipt portal ── */}
-      {printData && createPortal(
-        <div id="pos-print-area">
-          {Array.from({ length: Math.max(1, printSettings.copies) }).map((_, i) => (
-            <PosPrintReceipt
-              key={i}
-              invoiceNo={printData.invoiceNo}
-              customerName={printData.customerName}
-              invoiceDate={printData.invoiceDate}
-              rows={printData.rows}
-              mrpTotal={printData.mrpTotal}
-              subTotal={printData.subTotal}
-              discTotal={printData.discTotal}
-              taxableAmt={printData.taxableAmt}
-              cgst={printData.cgst}
-              sgst={printData.sgst}
-              roundingAdj={printData.roundingAdj}
-              totalAmount={printData.totalAmount}
-              paidAmount={printData.paidAmount}
-              paymentMode={printData.paymentMode}
-              splitUpiAmt={printData.paymentMode === "Split" ? printData.totalAmount : undefined}
-              qrDataUrl={printData.qrDataUrl}
-              settings={printSettings}
-              profile={profile}
-            />
-          ))}
-        </div>,
-        document.body
-      )}
     </div>
   );
 }
