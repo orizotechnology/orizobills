@@ -79,8 +79,9 @@ export function AppRoutes() {
         <Route path="/app/sales/payment-in" element={<W><PaymentInPage /></W>} />
         <Route path="/app/sales/orders"     element={<W><SaleOrderPage /></W>} />
         <Route path="/app/sales/challan"    element={<W><DeliveryChallanPage /></W>} />
-        <Route path="/app/sales/returns"     element={<W><SaleReturnPage /></W>} />
-        <Route path="/app/sales/returns/new" element={<ReturnEntryPage />} />
+        <Route path="/app/sales/returns"          element={<W><SaleReturnPage /></W>} />
+        <Route path="/app/sales/returns/new"       element={<ReturnEntryPage />} />
+        <Route path="/app/sales/returns/:id/edit"  element={<ReturnEntryPage />} />
         <Route path="/app/sales"            element={<Navigate to="/app/sales/invoices" replace />} />
 
         {/* Purchase */}

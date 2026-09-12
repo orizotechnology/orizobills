@@ -476,6 +476,67 @@ export async function saleRoutes(fastify: FastifyInstance) {
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
+  // GET /returns/:id — fetch a single return with items for editing
+  fastify.get("/returns/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      const r = await req.prisma.saleReturn.findUnique({ where: { id: req.params.id }, include: { items: true } });
+      if (!r) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
+      return reply.send(successResponse(r));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  // PUT /returns/:id — update an existing return
+  fastify.put("/returns/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    const schema = z.object({
+      customerName: z.string().default("Walk-in Customer"), reason: z.string().optional(),
+      items: z.array(z.object({ productId: z.string().optional(), itemName: z.string(), itemCode: z.string(), quantity: z.number().min(0), unitPrice: z.number().min(0), totalAmount: z.number().min(0) })).min(1),
+    });
+    const parse = schema.safeParse(req.body);
+    if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
+    try {
+      const existing = await req.prisma.saleReturn.findUnique({ where: { id: req.params.id }, include: { items: true } });
+      if (!existing) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
+      const totalAmt = parse.data.items.reduce((s: number, i: any) => s + i.totalAmount, 0);
+      const updated = await req.prisma.$transaction(async (tx: typeof req.prisma) => {
+        // Reverse old stock decrements
+        for (const old of existing.items) {
+          if (old.productId) await tx.inventoryItem.update({ where: { productId: old.productId }, data: { stockOut: { increment: parseFloat(String(old.quantity)) } } }).catch(() => {});
+        }
+        // Delete old items and recreate
+        await tx.saleReturnItem.deleteMany({ where: { returnId: req.params.id } });
+        const r = await tx.saleReturn.update({
+          where: { id: req.params.id },
+          data: { customerName: parse.data.customerName, reason: parse.data.reason ?? null, subtotal: totalAmt, totalAmt,
+            items: { create: parse.data.items.map((i: any) => ({ productId: i.productId ?? null, itemName: i.itemName, itemCode: i.itemCode, quantity: i.quantity, unitPrice: i.unitPrice, totalAmount: i.totalAmount })) },
+          },
+        });
+        // Apply new stock decrements
+        for (const item of parse.data.items) {
+          if (item.productId) await tx.inventoryItem.update({ where: { productId: item.productId }, data: { stockOut: { decrement: item.quantity } } }).catch(() => {});
+        }
+        return r;
+      });
+      return reply.send(successResponse(updated, "Return updated"));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  // DELETE /returns/:id — delete a return and reverse stock
+  fastify.delete("/returns/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      const existing = await req.prisma.saleReturn.findUnique({ where: { id: req.params.id }, include: { items: true } });
+      if (!existing) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
+      await req.prisma.$transaction(async (tx: typeof req.prisma) => {
+        // Reverse stock: return was stockOut--, so on delete we increment stockOut back
+        for (const item of existing.items) {
+          if (item.productId) await tx.inventoryItem.update({ where: { productId: item.productId }, data: { stockOut: { increment: parseFloat(String(item.quantity)) } } }).catch(() => {});
+        }
+        await tx.saleReturnItem.deleteMany({ where: { returnId: req.params.id } });
+        await tx.saleReturn.delete({ where: { id: req.params.id } });
+      });
+      return reply.send(successResponse(null, "Return deleted"));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
   // ── Sale Orders ───────────────────────────────────────────
 
   fastify.post("/orders", async (req, reply) => {

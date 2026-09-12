@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { http } from "@/lib/axios";
 import { useDialogKeyboard } from "@/hooks";
 
@@ -185,6 +185,8 @@ function ReturnSearchBar({ onAdd }: { onAdd: (p: Product) => void }) {
 export default function ReturnEntryPage() {
   const navigate = useNavigate();
   const qc       = useQueryClient();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEdit = !!editId;
 
   const [rows,        setRows]        = useState<ReturnItem[]>([]);
   const [customer,    setCustomer]    = useState("");
@@ -192,8 +194,38 @@ export default function ReturnEntryPage() {
   const [discountPct, setDiscountPct] = useState("");
   const [refundMethod, setRefundMethod] = useState<"Cash" | "UPI" | "Bank Transfer">("Cash");
   const [saving,      setSaving]      = useState(false);
+  const [loading,     setLoading]     = useState(isEdit);
   const [showConfirm, setShowConfirm] = useState(false);
   const [feedback,    setFeedback]    = useState<{ type: "success" | "error"; msg: string } | null>(null);
+
+  // Load existing return when in edit mode
+  useEffect(() => {
+    if (!editId) return;
+    setLoading(true);
+    http.get<{ success: boolean; data: any }>(`/sales/returns/${editId}`)
+      .then((res) => {
+        if (!res.success || !res.data) return;
+        const d = res.data;
+        setCustomer(d.customerName ?? "");
+        setReason(d.reason ?? "");
+        setRows((d.items ?? []).map((item: any) => recalc({
+          id:        nanoid(),
+          product:   item.itemName,
+          code:      item.itemCode ?? "",
+          productId: item.productId ?? undefined,
+          qty:       parseFloat(item.quantity),
+          mrp:       0,
+          price:     parseFloat(item.unitPrice),
+          discPct:   0,
+          discAmt:   0,
+          taxPct:    0,
+          taxAmt:    0,
+          total:     parseFloat(item.totalAmount),
+        })));
+      })
+      .catch(() => setFeedback({ type: "error", msg: "Failed to load return." }))
+      .finally(() => setLoading(false));
+  }, [editId]);
 
   // Add product to return items
   const addProduct = useCallback((p: Product) => {
@@ -233,7 +265,7 @@ export default function ReturnEntryPage() {
     if (!rows.length) { setFeedback({ type: "error", msg: "Add at least one item to return." }); setTimeout(() => setFeedback(null), 3000); return; }
     setSaving(true);
     try {
-      const res = await http.post<{ success: boolean; data: { returnNumber: string } }>("/sales/returns", {
+      const payload = {
         customerName: customer.trim() || "Walk-in Customer",
         returnDate:   new Date().toISOString(),
         reason:       reason || undefined,
@@ -241,21 +273,26 @@ export default function ReturnEntryPage() {
           productId:   r.productId, itemName: r.product, itemCode: r.code,
           quantity:    r.qty,       unitPrice: r.price,  totalAmount: r.total,
         })),
-      });
+      };
+      const res = isEdit
+        ? await http.put<{ success: boolean; data: any }>(`/sales/returns/${editId}`, payload)
+        : await http.post<{ success: boolean; data: { returnNumber: string } }>("/sales/returns", payload);
+
       if (res.success) {
-        setFeedback({ type: "success", msg: `Return ${res.data?.returnNumber ?? ""} saved!` });
+        const num = (res.data as any)?.returnNumber ?? "";
+        setFeedback({ type: "success", msg: isEdit ? "Return updated!" : `Return ${num} saved!` });
         qc.invalidateQueries({ queryKey: ["sale-returns"] });
         qc.invalidateQueries({ queryKey: ["inventory"] });
         setTimeout(() => navigate("/app/sales/returns"), 1500);
       } else {
-        setFeedback({ type: "error", msg: "Failed to save return." });
+        setFeedback({ type: "error", msg: isEdit ? "Failed to update return." : "Failed to save return." });
         setTimeout(() => setFeedback(null), 3000);
       }
     } catch (err) {
       setFeedback({ type: "error", msg: err instanceof Error ? err.message : "Failed" });
       setTimeout(() => setFeedback(null), 3000);
     } finally { setSaving(false); }
-  }, [rows, customer, reason, navigate, qc]);
+  }, [rows, customer, reason, navigate, qc, isEdit, editId]);
 
   // F2 = save, Escape = confirm close
   useEffect(() => {
@@ -287,7 +324,7 @@ export default function ReturnEntryPage() {
           </div>
           <div style={{ lineHeight: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: "#EF4444", lineHeight: 1.2 }}>Sale Return</div>
-            <div style={{ fontSize: 8.5, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.1em", marginTop: 1 }}>CREDIT NOTE</div>
+            <div style={{ fontSize: 8.5, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.1em", marginTop: 1 }}>{isEdit ? "EDIT RETURN" : "CREDIT NOTE"}</div>
           </div>
         </div>
         <div />
@@ -406,8 +443,8 @@ export default function ReturnEntryPage() {
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => window.print()} style={fBtn("outline")}><Printer size={13} /> Print</button>
-              <button onClick={() => void handleSave()} disabled={saving} style={fBtn("red")}>
-                {saving ? <><Loader2 size={13} style={{ animation: "spin 0.7s linear infinite" }} /> Saving…</> : <><RotateCcw size={13} /> Save Return (F2)</>}
+              <button onClick={() => void handleSave()} disabled={saving || loading} style={fBtn("red")}>
+                {saving ? <><Loader2 size={13} style={{ animation: "spin 0.7s linear infinite" }} /> Saving…</> : <><RotateCcw size={13} /> {isEdit ? "Update Return (F2)" : "Save Return (F2)"}</>}
               </button>
             </div>
           </div>
