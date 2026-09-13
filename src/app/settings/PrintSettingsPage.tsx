@@ -278,8 +278,11 @@ function Stepper({ value, onChange, min = 1, max = 5 }: {
 // =============================================================
 // LIVE RECEIPT PREVIEW
 // =============================================================
-function ReceiptPreview({ s, shopName, address, phone, logoUrl, logoSize }: {
+function ReceiptPreview({ s, shopName, address, phone, logoUrl, logoSize, activeSection, lineSpacing, onSectionClick }: {
   s: LocalSettings; shopName: string; address: string; phone: string; logoUrl: string; logoSize: number;
+  activeSection: string | null;
+  lineSpacing: Record<string, number>;
+  onSectionClick: (section: string) => void;
 }) {
   const w   = Math.round(s.paperWidthMm * MM_TO_PX);
   const fs  = s.fontSize === "small" ? 9 : s.fontSize === "large" ? 13 : 11;
@@ -548,6 +551,18 @@ export default function PrintSettingsPage() {
   const [logoSize, setLogoSize] = useState(stored.logoSize ?? 48);
   const [dirty, setDirty]   = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // ── Line spacing per section ──────────────────────────────
+  type SectionKey = "header" | "meta" | "items" | "totals" | "footer";
+  const [activeSection,  setActiveSection]  = useState<SectionKey | null>(null);
+  const [lineSpacing, setLineSpacing] = useState<Record<SectionKey, number>>({
+    header: 1.4, meta: 1.4, items: 1.4, totals: 1.4, footer: 1.4,
+  });
+  const setSpacing = (v: number) => {
+    if (!activeSection) return;
+    setLineSpacing(p => ({ ...p, [activeSection]: v }));
+    setDirty(true);
+  };
 
   function update<K extends keyof LocalSettings>(key: K, value: LocalSettings[K]) {
     setS(p => ({ ...p, [key]: value }));

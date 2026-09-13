@@ -104,9 +104,9 @@ export async function createSale(data: {
 
   const subtotal    = data.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const discountAmt = subtotal * (data.discountPct / 100);
-  const cgst        = data.items.reduce((s, i) => s + i.taxAmount / 2, 0);
+  const cgst        = Math.round(data.items.reduce((s, i) => s + i.taxAmount / 2, 0));
   const sgst        = cgst;
-  const totalAmt    = subtotal - discountAmt + cgst + sgst;
+  const totalAmt    = Math.round(subtotal - discountAmt + cgst + sgst);
   const balanceDue  = Math.max(0, totalAmt - data.paidAmt);
   const status      = balanceDue === 0 ? "PAID" : data.paidAmt > 0 ? "PARTIAL" : "UNPAID";
 

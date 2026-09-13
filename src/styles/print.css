@@ -2,6 +2,20 @@
    POS PRINT STYLESHEET
    ============================================================= */
 
+/* ── Thermal layout helpers (screen + print) ─────────────── */
+/* th-row: full-width flex row, label left, value right       */
+.th-row {
+  display:         flex;
+  justify-content: space-between;
+  width:           100%;
+}
+
+/* th-center: label text centered within its flex portion     */
+.th-center {
+  flex:       1;
+  text-align: center;
+}
+
 /* ── Screen: hide the portal ─────────────────────────────── */
 @media screen {
   #pos-print-area {
@@ -102,5 +116,25 @@
   .pos-receipt,
   .pos-receipt img {
     background-color: #ffffff !important;
+  }
+
+  /* ── Thermal: auto-fill roll width, center on page ── */
+  body[data-paper^="Thermal"] #pos-print-area,
+  body:not([data-paper])      #pos-print-area,
+  body[data-paper=""]         #pos-print-area {
+    display:         flex !important;
+    flex-direction:  column !important;
+    align-items:     center !important;
+    justify-content: flex-start !important;
+    width:           100% !important;
+  }
+
+  body[data-paper^="Thermal"] .pos-receipt,
+  body:not([data-paper])      .pos-receipt,
+  body[data-paper=""]         .pos-receipt {
+    margin-left:  auto !important;
+    margin-right: auto !important;
+    width:        100% !important;
+    max-width:    100% !important;
   }
 }

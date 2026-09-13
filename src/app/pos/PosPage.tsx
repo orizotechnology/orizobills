@@ -71,11 +71,11 @@ export default function PosPage() {
   const rowDiscAmt    = rows.reduce((s, r) => s + r.discAmt, 0);
   const discTotal     = rowDiscAmt + billDiscAmt;
   const taxableAmt    = Math.max(0, subTotal - discTotal);
-  const cgst          = rows.reduce((s, r) => s + r.taxAmt / 2, 0);
+  const cgst          = Math.round(rows.reduce((s, r) => s + r.taxAmt / 2, 0));
   const sgst          = cgst;
   const rawTotal      = Math.max(0, taxableAmt + cgst + sgst);
-  // No rounding — use exact calculated total so bill, QR, and DB all match
-  const totalAmount   = +rawTotal.toFixed(2);
+  // Round to nearest rupee — no paise shown anywhere
+  const totalAmount   = Math.round(rawTotal);
   const roundingAdj   = 0;
   const totalItems    = rows.length;
   const totalQty      = rows.reduce((s, r) => s + r.qty, 0);

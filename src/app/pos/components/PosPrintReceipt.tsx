@@ -40,8 +40,7 @@ export interface ReceiptProps {
 // ── helpers ───────────────────────────────────────────────────
 
 function fmt(n: number): string {
-  const s = n.toFixed(2);
-  return "₹" + (s.endsWith(".00") ? String(Math.round(n)) : s);
+  return "₹" + String(Math.round(n));
 }
 
 function fmtDate(d: Date): string {
@@ -58,7 +57,7 @@ function buildUpiUrl(upiId: string, name: string, amount: number): string {
     "upi://pay" +
     `?pa=${encodeURIComponent(upiId)}` +
     `&pn=${encodeURIComponent(name || "Store")}` +
-    `&am=${amount.toFixed(2)}` +
+    `&am=${Math.round(amount)}` +
     "&cu=INR" +
     `&tn=${encodeURIComponent("Invoice payment - amount fixed")}`
   );
@@ -160,8 +159,7 @@ function ThermalReceipt(props: ReceiptProps) {
 
   return (
     <div className="pos-receipt" style={{
-      /* Screen: show a preview at the expected roll width.
-         Print: print.css overrides to width:100% so content fills the actual paper. */
+      /* Screen: fixed preview width matching roll. Print: print.css overrides to 100% roll width. */
       width: previewW, maxWidth: "100%", boxSizing: "border-box",
       background: "#fff",
       fontFamily: font, fontSize: fs,
@@ -172,13 +170,11 @@ function ThermalReceipt(props: ReceiptProps) {
 
       {/* ── HEADER ── */}
       <div style={{ textAlign: "center", marginBottom: 6 }}>
-        {/* Logo — always show when logoUrl is set, regardless of showLogo setting */}
         {profile.logoUrl ? (
           <img src={profile.logoUrl} alt="logo"
             style={{ width: settings.logoSize ?? 48, height: settings.logoSize ?? 48,
               objectFit: "contain", margin: "0 auto 5px", display: "block" }} />
         ) : (
-          /* Fallback: letter avatar */
           profile.storeName && (
             <div style={{ fontWeight: 900, fontSize: fs + 6, margin: "0 auto 5px", textAlign: "center" }}>
               [{profile.storeName.charAt(0).toUpperCase()}]
@@ -188,30 +184,30 @@ function ThermalReceipt(props: ReceiptProps) {
         <div style={{ fontWeight: 900, fontSize: fs + 3, letterSpacing: 1 }}>
           {(profile.storeName || "SHOP").toUpperCase()}
         </div>
-        {profile.address && <div style={{ fontSize: fs - 1, color: "#000" }}>{profile.address}</div>}
-        {profile.phone   && <div style={{ fontSize: fs - 1, color: "#000" }}>{profile.phone}</div>}
-        {profile.email   && <div style={{ fontSize: fs - 1, color: "#000" }}>{profile.email}</div>}
+        {profile.address && <div style={{ fontSize: fs - 1 }}>{profile.address}</div>}
+        {profile.phone   && <div style={{ fontSize: fs - 1 }}>{profile.phone}</div>}
+        {profile.email   && <div style={{ fontSize: fs - 1 }}>{profile.email}</div>}
       </div>
 
       <Dash />
 
       {/* ── INVOICE META ── */}
-      <div style={{ fontSize: fs - 1, marginBottom: 4 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={{ fontSize: fs - 1, marginBottom: 4, width: "100%" }}>
+        <div className="th-row">
           <span>Invoice:</span>
           <span style={{ fontWeight: 700 }}>{invoiceNo}</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div className="th-row">
           <span>Date:</span>
           <span>{fmtDate(invoiceDate)}</span>
         </div>
         {customerName && customerName !== "Walk-in Customer" && (
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div className="th-row">
             <span>Customer:</span>
             <span style={{ fontWeight: 600 }}>{customerName}</span>
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div className="th-row">
           <span>Payment:</span>
           <span style={{ fontWeight: 600 }}>
             {isSplit ? "Split (Cash + UPI)" : paymentMode}
@@ -236,9 +232,9 @@ function ThermalReceipt(props: ReceiptProps) {
             <tr key={i} style={{ borderBottom: "1px dotted #ccc" }}>
               <td style={{ padding: "2px 0" }}>
                 <div>{r.product}</div>
-                {r.code    && <div style={{ fontSize: fs - 2, color: "#000" }}>{r.code}</div>}
-                {r.discPct > 0 && <div style={{ fontSize: fs - 2, color: "#000" }}>Disc: {r.discPct}%</div>}
-                {r.taxPct  > 0 && <div style={{ fontSize: fs - 2, color: "#000" }}>GST: {r.taxPct}%</div>}
+                {r.code    && <div style={{ fontSize: fs - 2 }}>{r.code}</div>}
+                {r.discPct > 0 && <div style={{ fontSize: fs - 2 }}>Disc: {r.discPct}%</div>}
+                {r.taxPct  > 0 && <div style={{ fontSize: fs - 2 }}>GST: {r.taxPct}%</div>}
               </td>
               <td style={{ textAlign: "right", padding: "2px 2px" }}>{r.qty}</td>
               <td style={{ textAlign: "right", padding: "2px 2px" }}>₹{r.price.toFixed(0)}</td>
@@ -249,55 +245,58 @@ function ThermalReceipt(props: ReceiptProps) {
       </table>
 
       {/* ── BILL SUMMARY ── */}
-      <div style={{ borderTop: "1px dashed #999", paddingTop: 4, fontSize: fs - 1 }}>
+      <div style={{ borderTop: "1px dashed #999", paddingTop: 4, fontSize: fs - 1, width: "100%" }}>
         {mrpTotal !== subTotal && (
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#000" }}>MRP Total</span><span style={{ fontWeight: 600 }}>{fmt(mrpTotal)}</span>
+          <div className="th-row">
+            <span className="th-center">MRP Total</span>
+            <span style={{ fontWeight: 600 }}>{fmt(mrpTotal)}</span>
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span style={{ color: "#000" }}>Subtotal</span><span style={{ fontWeight: 600 }}>{fmt(subTotal)}</span>
+        <div className="th-row">
+          <span className="th-center">Subtotal</span>
+          <span style={{ fontWeight: 600 }}>{fmt(subTotal)}</span>
         </div>
         {discTotal > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#000" }}>Discount</span>
+          <div className="th-row">
+            <span className="th-center">Discount</span>
             <span style={{ fontWeight: 600 }}>- {fmt(discTotal)}</span>
           </div>
         )}
         {taxableAmt > 0 && discTotal > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#000" }}>Taxable Amt</span><span style={{ fontWeight: 600 }}>{fmt(taxableAmt)}</span>
+          <div className="th-row">
+            <span className="th-center">Taxable Amt</span>
+            <span style={{ fontWeight: 600 }}>{fmt(taxableAmt)}</span>
           </div>
         )}
         {cgst > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#000" }}>CGST</span><span style={{ fontWeight: 600 }}>{fmt(cgst)}</span>
+          <div className="th-row">
+            <span className="th-center">CGST</span>
+            <span style={{ fontWeight: 600 }}>{fmt(cgst)}</span>
           </div>
         )}
         {sgst > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#000" }}>SGST</span><span style={{ fontWeight: 600 }}>{fmt(sgst)}</span>
+          <div className="th-row">
+            <span className="th-center">SGST</span>
+            <span style={{ fontWeight: 600 }}>{fmt(sgst)}</span>
           </div>
         )}
-        {/* Rounding adjustment is zero — no ₹5 rounding applied */}
 
         <Solid />
 
-        <div style={{ display: "flex", justifyContent: "space-between",
-          fontWeight: 900, fontSize: fs + 1 }}>
-          <span>TOTAL</span><span>{fmt(totalAmount)}</span>
+        <div className="th-row" style={{ fontWeight: 900, fontSize: fs - 1 }}>
+          <span className="th-center">TOTAL</span>
+          <span>{fmt(totalAmount)}</span>
         </div>
 
         {/* Split breakdown */}
         {isSplit && cashPortion !== null && (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between",
-              fontSize: fs - 1, marginTop: 2 }}>
-              <span style={{ color: "#000" }}>  └ Cash</span>
+            <div className="th-row" style={{ fontSize: fs - 1, marginTop: 2 }}>
+              <span className="th-center">└ Cash</span>
               <span style={{ fontWeight: 600 }}>{fmt(cashPortion)}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1 }}>
-              <span style={{ color: "#000" }}>  └ UPI</span>
+            <div className="th-row" style={{ fontSize: fs - 1 }}>
+              <span className="th-center">└ UPI</span>
               <span style={{ fontWeight: 700 }}>{fmt(qrAmount)}</span>
             </div>
           </>
@@ -306,13 +305,13 @@ function ThermalReceipt(props: ReceiptProps) {
         {/* Paid / change for Cash & Card */}
         {!isUpi && !isSplit && (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1 }}>
-              <span style={{ color: "#000" }}>Paid ({paymentMode})</span>
+            <div className="th-row" style={{ fontSize: fs - 1 }}>
+              <span className="th-center">Paid ({paymentMode})</span>
               <span style={{ fontWeight: 600 }}>{fmt(paidAmount)}</span>
             </div>
             {change > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1 }}>
-                <span style={{ color: "#000" }}>Change</span>
+              <div className="th-row" style={{ fontSize: fs - 1 }}>
+                <span className="th-center">Change</span>
                 <span style={{ fontWeight: 600 }}>{fmt(change)}</span>
               </div>
             )}
@@ -322,7 +321,7 @@ function ThermalReceipt(props: ReceiptProps) {
 
       {/* ── AMOUNT IN WORDS ── */}
       {settings.showAmountInWords && (
-        <div style={{ fontSize: fs - 2, color: "#000", marginTop: 4, fontStyle: "italic" }}>
+        <div style={{ fontSize: fs - 2, marginTop: 4, fontStyle: "italic", textAlign: "center" }}>
           {amountToWords(totalAmount)}
         </div>
       )}
@@ -357,26 +356,51 @@ function ThermalReceipt(props: ReceiptProps) {
       {/* ── TERMS ── */}
       {settings.showTerms && settings.termsText && (
         <div style={{ borderTop: "1px dashed #999", marginTop: 5, paddingTop: 4,
-          fontSize: fs - 2, color: "#000" }}>
+          fontSize: fs - 2, textAlign: "center" }}>
           {settings.termsText}
         </div>
       )}
 
       {/* ── FOOTER ── */}
       <div style={{ borderTop: "1px dashed #999", marginTop: 5, paddingTop: 4,
-        textAlign: "center", fontSize: fs - 1, color: "#000" }}>
+        textAlign: "center", fontSize: fs - 1 }}>
         {settings.footerText}
       </div>
 
       {/* ── SIGNATURE ── */}
       {settings.showSignature && (
-        <div style={{ marginTop: 16, fontSize: fs - 1, textAlign: "right" }}>
+        <div style={{ marginTop: 16, fontSize: fs - 1, textAlign: "center" }}>
           <div style={{ borderTop: "1px solid #000", paddingTop: 4,
             display: "inline-block", minWidth: 100 }}>
             Authorised Signatory
           </div>
         </div>
       )}
+
+      {/* ── UPI QR — always at bottom for UPI / Split ── */}
+      {(isUpi || isSplit) && profile.upiId && qrAmount > 0 && (
+        <>
+          <Dash />
+          <div style={{ textAlign: "center", marginTop: 6, marginBottom: 4 }}>
+            <div style={{ fontSize: fs - 1, fontWeight: 700, letterSpacing: 0.3, marginBottom: 3 }}>
+              {isSplit ? "Pay UPI Portion" : "Scan & Pay"}
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 6px" }}>
+              <QrImg dataUrl={props.qrDataUrl} size={qrSize} />
+            </div>
+            <div style={{ fontSize: fs - 1, fontWeight: 900, letterSpacing: -0.5, marginBottom: 2 }}>
+              {fmt(qrAmount)}
+            </div>
+            {isSplit && cashPortion !== null && (
+              <div style={{ fontSize: fs - 1, marginBottom: 2 }}>
+                (Cash {fmt(cashPortion)} + UPI {fmt(qrAmount)})
+              </div>
+            )}
+          </div>
+          <Dash />
+        </>
+      )}
+>>>>>>> 6fd969f (feat: thermal receipt centering, no decimal values, backend rounding)
     </div>
   );
 }
@@ -490,7 +514,7 @@ function A4Receipt(props: ReceiptProps) {
                 {r.taxPct > 0 ? `${r.taxPct}%` : "—"}
               </td>
               <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 600 }}>
-                ₹{r.total.toFixed(2)}
+                ₹{Math.round(r.total)}
               </td>
             </tr>
           ))}
@@ -513,7 +537,12 @@ function A4Receipt(props: ReceiptProps) {
               <span style={{ color: (color as string) || "#1E293B" }}>{value}</span>
             </div>
           ))}
-          <div style={{ display: "flex", justifyContent: "space-between", background: c, color: "#fff", padding: "6px 10px", borderRadius: 6, fontWeight: 800, fontSize: fs + 1, marginTop: 4 }}>
+          {/* Grand total */}
+          <div style={{
+            display: "flex", justifyContent: "space-between",
+            background: c, color: "#fff", padding: "6px 10px",
+            borderRadius: 6, fontWeight: 800, fontSize: fs - 1, marginTop: 4,
+          }}>
             <span>TOTAL</span><span>{fmt(totalAmount)}</span>
           </div>
           {isSplit && cashPortion !== null && (
