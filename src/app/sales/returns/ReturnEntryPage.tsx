@@ -223,7 +223,7 @@ export default function ReturnEntryPage() {
           total:     parseFloat(item.totalAmount),
         })));
       })
-      .catch(() => setFeedback({ type: "error", msg: "Failed to load return." }))
+      .catch((err) => setFeedback({ type: "error", msg: err instanceof Error ? err.message : "Failed to load return." }))
       .finally(() => setLoading(false));
   }, [editId]);
 

@@ -39,6 +39,10 @@ export default function SaleReturnPage() {
       qc.invalidateQueries({ queryKey: ["sale-returns"] });
       setDeleteTarget(null);
     },
+    onError: (err) => {
+      alert(err instanceof Error ? err.message : "Failed to delete return");
+      setDeleteTarget(null);
+    },
   });
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
