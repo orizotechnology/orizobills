@@ -327,6 +327,33 @@ function ThermalReceipt(props: ReceiptProps) {
         </div>
       )}
 
+      {/* ── UPI QR — after total, before terms/footer ── */}
+      {settings.showQR && profile.upiId && (
+        <>
+          <Dash />
+          <div style={{ textAlign: "center", marginTop: 4, marginBottom: 4 }}>
+            <div style={{ fontSize: fs, fontWeight: 700, letterSpacing: 0.3, marginBottom: 3 }}>
+              {isSplit ? "Pay UPI Portion" : "Scan & Pay"}
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 4px" }}>
+              <QrImg dataUrl={props.qrDataUrl} size={qrSize} />
+            </div>
+            <div style={{ fontSize: fs + 4, fontWeight: 900, letterSpacing: -0.5, marginBottom: 1 }}>
+              {fmt(qrAmount)}
+            </div>
+            {isSplit && cashPortion !== null && (
+              <div style={{ fontSize: fs - 1, color: "#555", marginBottom: 1 }}>
+                (Cash {fmt(cashPortion)} + UPI {fmt(qrAmount)})
+              </div>
+            )}
+            {profile.upiId && (
+              <div style={{ fontSize: fs - 2, color: "#555" }}>{profile.upiId}</div>
+            )}
+          </div>
+          <Dash />
+        </>
+      )}
+
       {/* ── TERMS ── */}
       {settings.showTerms && settings.termsText && (
         <div style={{ borderTop: "1px dashed #999", marginTop: 5, paddingTop: 4,
@@ -349,35 +376,6 @@ function ThermalReceipt(props: ReceiptProps) {
             Authorised Signatory
           </div>
         </div>
-      )}
-
-      {/* ── UPI QR — always at bottom for UPI / Split ── */}
-      {(isUpi || isSplit) && profile.upiId && qrAmount > 0 && (
-        <>
-          <Dash />
-          <div style={{ textAlign: "center", marginTop: 6, marginBottom: 4 }}>
-            <div style={{ fontSize: fs, fontWeight: 700, letterSpacing: 0.3, marginBottom: 3 }}>
-              {isSplit ? "Pay UPI Portion" : "Scan & Pay"}
-            </div>
-            {/* QR code — full inner width for easy scanning */}
-            <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 6px" }}>
-              <QrImg
-                dataUrl={props.qrDataUrl}
-                size={qrSize}
-              />
-            </div>
-            {/* Amount prominently below QR */}
-            <div style={{ fontSize: fs + 6, fontWeight: 900, letterSpacing: -0.5, marginBottom: 2 }}>
-              {fmt(qrAmount)}
-            </div>
-            {isSplit && cashPortion !== null && (
-              <div style={{ fontSize: fs - 1, color: "#555", marginBottom: 2 }}>
-                (Cash {fmt(cashPortion)} + UPI {fmt(qrAmount)})
-              </div>
-            )}
-          </div>
-          <Dash />
-        </>
       )}
     </div>
   );
@@ -499,65 +497,25 @@ function A4Receipt(props: ReceiptProps) {
         </tbody>
       </table>
 
-      {/* ── TOTALS BLOCK + QR side by side ── */}
-      <div style={{
-        display: "flex",
-        justifyContent: needsQr ? "space-between" : "flex-end",
-        alignItems: "flex-start",
-        gap: 20,
-        marginBottom: 12,
-      }}>
-
-        {/* QR — left column, only for UPI/Split */}
-        {needsQr && qrAmount > 0 && (
-          <div style={{ flexShrink: 0, textAlign: "center" }}>
-            <div style={{ border: `2px solid ${c}`, borderRadius: 8,
-              padding: 8, display: "inline-block", marginBottom: 6 }}>
-              <QrImg
-                dataUrl={props.qrDataUrl}
-                size={settings.qrSize ?? 80}
-              />
-            </div>
-            <div style={{ fontSize: fs - 1, fontWeight: 700, color: c }}>
-              {isSplit ? "Scan to pay UPI portion" : "Scan to pay"}
-            </div>
-            <div style={{ fontSize: fs + 1, fontWeight: 900, color: c }}>{fmt(qrAmount)}</div>
-          </div>
-        )}
-
-        {/* Summary — right column */}
-        <div style={{ minWidth: 240, flex: needsQr ? "0 0 auto" : 1, maxWidth: 300 }}>
+      {/* ── TOTALS BLOCK ── */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <div style={{ minWidth: 240, maxWidth: 300 }}>
           {[
-            mrpTotal !== subTotal
-              ? ["MRP Total",      fmt(mrpTotal),  "#64748B"] : null,
+            mrpTotal !== subTotal ? ["MRP Total", fmt(mrpTotal), "#64748B"] : null,
             ["Subtotal",           fmt(subTotal),  "#000"],
-            discTotal > 0
-              ? ["Discount",       `- ${fmt(discTotal)}`, "#EF4444"] : null,
-            taxableAmt > 0 && discTotal > 0
-              ? ["Taxable Amount", fmt(taxableAmt), "#000"] : null,
-            cgst > 0 ? ["CGST",   fmt(cgst),       "#000"] : null,
-            sgst > 0 ? ["SGST",   fmt(sgst),       "#000"] : null,
-            // No ₹5 rounding — exact total is used throughout
+            discTotal > 0 ? ["Discount", `- ${fmt(discTotal)}`, "#EF4444"] : null,
+            taxableAmt > 0 && discTotal > 0 ? ["Taxable Amount", fmt(taxableAmt), "#000"] : null,
+            cgst > 0 ? ["CGST", fmt(cgst), "#000"] : null,
+            sgst > 0 ? ["SGST", fmt(sgst), "#000"] : null,
           ].filter(Boolean).map(([label, value, color]) => (
-            <div key={label as string} style={{
-              display: "flex", justifyContent: "space-between",
-              gap: 16, fontSize: fs - 1, marginBottom: 3,
-            }}>
+            <div key={label as string} style={{ display: "flex", justifyContent: "space-between", gap: 16, fontSize: fs - 1, marginBottom: 3 }}>
               <span style={{ color: "#64748B" }}>{label}</span>
               <span style={{ color: (color as string) || "#1E293B" }}>{value}</span>
             </div>
           ))}
-
-          {/* Grand total */}
-          <div style={{
-            display: "flex", justifyContent: "space-between",
-            background: c, color: "#fff", padding: "6px 10px",
-            borderRadius: 6, fontWeight: 800, fontSize: fs + 1, marginTop: 4,
-          }}>
+          <div style={{ display: "flex", justifyContent: "space-between", background: c, color: "#fff", padding: "6px 10px", borderRadius: 6, fontWeight: 800, fontSize: fs + 1, marginTop: 4 }}>
             <span>TOTAL</span><span>{fmt(totalAmount)}</span>
           </div>
-
-          {/* Split breakdown */}
           {isSplit && cashPortion !== null && (
             <div style={{ marginTop: 5, fontSize: fs - 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", color: "#64748B" }}>
@@ -568,22 +526,14 @@ function A4Receipt(props: ReceiptProps) {
               </div>
             </div>
           )}
-
-          {/* Paid / change for Cash and Card */}
           {!isUpi && !isSplit && (
             <>
-              <div style={{
-                display: "flex", justifyContent: "space-between",
-                fontSize: fs - 1, marginTop: 4, color: "#64748B",
-              }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, marginTop: 4, color: "#64748B" }}>
                 <span>Paid ({paymentMode})</span>
                 <span style={{ fontWeight: 600, color: "#1E293B" }}>{fmt(paidAmount)}</span>
               </div>
               {change > 0 && (
-                <div style={{
-                  display: "flex", justifyContent: "space-between",
-                  fontSize: fs - 1, color: "#22C55E", fontWeight: 600,
-                }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs - 1, color: "#22C55E", fontWeight: 600 }}>
                   <span>Change</span><span>{fmt(change)}</span>
                 </div>
               )}
@@ -599,55 +549,44 @@ function A4Receipt(props: ReceiptProps) {
         </div>
       )}
 
+      {/* ── UPI QR — after total, before terms/footer ── */}
+      {settings.showQR && profile.upiId && (
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: `2px dashed ${c}`, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, marginBottom: 16 }}>
+          <div style={{ fontSize: fs + 1, fontWeight: 800, color: c, letterSpacing: 0.5 }}>
+            {isSplit ? "Scan QR to Pay UPI Portion" : "Scan QR to Pay"}
+          </div>
+          {isSplit && cashPortion !== null && (
+            <div style={{ fontSize: fs - 1, color: "#64748B" }}>Cash {fmt(cashPortion)} + UPI {fmt(qrAmount)}</div>
+          )}
+          <div style={{ border: `3px solid ${c}`, borderRadius: 12, padding: 10, marginTop: 4 }}>
+            <QrImg dataUrl={props.qrDataUrl} size={settings.qrSize ?? 160} />
+          </div>
+          <div style={{ fontSize: fs + 8, fontWeight: 900, color: c, letterSpacing: -1, lineHeight: 1, marginTop: 4 }}>
+            {fmt(qrAmount)}
+          </div>
+          {profile.upiId && (
+            <div style={{ fontSize: fs - 1, color: "#64748B" }}>{profile.upiId}</div>
+          )}
+          <div style={{ paddingBottom: 8, borderBottom: `2px dashed ${c}`, width: "100%" }} />
+        </div>
+      )}
+
       {/* ── TERMS ── */}
       {settings.showTerms && settings.termsText && (
-        <div style={{ fontSize: fs - 1, color: "#64748B",
-          borderTop: "1px solid #E2E8F0", paddingTop: 8, marginTop: 8 }}>
+        <div style={{ fontSize: fs - 1, color: "#64748B", borderTop: "1px solid #E2E8F0", paddingTop: 8, marginTop: 8 }}>
           <strong style={{ color: c }}>Terms: </strong>{settings.termsText}
         </div>
       )}
 
       {/* ── FOOTER ── */}
-      <div style={{ marginTop: 12, paddingTop: 8, borderTop: `2px solid ${c}`,
-        display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ marginTop: 12, paddingTop: 8, borderTop: `2px solid ${c}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontStyle: "italic", color: c, fontSize: fs }}>{settings.footerText}</div>
         {settings.showSignature && (
           <div style={{ fontSize: fs - 1, color: "#64748B", textAlign: "right" }}>
-            <div style={{ borderTop: "1px solid #000", paddingTop: 4, minWidth: 120 }}>
-              Authorised Signatory
-            </div>
+            <div style={{ borderTop: "1px solid #000", paddingTop: 4, minWidth: 120 }}>Authorised Signatory</div>
           </div>
         )}
       </div>
-
-      {/* ── UPI QR — full-width section at bottom of A4 ── */}
-      {(isUpi || isSplit) && profile.upiId && qrAmount > 0 && (
-        <div style={{
-          marginTop: 20, paddingTop: 16,
-          borderTop: `2px dashed ${c}`,
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-        }}>
-          <div style={{ fontSize: fs + 1, fontWeight: 800, color: c, letterSpacing: 0.5 }}>
-            {isSplit ? "Scan QR to Pay UPI Portion" : "Scan QR to Pay"}
-          </div>
-          {isSplit && cashPortion !== null && (
-            <div style={{ fontSize: fs - 1, color: "#64748B" }}>
-              Cash {fmt(cashPortion)} + UPI {fmt(qrAmount)}
-            </div>
-          )}
-          {/* Large QR */}
-          <div style={{ border: `3px solid ${c}`, borderRadius: 12, padding: 10, marginTop: 4 }}>
-            <QrImg
-              dataUrl={props.qrDataUrl}
-              size={120}
-            />
-          </div>
-          {/* Big amount below QR */}
-          <div style={{ fontSize: fs + 12, fontWeight: 900, color: c, letterSpacing: -1, lineHeight: 1, marginTop: 4 }}>
-            {fmt(qrAmount)}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

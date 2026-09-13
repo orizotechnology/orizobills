@@ -1496,6 +1496,19 @@ function InvoicePreview({ config, template, profile }: {
     : 266   // 80mm
   ) : (config.paperType === "A5" ? 380 : 480);
 
+  // Generate a sample QR for ₹100 preview — always shown regardless of payment mode
+  const [sampleQr, setSampleQr] = useState<string | null>(null);
+  useEffect(() => {
+    const upiId = profile.upiId || "sample@upi";
+    const url = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(profile.storeName || "Store")}&am=100.00&cu=INR&tn=Sample`;
+    import("qrcode").then((QRCode) => {
+      const qrSize = config.qrSize ?? 160;
+      (QRCode.default ?? QRCode).toDataURL(url, { width: qrSize, margin: 1, color: { dark: "#000000", light: "#ffffff" } })
+        .then((dataUrl: string) => setSampleQr(dataUrl))
+        .catch(() => setSampleQr(null));
+    });
+  }, [profile.upiId, profile.storeName, config.qrSize]);
+
   const wrapStyle: React.CSSProperties = {
     width: w,
     background: "#fff",
@@ -1532,7 +1545,45 @@ function InvoicePreview({ config, template, profile }: {
     }
   };
 
-  return <div style={wrapStyle}>{renderContent()}</div>;
+  const qrSize = config.qrSize ?? 160;
+  const pad = isTherm ? "0 8px 8px" : "0 16px 16px";
+
+  return (
+    <div style={wrapStyle}>
+      {renderContent()}
+
+      {/* ── SAMPLE QR — always visible in preview after bill content ── */}
+      {config.showQR && (
+        <div style={{ padding: pad }}>
+          {/* dashed separator */}
+          <div style={{ borderTop: `2px dashed ${c}`, margin: "8px 0" }} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, paddingBottom: 8 }}>
+            <div style={{ fontSize: fs, fontWeight: 700, color: c, letterSpacing: 0.3 }}>Scan & Pay</div>
+            <div style={{ border: `2px solid ${c}`, borderRadius: 8, padding: 6, background: "#fff" }}>
+              {sampleQr
+                ? <img src={sampleQr} width={qrSize} height={qrSize} style={{ display: "block" }} alt="QR" />
+                : <div style={{ width: qrSize, height: qrSize, background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: fs - 1, color: "#94A3B8" }}>QR</div>
+              }
+            </div>
+            <div style={{ fontSize: fs + 4, fontWeight: 900, color: c }}>₹100</div>
+            <div style={{ fontSize: fs - 1, color: "#94A3B8" }}>{profile.upiId || "yourname@upi"}</div>
+          </div>
+          {/* Terms */}
+          {config.showTerms && config.termsText && (
+            <div style={{ fontSize: fs - 1, color: "#64748B", borderTop: `1px solid #E2E8F0`, paddingTop: 6, marginTop: 4 }}>
+              <strong style={{ color: c }}>Terms: </strong>{config.termsText}
+            </div>
+          )}
+          {/* Footer */}
+          {config.footerText && (
+            <div style={{ marginTop: 8, paddingTop: 6, borderTop: `2px solid ${c}`, textAlign: "center", fontStyle: "italic", color: c, fontSize: fs }}>
+              {config.footerText}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
