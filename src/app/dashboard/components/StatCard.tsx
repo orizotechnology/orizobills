@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { MoreVertical } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface StatCardProps {
@@ -30,8 +29,8 @@ export function StatCard({ title, value, change, changeLabel, icon, index = 0, v
         gap: 10,
       }}
     >
-      {/* Row 1: icon left, 3-dot right */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+      {/* Row 1: icon left */}
+      <div style={{ display: "flex", alignItems: "flex-start" }}>
         <div
           style={{
             width: 44,
@@ -47,18 +46,6 @@ export function StatCard({ title, value, change, changeLabel, icon, index = 0, v
         >
           {icon}
         </div>
-        <button
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#CBD5E1",
-            padding: 2,
-            display: "flex",
-          }}
-        >
-          <MoreVertical size={16} />
-        </button>
       </div>
 
       {/* Title */}
