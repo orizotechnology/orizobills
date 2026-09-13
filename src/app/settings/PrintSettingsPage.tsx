@@ -18,6 +18,7 @@ type BillStyleId =
 type Align = "left" | "center" | "right";
 
 interface LocalSettings {
+  printMode:         "Thermal" | "A4";
   billStyle:         BillStyleId;
   paperWidthMm:      number;
   headerAlign:       Align;
@@ -518,6 +519,7 @@ export default function PrintSettingsPage() {
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [s, setS] = useState<LocalSettings>({
+    printMode:         stored.paperType.startsWith("A") ? "A4" : "Thermal",
     billStyle:         "classic",
     paperWidthMm:      stored.paperType === "Thermal 58mm" ? 58 : 80,
     headerAlign:       "center",
@@ -566,7 +568,7 @@ export default function PrintSettingsPage() {
     setSaving(true);
     await new Promise(r => setTimeout(r, 300));
     updateSettings({
-      paperType:         s.paperWidthMm <= 60 ? "Thermal 58mm" : "Thermal 80mm",
+      paperType:         s.printMode === "A4" ? "A4" : (s.paperWidthMm <= 60 ? "Thermal 58mm" : "Thermal 80mm"),
       showLogo:          s.showLogo,
       fontSize:          s.fontSize,
       fontFamily:        s.fontFamily,
@@ -603,9 +605,38 @@ export default function PrintSettingsPage() {
           <Printer size={18} color="#111" />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "#111" }}>Print Settings</div>
-            <div style={{ fontSize: 12, color: "#9CA3AF" }}>Thermal printer · Black &amp; white</div>
+            <div style={{ fontSize: 12, color: "#9CA3AF" }}>Configure how bills are printed</div>
           </div>
         </div>
+
+        {/* ── Print Mode toggle — Thermal / A4 ── */}
+        <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 10, padding: 3, gap: 2 }}>
+          {([
+            { key: "Thermal" as const, icon: "🧾", label: "Thermal", sub: "80mm / 58mm roll" },
+            { key: "A4"      as const, icon: "📄", label: "A4 / A5", sub: "Full page" },
+          ]).map(({ key, icon, label, sub }) => {
+            const active = s.printMode === key;
+            return (
+              <button key={key} type="button"
+                onClick={() => update("printMode", key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "6px 22px", borderRadius: 8, border: "none",
+                  background: active ? "#fff" : "transparent",
+                  boxShadow: active ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                  cursor: "pointer", fontFamily: "inherit", outline: "none",
+                  transition: "all 0.15s",
+                }}>
+                <span style={{ fontSize: 20 }}>{icon}</span>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? "#111" : "#6B7280", lineHeight: 1.2 }}>{label}</div>
+                  <div style={{ fontSize: 10, color: active ? "#F97316" : "#9CA3AF", fontWeight: active ? 600 : 400 }}>{sub}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
         <button type="button" onClick={handleSave} disabled={!dirty || saving}
           style={{ background: dirty ? "#111" : "#E5E7EB", color: dirty ? "#fff" : "#9CA3AF",
             border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 700,
@@ -714,7 +745,8 @@ export default function PrintSettingsPage() {
           {/* PAPER & PRINTER */}
           <Panel title="Paper &amp; Printer">
 
-            {/* ── width slider ── */}
+            {/* ── Thermal: width slider ── */}
+            {s.printMode === "Thermal" && (
             <div style={{ paddingTop: 10, paddingBottom: 4 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "#111" }}>Paper Width</span>
@@ -746,6 +778,29 @@ export default function PrintSettingsPage() {
                 ))}
               </div>
             </div>
+            )}
+
+            {/* ── A4 mode: paper size picker ── */}
+            {s.printMode === "A4" && (
+              <div style={{ paddingTop: 10, paddingBottom: 4 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#111", marginBottom: 8 }}>Paper Size</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[{ label: "A4", sub: "210 × 297 mm" }, { label: "A5", sub: "148 × 210 mm" }].map(({ label, sub }) => (
+                    <button key={label} type="button"
+                      onClick={() => update("printMode", "A4")}
+                      style={{ flex: 1, padding: "8px 0", fontSize: 12, fontWeight: 600,
+                        border: "2px solid #111", borderRadius: 7, background: "#111", color: "#fff",
+                        cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
+                      {label}
+                      <div style={{ fontSize: 10, fontWeight: 400, color: "#9CA3AF", marginTop: 1 }}>{sub}</div>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 11, color: "#9CA3AF", lineHeight: 1.5 }}>
+                  A4 bills print full-page. Make sure your printer is set to A4 paper size in the print dialog.
+                </div>
+              </div>
+            )}
 
             <Row label="Copies per Print">
               <Stepper value={s.copies} onChange={v => update("copies", v)} min={1} max={5} />
