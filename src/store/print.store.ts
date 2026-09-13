@@ -19,6 +19,7 @@ export interface PrintSettings {
   logoSize:          number;   // px — thermal logo size, default 48
   showLogo:          boolean;
   showQR:            boolean;
+  qrSize:            number;   // px — QR code size, default 180
   showTerms:         boolean;
   showAmountInWords: boolean;
   showSignature:     boolean;
@@ -42,6 +43,7 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   logoSize:          48,
   showLogo:          true,
   showQR:            true,
+  qrSize:            180,
   showTerms:         true,
   showAmountInWords: false,
   showSignature:     false,

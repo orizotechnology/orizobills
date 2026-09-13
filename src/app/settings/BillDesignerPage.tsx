@@ -33,6 +33,7 @@ interface PrintConfig {
   showSignature:     boolean;
   showBankDetails:   boolean;
   showQR:            boolean;
+  qrSize:            number;   // px — QR code size for receipts
   showTerms:         boolean;
   showAmountInWords: boolean;
   fontSize:          "small" | "medium" | "large";
@@ -56,7 +57,7 @@ const DEFAULT_CONFIG: PrintConfig = {
   marginTop: 6, marginBottom: 6, marginLeft: 6, marginRight: 6,
   showLogo: true, showSignature: false, showBankDetails: false,
   showQR: true, showTerms: true, showAmountInWords: true,
-  fontSize: "medium", fontBold: false, logoSize: 48, primaryColor: "#F97316", fontFamily: "Arial",
+  fontSize: "medium", fontBold: false, logoSize: 48, qrSize: 180, primaryColor: "#F97316", fontFamily: "Arial",
   copies: 1, autoPrint: false,
   footerText: "Thank you for your business!",
   termsText: "Goods once sold will not be taken back.\nWarranty as per manufacturer policy.",
@@ -1718,6 +1719,7 @@ export default function BillDesignerPage() {
     tableStyle:        savedSettings.tableStyle,
     fontBold:          savedSettings.fontBold ?? false,
     logoSize:          savedSettings.logoSize  ?? 48,
+    qrSize:            savedSettings.qrSize    ?? 180,
   }));
   const [saved,       setSaved]       = useState(false);
   const [isDesktop,   setIsDesktop]   = useState(true);
@@ -1750,6 +1752,7 @@ export default function BillDesignerPage() {
       tableStyle:        s.tableStyle,
       fontBold:          s.fontBold ?? false,
       logoSize:          s.logoSize  ?? 48,
+      qrSize:            s.qrSize    ?? 180,
     });
     const therm = !s.paperType.startsWith("A");
     setActiveTab(therm ? "Thermal" : "A4");
@@ -1826,6 +1829,7 @@ export default function BillDesignerPage() {
       tableStyle:        config.tableStyle,
       fontBold:          config.fontBold,
       logoSize:          config.logoSize,
+      qrSize:            config.qrSize,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -2209,6 +2213,26 @@ export default function BillDesignerPage() {
                   <PR label="Signature Line">     <Tog value={config.showSignature}     onChange={v => C({ showSignature: v })} /></PR>
                   <PR label="Bank Details">       <Tog value={config.showBankDetails}   onChange={v => C({ showBankDetails: v })} /></PR>
                   <PR label="QR Code">            <Tog value={config.showQR}            onChange={v => C({ showQR: v })} /></PR>
+                  {config.showQR && (
+                    <PR label="QR Size">
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input
+                          type="range" min={80} max={320} step={8}
+                          value={config.qrSize ?? 180}
+                          onChange={e => C({ qrSize: Number(e.target.value) })}
+                          style={{ flex: 1, cursor: "pointer", accentColor: "#F97316" }}
+                        />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", minWidth: 40, textAlign: "right" }}>
+                          {config.qrSize ?? 180}px
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 4 }}>
+                        {(config.qrSize ?? 180) < 120 ? "Small — may be hard to scan" :
+                         (config.qrSize ?? 180) > 240 ? "Large — easy to scan, takes more space" :
+                         "Good size for scanning"}
+                      </div>
+                    </PR>
+                  )}
                   <PR label="Terms & Conditions"> <Tog value={config.showTerms}         onChange={v => C({ showTerms: v })} /></PR>
                   <PR label="Amount in Words">    <Tog value={config.showAmountInWords} onChange={v => C({ showAmountInWords: v })} /></PR>
                 </PropSection>

@@ -165,7 +165,7 @@ export default function PosPage() {
         if (andPrint) {
           const upiAmt = snapshot.splitUpiAmt ?? snapshot.totalAmount;
           const qrDataUrl = (snapshot.paymentMode === "UPI" || snapshot.paymentMode === "Split") && profile.upiId
-            ? await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 270)
+            ? await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, printSettings.qrSize ?? 270)
             : null;
           pendingPrintRef.current = true;
           setPrinting(true);
@@ -209,7 +209,7 @@ export default function PosPage() {
     const upiAmt = snap.splitUpiAmt ?? snap.totalAmount;
     const needsQr = (snap.paymentMode === "UPI" || snap.paymentMode === "Split") && !!profile.upiId;
     const qrDataUrl = needsQr
-      ? (await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, 400) ?? undefined)
+      ? (await generateQrDataUrl(profile.upiId, profile.storeName, upiAmt, printSettings.qrSize ?? 400) ?? undefined)
       : undefined;
     const snapWithQr = { ...snap, qrDataUrl };
 

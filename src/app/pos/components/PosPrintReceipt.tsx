@@ -141,8 +141,8 @@ function ThermalReceipt(props: ReceiptProps) {
   const pad = `${settings.marginTop}px ${settings.marginRight}px ${settings.marginBottom}px ${settings.marginLeft}px`;
   const font = `${settings.fontFamily || "Arial"}, Arial, sans-serif`;
   const bold = settings.fontBold ? 700 : 400;
-  // QR size: use 70% of preview width so it's big enough to scan
-  const qrSize = Math.round(previewW * 0.68);
+  // QR size: use settings.qrSize if set, else fall back to 70% of preview width
+  const qrSize = settings.qrSize ? Math.min(settings.qrSize, Math.round(previewW * 0.95)) : Math.round(previewW * 0.68);
 
   const change     = Math.max(0, paidAmount - totalAmount);
   const isUpi      = paymentMode === "UPI";
@@ -515,7 +515,7 @@ function A4Receipt(props: ReceiptProps) {
               padding: 8, display: "inline-block", marginBottom: 6 }}>
               <QrImg
                 dataUrl={props.qrDataUrl}
-                size={80}
+                size={settings.qrSize ?? 80}
               />
             </div>
             <div style={{ fontSize: fs - 1, fontWeight: 700, color: c }}>
