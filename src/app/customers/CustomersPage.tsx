@@ -52,13 +52,13 @@ function BalanceBadge({ balance }: { balance: number }) {
   if (balance > 0) {
     return (
       <span style={{ ...badgeBase, background: ORANGE.bgSoft, color: ORANGE.dark }}>
-        ₹{balance.toFixed(2)} DR
+      ₹{Math.round(balance)} DR
       </span>
     );
   }
   return (
     <span style={{ ...badgeBase, background: ORANGE.bgSofter, color: ORANGE.base }}>
-      ₹{Math.abs(balance).toFixed(2)} CR
+      ₹{Math.round(Math.abs(balance))} CR
     </span>
   );
 }
@@ -111,7 +111,7 @@ const CUSTOMER_HEADERS = ["Name", "Phone", "Email", "Address", "GSTIN", "Balance
 function customerRows(list: Customer[]): (string | number)[][] {
   return list.map((c) => [
     c.name, c.phone ?? "", c.email ?? "", c.address ?? "", c.gstin ?? "",
-    Math.abs(c.balance).toFixed(2), c.balance > 0 ? "DR" : c.balance < 0 ? "CR" : "Settled",
+    Math.abs(c.balance).toFixed(0), c.balance > 0 ? "DR" : c.balance < 0 ? "CR" : "Settled",
   ]);
 }
 
@@ -269,8 +269,8 @@ export default function CustomersPage() {
         {[
           { icon: <Users size={20} color={ORANGE.base} />,        label: "Total Customers", value: `${total}`,                      color: ORANGE.base,  f: "ALL" as BalanceFilter    },
           { icon: <UserCheck size={20} color={ORANGE.light} />,   label: "Active",          value: `${summary.active}`,             color: ORANGE.light, f: "ALL" as BalanceFilter    },
-          { icon: <TrendingDown size={20} color={ORANGE.dark} />, label: "Balance Due",     value: `₹${summary.due.toFixed(2)}`,    color: ORANGE.dark,  f: "DUE" as BalanceFilter    },
-          { icon: <TrendingUp size={20} color={ORANGE.base} />,   label: "In Credit",       value: `₹${summary.credit.toFixed(2)}`, color: ORANGE.base,  f: "CREDIT" as BalanceFilter },
+          { icon: <TrendingDown size={20} color={ORANGE.dark} />, label: "Balance Due",     value: `₹${Math.round(summary.due)}`,    color: ORANGE.dark,  f: "DUE" as BalanceFilter    },
+          { icon: <TrendingUp size={20} color={ORANGE.base} />,   label: "In Credit",       value: `₹${Math.round(summary.credit)}`, color: ORANGE.base,  f: "CREDIT" as BalanceFilter },
         ].map((c) => (
           <button key={c.label} onClick={() => setBalanceFilter(c.f)} style={{
             background: "#fff", border: `1.5px solid ${balanceFilter === c.f ? c.color : "#E2E8F0"}`,

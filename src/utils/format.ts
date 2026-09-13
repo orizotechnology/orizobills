@@ -4,7 +4,17 @@
 // =============================================================
 
 /**
- * Format a number as currency.
+ * Format a rupee amount as a whole-rupee string (no paise).
+ * All monetary values in this app are displayed rounded to the nearest rupee.
+ * @example fmtAmt(172.80) => '₹173'
+ * @example fmtAmt(500)    => '₹500'
+ */
+export function fmtAmt(n: number): string {
+  return "₹" + String(Math.round(n));
+}
+
+/**
+ * Format a number as currency with full decimals (for exports/reports only).
  * @example formatCurrency(1234.56, 'INR') => '₹1,234.56'
  */
 export function formatCurrency(

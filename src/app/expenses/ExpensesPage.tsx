@@ -74,7 +74,7 @@ export default function ExpensesPage() {
       {expenses.length > 0 && (
         <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.18)", borderRadius: 10, padding: "12px 18px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 13, color: "#64748B" }}>Total expenses shown</span>
-          <span style={{ fontSize: 18, fontWeight: 800, color: "#EF4444" }}>₹{totalAmt.toFixed(2)}</span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: "#EF4444" }}>₹{Math.round(totalAmt)}</span>
         </div>
       )}
 
@@ -108,7 +108,7 @@ export default function ExpensesPage() {
                   <td style={{ ...tdStyle, color: "#64748B" }}>{new Date(e.expenseDate).toLocaleDateString("en-IN")}</td>
                   <td style={{ ...tdStyle, color: "#64748B" }}>{e.paymentMethod}</td>
                   <td style={{ ...tdStyle, color: "#94A3B8" }}>{e.reference ?? "—"}</td>
-                  <td style={{ ...tdStyle, fontWeight: 700, color: "#EF4444" }}>₹{e.amount.toFixed(2)}</td>
+                  <td style={{ ...tdStyle, fontWeight: 700, color: "#EF4444" }}>₹{Math.round(e.amount)}</td>
                   <td style={tdStyle}>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={() => setDialog(e)} style={rowIconBtn} title="Edit"

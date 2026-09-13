@@ -187,7 +187,7 @@ export function ItemRow({
 
         {/* Disc Amt — read-only */}
         <td style={{ ...td(62), color: "#64748B", textAlign: "right", padding: "4px 6px", fontSize: 12 }}>
-          {row.discAmt.toFixed(2)}
+          {row.discAmt.toFixed(0)}
         </td>
 
         {/* Tax % */}
@@ -200,12 +200,12 @@ export function ItemRow({
 
         {/* Tax Amt — read-only */}
         <td style={{ ...td(62), color: "#64748B", textAlign: "right", padding: "4px 6px", fontSize: 12 }}>
-          {row.taxAmt.toFixed(2)}
+          {row.taxAmt.toFixed(0)}
         </td>
 
         {/* Amount — read-only */}
         <td style={{ ...td(78), fontWeight: 700, color: "#1E293B", textAlign: "right", padding: "4px 6px", fontSize: 12 }}>
-          {row.amount.toFixed(2)}
+          {row.amount.toFixed(0)}
         </td>
 
         {/* Delete */}

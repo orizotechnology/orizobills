@@ -47,7 +47,7 @@ function PayableBadge({ balance }: { balance: number }) {
   }
   return (
     <span style={{ ...badgeBase, background: "#FFF7ED", color: ORANGE.dark }}>
-      ₹{Math.abs(balance).toFixed(2)} Payable
+      ₹{Math.round(Math.abs(balance))} Payable
     </span>
   );
 }
@@ -165,7 +165,7 @@ export default function SuppliersPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 16, flexShrink: 0 }}>
         {[
           { icon: <Truck size={20} color={ORANGE.dark} />,       label: "Total Suppliers", value: `${total}`,                       color: ORANGE.dark, f: "ALL" as BalanceFilter     },
-          { icon: <Wallet size={20} color={ORANGE.mid} />,       label: "Payable Due",     value: `₹${summary.payable.toFixed(2)}`, color: ORANGE.mid,  f: "PAYABLE" as BalanceFilter },
+          { icon: <Wallet size={20} color={ORANGE.mid} />,       label: "Payable Due",     value: `₹${Math.round(summary.payable)}`, color: ORANGE.mid,  f: "PAYABLE" as BalanceFilter },
           { icon: <CheckCircle size={20} color={ORANGE.base} />, label: "Settled",         value: `${summary.settledCount}`,        color: ORANGE.base, f: "SETTLED" as BalanceFilter  },
         ].map((c) => (
           <button key={c.label} onClick={() => setBalanceFilter(c.f)} style={{

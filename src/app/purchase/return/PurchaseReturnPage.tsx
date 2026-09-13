@@ -82,7 +82,7 @@ export default function PurchaseReturnPage() {
                   <td style={tdStyle}><code style={chip}>{r.returnNumber}</code></td>
                   <td style={{ ...tdStyle, fontWeight: 500 }}>{r.supplierName}</td>
                   <td style={{ ...tdStyle, color: "#64748B" }}>{new Date(r.returnDate).toLocaleDateString("en-IN")}</td>
-                  <td style={{ ...tdStyle, fontWeight: 700, color: "#EF4444" }}>₹{r.totalAmt.toFixed(2)}</td>
+                  <td style={{ ...tdStyle, fontWeight: 700, color: "#EF4444" }}>₹{Math.round(r.totalAmt)}</td>
                   <td style={tdStyle}><span style={{ fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px", background: "rgba(34,197,94,0.1)", color: "#16A34A" }}>{r.status}</span></td>
                 </motion.tr>
               ))}

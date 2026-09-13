@@ -262,7 +262,7 @@ export default function InventoryPage() {
           <div style={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>Inventory</div>
           <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 2 }}>
             Real-time stock levels · Total value:{" "}
-            <strong style={{ color: ORANGE.base }}>₹{summary.totalValue.toFixed(2)}</strong>
+            <strong style={{ color: ORANGE.base }}>₹{Math.round(summary.totalValue)}</strong>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -412,7 +412,7 @@ export default function InventoryPage() {
                       <td style={{ ...tdStyle, fontSize: 14, fontWeight: 800, color: item.currentStock <= 0 ? ORANGE.dark : item.currentStock <= item.lowStockAlert ? ORANGE.light : "#0F172A" }}>
                         {item.currentStock}
                       </td>
-                      <td style={{ ...tdStyle, fontWeight: 600, color: "#475569" }}>₹{item.stockValue.toFixed(2)}</td>
+                      <td style={{ ...tdStyle, fontWeight: 600, color: "#475569" }}>₹{Math.round(item.stockValue)}</td>
                       <td style={tdStyle}>
                         <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px", background: ss.bg, color: ss.color }}>{ss.label}</span>
                       </td>

@@ -81,8 +81,8 @@ export default function PosPage() {
   const totalQty      = rows.reduce((s, r) => s + r.qty, 0);
   const totalTax      = rows.reduce((s, r) => s + r.taxAmt, 0);
 
-  // Format amounts: show decimals only when non-zero
-  const fmtAmt = (n: number) => { const s = n.toFixed(2); return "₹" + (s.endsWith(".00") ? String(Math.round(n)) : s); };
+// Format amounts: whole rupees only, no paise
+  const fmtAmt = (n: number) => "₹" + String(Math.round(n));
 
   // Sync discountStr when active bill switches (tab change)
   useEffect(() => {

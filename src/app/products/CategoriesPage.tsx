@@ -159,7 +159,7 @@ export default function CategoriesPage() {
                               <td style={tdStyle}><span style={{ fontWeight: 500 }}>{p.name}</span></td>
                               <td style={tdStyle}><code style={chip}>{p.code}</code></td>
                               <td style={tdStyle}>{p.unit}</td>
-                              <td style={{ ...tdStyle, fontWeight: 700, color: "#F97316" }}>₹{p.salePrice.toFixed(2)}</td>
+                              <td style={{ ...tdStyle, fontWeight: 700, color: "#F97316" }}>₹{Math.round(p.salePrice)}</td>
                               <td style={tdStyle}>
                                 <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "2px 9px",
                                   background: p.isActive ? "rgba(34,197,94,0.1)" : "rgba(148,163,184,0.15)",

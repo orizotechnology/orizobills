@@ -233,7 +233,7 @@ function DeleteConfirmDialog({
                   color: "#0F172A",
                 }}
               >
-                ₹{purchase.totalAmt.toFixed(2)}
+                ₹{Math.round(purchase.totalAmt)}
               </span>
             </div>
 
@@ -919,10 +919,7 @@ export default function AllPurchasesPage() {
                               color: "#475569",
                             }}
                           >
-                            ₹
-                            {purchase.subtotal.toFixed(
-                              2
-                            )}
+                            ₹{Math.round(purchase.subtotal)}
                           </td>
 
                           <td
@@ -931,10 +928,7 @@ export default function AllPurchasesPage() {
                               color: "#64748B",
                             }}
                           >
-                            ₹
-                            {purchase.taxAmt.toFixed(
-                              2
-                            )}
+                            ₹{Math.round(purchase.taxAmt)}
                           </td>
 
                           <td
@@ -944,10 +938,7 @@ export default function AllPurchasesPage() {
                               color: "#0F172A",
                             }}
                           >
-                            ₹
-                            {purchase.totalAmt.toFixed(
-                              2
-                            )}
+                            ₹{Math.round(purchase.totalAmt)}
                           </td>
 
                           <td style={tdStyle}>

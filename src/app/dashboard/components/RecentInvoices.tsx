@@ -113,7 +113,7 @@ export function RecentInvoices({ year, month }: RecentInvoicesProps) {
                     {new Date(inv.invoiceDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                   </td>
                   <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: "#0F172A" }}>
-                    ₹{inv.totalAmt.toFixed(2)}
+                    ₹{Math.round(inv.totalAmt)}
                   </td>
                   <td style={{ padding: "12px 16px" }}>
                     <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px", background: sc.bg, color: sc.color }}>

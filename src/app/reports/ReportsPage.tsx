@@ -550,7 +550,7 @@ function StockReport() {
                   </td>
                   <td style={{ padding: "10px 14px", color: "#64748B" }}>{item.unit}</td>
                   <td style={{ padding: "10px 14px", fontWeight: 700, color: item.currentStock <= 0 ? ORANGE.darker : item.status === "LOW_STOCK" ? ORANGE.amber : "#0F172A" }}>{item.currentStock}</td>
-                  <td style={{ padding: "10px 14px", color: "#475569" }}>₹{item.stockValue.toFixed(2)}</td>
+                  <td style={{ padding: "10px 14px", color: "#475569" }}>₹{Math.round(item.stockValue)}</td>
                   <td style={{ padding: "10px 14px" }}>
                     <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "2px 8px",
                       background: item.status === "IN_STOCK" ? "rgba(249,115,22,0.08)" : item.status === "LOW_STOCK" ? "rgba(249,115,22,0.12)" : "rgba(249,115,22,0.16)",
@@ -611,7 +611,7 @@ function CustomerReport() {
         {[
           { label: "Total Customers",   value: String(customers.length),                              color: ORANGE.darker },
           { label: "With Outstanding",  value: String(customers.filter((c) => c.balance > 0).length), color: ORANGE.dark   },
-          { label: "Total Outstanding", value: `₹${totalOutstanding.toFixed(2)}`,                      color: ORANGE.base   },
+          { label: "Total Outstanding", value: `₹${Math.round(totalOutstanding)}`,                      color: ORANGE.base   },
         ].map((r) => (
           <div key={r.label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "14px 16px" }}>
             <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, marginBottom: 6 }}>{r.label}</div>
@@ -638,7 +638,7 @@ function CustomerReport() {
                   <td style={{ padding: "10px 14px", fontWeight: 600 }}>{c.name}</td>
                   <td style={{ padding: "10px 14px", color: "#64748B" }}>{c.phone ?? "—"}</td>
                   <td style={{ padding: "10px 14px", fontWeight: 700, color: c.balance > 0 ? ORANGE.darker : "#94A3B8" }}>
-                    {c.balance !== 0 ? `₹${Math.abs(c.balance).toFixed(2)} ${c.balance > 0 ? "DR" : "CR"}` : "—"}
+                    {c.balance !== 0 ? `₹${Math.round(Math.abs(c.balance))} ${c.balance > 0 ? "DR" : "CR"}` : "—"}
                   </td>
                   <td style={{ padding: "10px 14px", color: "#94A3B8", fontSize: 12 }}>
                     {new Date(c.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}

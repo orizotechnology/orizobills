@@ -45,10 +45,7 @@ interface Product {
 }
 
 // ── Helpers ───────────────────────────────────────────────────
-function fmtNum(n: number): string {
-  const s = n.toFixed(2);
-  return s.endsWith(".00") ? String(Math.round(n)) : s;
-}
+function fmtNum(n: number): string { return String(Math.round(n)); }
 
 const SCANNER_MS = 80;
 
@@ -168,7 +165,7 @@ function ReturnSearchBar({ onAdd }: { onAdd: (p: Product) => void }) {
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#F97316" }}>₹{p.salePrice.toFixed(2)}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#F97316" }}>₹{Math.round(p.salePrice)}</div>
                   </div>
                 </div>
               ))}
@@ -258,7 +255,7 @@ export default function ReturnEntryPage() {
   const totalItems = rows.length;
   const totalQty   = rows.reduce((s, r) => s + r.qty, 0);
 
-  const fmtAmt = (n: number) => { const s = n.toFixed(2); return s.endsWith(".00") ? String(Math.round(n)) : s; };
+  const fmtAmt = (n: number) => String(Math.round(n));
 
   // Save return
   const handleSave = useCallback(async () => {

@@ -39,11 +39,8 @@ const COL_HEADERS = [
   { label: "ACTION",     width: 60  },
 ];
 
-// Drop .00 suffix — show 12 not 12.00, but keep 12.50
-function fmtNum(n: number): string {
-  const s = n.toFixed(2);
-  return s.endsWith(".00") ? String(Math.round(n)) : s;
-}
+// Drop decimals — always show whole rupees
+function fmtNum(n: number): string { return String(Math.round(n)); }
 
 function EditableCell({
   value, onChange,

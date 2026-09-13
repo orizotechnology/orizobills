@@ -251,7 +251,7 @@ export function AddProductToBillDialog({ onClose, onAdded }: Props) {
               </select>
               {taxNum > 0 && spNum > 0 && (
                 <span style={{ fontSize: 11, color: "#94A3B8", marginTop: 3, display: "block" }}>
-                  Tax: ₹{taxAmt.toFixed(2)}
+                  Tax: ₹{Math.round(taxAmt)}
                 </span>
               )}
             </div>
@@ -285,8 +285,8 @@ export function AddProductToBillDialog({ onClose, onAdded }: Props) {
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                {mrpNum > 0 && <div style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through" }}>₹{mrpNum.toFixed(2)}</div>}
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#F97316" }}>₹{(spNum + taxAmt).toFixed(2)}</div>
+                {mrpNum > 0 && <div style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through" }}>₹{Math.round(mrpNum)}</div>}
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#F97316" }}>₹{Math.round(spNum + taxAmt)}</div>
               </div>
             </div>
           )}

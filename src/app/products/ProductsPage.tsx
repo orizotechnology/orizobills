@@ -331,13 +331,13 @@ export default function ProductsPage() {
 
                     {/* MRP */}
                     <td style={{ padding: "12px 14px", fontSize: 13, color: "#64748B" }}>
-                      ₹{p.mrp.toFixed(2)}
+                      ₹{Math.round(p.mrp)}
                     </td>
 
                     {/* Sale price */}
                     <td style={{ padding: "12px 14px" }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: "#F97316" }}>
-                        ₹{p.salePrice.toFixed(2)}
+                        ₹{Math.round(p.salePrice)}
                       </span>
                     </td>
 

@@ -15,10 +15,7 @@ interface Product { id: string; name: string; code: string; unit: string; salePr
 interface InventoryItem { productId: string; currentStock: number; status: string; }
 interface ApiResponse<T> { success: boolean; data: T; }
 
-function fmtAmt(n: number) {
-  const s = n.toFixed(2);
-  return `₹${s.endsWith(".00") ? s.slice(0, -3) : s}`;
-}
+function fmtAmt(n: number) { return `₹${Math.round(n)}`; }
 
 export default function ProductTransferPage() {
   const qc = useQueryClient();

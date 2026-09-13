@@ -51,10 +51,7 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function fmtAmt(n: number) {
-  const s = n.toFixed(2);
-  return `₹${s.endsWith(".00") ? s.slice(0, -3) : s}`;
-}
+function fmtAmt(n: number) { return `₹${Math.round(n)}`; }
 
 // ── Payment method badge ──────────────────────────────────────
 const METHOD_STYLE: Record<string, { bg: string; color: string; icon: React.ReactNode }> = {

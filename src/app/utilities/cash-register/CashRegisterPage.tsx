@@ -59,10 +59,10 @@ export default function CashRegisterPage() {
       <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>
         {/* Summary cards — values all black now */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
-          <CardStat label="Opening Balance" value={`₹${opening.toFixed(2)}`} />
-          <CardStat label="Total Cash In" value={`₹${totalIn.toFixed(2)}`} />
-          <CardStat label="Total Cash Out" value={`₹${totalOut.toFixed(2)}`} />
-          <CardStat label="Closing Balance" value={`₹${closing.toFixed(2)}`} />
+          <CardStat label="Opening Balance" value={`₹${Math.round(opening)}`} />
+          <CardStat label="Total Cash In" value={`₹${Math.round(totalIn)}`} />
+          <CardStat label="Total Cash Out" value={`₹${Math.round(totalOut)}`} />
+          <CardStat label="Closing Balance" value={`₹${Math.round(closing)}`} />
         </div>
 
         {/* Opening balance */}
@@ -123,8 +123,8 @@ export default function CashRegisterPage() {
                           <td style={tdS}>{e.time}</td>
                           <td style={tdS}>{e.description || "—"}</td>
                           <td style={tdS}><span style={{ color: e.type === "in" ? "#22C55E" : "#EF4444", fontWeight: 600, fontSize: 12 }}>{e.type === "in" ? "Cash In" : "Cash Out"}</span></td>
-                          <td style={{ ...tdS, fontWeight: 700, color: e.type === "in" ? "#22C55E" : "#EF4444" }}>{e.type === "in" ? "+" : "-"}₹{e.amount.toFixed(2)}</td>
-                          <td style={{ ...tdS, fontWeight: 700, color: "#0F172A" }}>₹{bal.toFixed(2)}</td>
+                          <td style={{ ...tdS, fontWeight: 700, color: e.type === "in" ? "#22C55E" : "#EF4444" }}>{e.type === "in" ? "+" : "-"}₹{Math.round(e.amount)}</td>
+                          <td style={{ ...tdS, fontWeight: 700, color: "#0F172A" }}>₹{Math.round(bal)}</td>
                         </tr>
                       );
                     });

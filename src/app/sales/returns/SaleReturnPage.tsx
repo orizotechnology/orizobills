@@ -17,10 +17,7 @@ interface ApiResponse<T> { success: boolean; data: T; }
 
 function toStr(d: Date) { return d.toISOString().slice(0, 10); }
 
-function fmtAmt(n: number) {
-  const s = n.toFixed(2);
-  return `₹${s.endsWith(".00") ? s.slice(0, -3) : s}`;
-}
+function fmtAmt(n: number) { return `₹${Math.round(n)}`; }
 
 export default function SaleReturnPage() {
   const qc      = useQueryClient();

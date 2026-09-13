@@ -69,8 +69,8 @@ export default function ExpensesUtilPage() {
         {/* Summary cards — values all black now */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
           {[
-            { label: "Today's Total", value: `₹${todayTotal.toFixed(2)}` },
-            { label: "This Month", value: `₹${monthTotal.toFixed(2)}` },
+            { label: "Today's Total", value: `₹${Math.round(todayTotal)}` },
+            { label: "This Month", value: `₹${Math.round(monthTotal)}` },
             { label: "Total Entries", value: expenses.length },
           ].map(c => (
             <div key={c.label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "16px 18px" }}>
@@ -114,7 +114,7 @@ export default function ExpensesUtilPage() {
                       onMouseLeave={ev => { (ev.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
                       <td style={td}>{e.date}</td>
                       <td style={td}><span style={{ background: "#FFF7ED", color: "#F97316", borderRadius: 5, padding: "2px 8px", fontSize: 12, fontWeight: 500 }}>{e.category}</span></td>
-                      <td style={{ ...td, fontWeight: 700, color: "#1E293B" }}>₹{e.amount.toFixed(2)}</td>
+                      <td style={{ ...td, fontWeight: 700, color: "#1E293B" }}>₹{Math.round(e.amount)}</td>
                       <td style={td}>{e.payment}</td>
                       <td style={{ ...td, color: "#94A3B8" }}>{e.notes || "—"}</td>
                       <td style={{ ...td, textAlign: "right" }}>

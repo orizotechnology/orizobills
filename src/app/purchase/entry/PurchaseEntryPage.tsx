@@ -407,10 +407,10 @@ export default function PurchaseEntryPage() {
                 <td colSpan={5} style={{ padding: "9px 8px", fontSize: 12, color: "#1E293B", letterSpacing: "0.05em" }}>TOTAL</td>
                 <td style={{ padding: "9px 6px", textAlign: "right" }}>{totalQty}</td>
                 <td /><td /><td />
-                <td style={{ padding: "9px 8px", textAlign: "right" }}>{totalDisc.toFixed(2)}</td>
+                <td style={{ padding: "9px 8px", textAlign: "right" }}>{Math.round(totalDisc)}</td>
                 <td /><td />
-                <td style={{ padding: "9px 8px", textAlign: "right" }}>{totalTax.toFixed(2)}</td>
-                <td style={{ padding: "9px 8px", textAlign: "right", color: "#F97316", fontWeight: 800 }}>{totalAmt.toFixed(2)}</td>
+                <td style={{ padding: "9px 8px", textAlign: "right" }}>{Math.round(totalTax)}</td>
+                <td style={{ padding: "9px 8px", textAlign: "right", color: "#F97316", fontWeight: 800 }}>{Math.round(totalAmt)}</td>
                 <td />
               </tr>
             </tbody>
@@ -450,7 +450,7 @@ export default function PurchaseEntryPage() {
                 style={{ ...inp, width: 64, textAlign: "right", padding: "5px 8px" }} />
               <span style={{ fontSize: 12, color: "#64748B" }}>%</span>
               <span style={{ fontSize: 12, color: "#EF4444", minWidth: 56, textAlign: "right" }}>
-                {billDisc > 0 ? `(₹${billDisc.toFixed(2)})` : "(0)"}
+                {billDisc > 0 ? `(₹${Math.round(billDisc)})` : "(0)"}
               </span>
             </div>
           </div>
@@ -463,7 +463,7 @@ export default function PurchaseEntryPage() {
                 <option>NONE</option><option>5%</option><option>12%</option><option>18%</option>
               </select>
               <span style={{ fontSize: 12, color: "#64748B", minWidth: 56, textAlign: "right" }}>
-                ₹{totalTax.toFixed(2)}
+                ₹{Math.round(totalTax)}
               </span>
             </div>
           </div>
@@ -472,7 +472,7 @@ export default function PurchaseEntryPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "2px solid #E2E8F0", paddingTop: 10 }}>
             <span style={{ fontSize: 15, fontWeight: 800, color: "#1E293B" }}>Total</span>
             <span style={{ fontSize: 20, fontWeight: 800, color: "#F97316" }}>
-              ₹{grandTotal === 0 ? "0" : grandTotal.toFixed(2)}
+              ₹{grandTotal === 0 ? "0" : Math.round(grandTotal)}
             </span>
           </div>
         </div>

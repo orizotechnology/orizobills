@@ -26,10 +26,7 @@ interface InventoryItem {
 }
 interface ApiResponse<T> { success: boolean; data: T; }
 
-function fmtAmt(n: number) {
-  const s = n.toFixed(2);
-  return `₹${s.endsWith(".00") ? s.slice(0, -3) : s}`;
-}
+function fmtAmt(n: number) { return `₹${Math.round(n)}`; }
 
 export default function LowStockPage() {
   const qc = useQueryClient();

@@ -42,10 +42,7 @@ function getPreset(f: string): { start: string; end: string } {
   return { start: "", end: "" };
 }
 
-function fmtAmt(n: number) {
-  const s = n.toFixed(2);
-  return `₹${s.endsWith(".00") ? s.slice(0, -3) : s}`;
-}
+function fmtAmt(n: number) { return `₹${Math.round(n)}`; }
 
 export default function SaleOrderPage() {
   const qc    = useQueryClient();
