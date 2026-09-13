@@ -257,7 +257,7 @@ export default function PosPage() {
         return;
       }
       // F4 — toggle calculator
-      if (e.key === "F4")  { e.preventDefault(); setShowCalc(p => !p); return; }
+      if (e.key === "F4" && e.ctrlKey)  { e.preventDefault(); setShowCalc(p => !p); return; }
       if (e.key === "F2")  { e.preventDefault(); void handleSave(false); }
       if (e.key === "F3")  { e.preventDefault(); addBill(); }
       if (e.key === "F5")  { e.preventDefault(); navigate("/app/sales/invoices"); }
@@ -506,7 +506,7 @@ export default function PosPage() {
 
           {/* Footer nav */}
           <div style={{ borderTop: "1px solid #E2E8F0", padding: "6px 14px", display: "flex", alignItems: "center", gap: 8, background: "#F8FAFC", flexShrink: 0 }}>
-            <FooterBtn icon={<Calculator size={13} />} label="Calculator (F4)" v="outline" onClick={() => setShowCalc(p => !p)} />
+            <FooterBtn icon={<Calculator size={13} />} label="Calculator (Ctrl+F4)" v="outline" onClick={() => setShowCalc(p => !p)} />
           </div>
         </div>
 
@@ -861,7 +861,7 @@ function PosCalculator({ onClose }: { onClose: () => void }) {
     <div style={{ background: "#1E293B", borderRadius: 18, width: 280, boxShadow: "0 24px 64px rgba(0,0,0,0.35)", overflow: "hidden", userSelect: "none" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px 0" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.08em" }}>CALCULATOR  <span style={{ fontWeight: 400, color: "#475569" }}>F4 / Esc</span></span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.08em" }}>CALCULATOR  <span style={{ fontWeight: 400, color: "#475569" }}>Ctrl+F4 / Esc</span></span>
         <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748B", padding: 2, display: "flex" }}>
           <X size={15} />
         </button>
