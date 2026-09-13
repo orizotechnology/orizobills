@@ -279,11 +279,10 @@ export default function ReturnEntryPage() {
         : await http.post<{ success: boolean; data: { returnNumber: string } }>("/sales/returns", payload);
 
       if (res.success) {
-        const num = (res.data as any)?.returnNumber ?? "";
-        setFeedback({ type: "success", msg: isEdit ? "Return updated!" : `Return ${num} saved!` });
+        // Navigate immediately — no delay, no lag
         qc.invalidateQueries({ queryKey: ["sale-returns"] });
         qc.invalidateQueries({ queryKey: ["inventory"] });
-        setTimeout(() => navigate("/app/sales/returns"), 1500);
+        navigate("/app/sales/returns");
       } else {
         setFeedback({ type: "error", msg: isEdit ? "Failed to update return." : "Failed to save return." });
         setTimeout(() => setFeedback(null), 3000);
