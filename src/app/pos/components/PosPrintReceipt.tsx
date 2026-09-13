@@ -400,7 +400,6 @@ function ThermalReceipt(props: ReceiptProps) {
           <Dash />
         </>
       )}
->>>>>>> 6fd969f (feat: thermal receipt centering, no decimal values, backend rounding)
     </div>
   );
 }
