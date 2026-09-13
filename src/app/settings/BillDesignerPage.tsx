@@ -193,6 +193,15 @@ const SAMPLE_ITEMS = [
   { name: "USB Type-C Cable",hsn: "85444290", qty: 2, rate: 350,   disc: 0 },
 ];
 
+
+// Pre-generate a static sample QR at module load so preview always shows a real QR
+let _staticSampleQr: string | null = null;
+import("qrcode").then((mod) => {
+  const QR = (mod as any).default ?? mod;
+  QR.toDataURL("upi://pay?pa=yourname%40upi&pn=Your+Shop&am=100.00&cu=INR", {
+    width: 200, margin: 1, color: { dark: "#000000", light: "#ffffff" },
+  }).then((d: string) => { _staticSampleQr = d; }).catch(() => {});
+}).catch(() => {});
 type ProfileArg = {
   storeName: string; address: string;
   phone: string; email: string; upiId: string;
@@ -1519,18 +1528,14 @@ function InvoicePreview({ config, template, profile }: {
     : 266
   ) : (config.paperType === "A5" ? 380 : 480);
 
-  // Generate a real sample QR (₹100) — regenerates when UPI ID or QR size changes
-  const [sampleQr, setSampleQr] = useState<string | null>(null);
+  // Use the module-level pre-generated QR; poll until ready so preview always shows
+  const [, forceUpdate] = useState(0);
   useEffect(() => {
-    const upiId = profile.upiId || "sample@upi";
-    const url = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(profile.storeName || "Store")}&am=100.00&cu=INR&tn=Sample`;
-    import("qrcode").then((QRCode) => {
-      const sz = config.qrSize ?? 160;
-      (QRCode.default ?? QRCode).toDataURL(url, { width: sz, margin: 1, color: { dark: "#000000", light: "#ffffff" } })
-        .then((dataUrl: string) => setSampleQr(dataUrl))
-        .catch(() => setSampleQr(null));
-    }).catch(() => setSampleQr(null));
-  }, [profile.upiId, profile.storeName, config.qrSize]);
+    if (_staticSampleQr) return; // already ready
+    const t = setInterval(() => { if (_staticSampleQr) { forceUpdate(n => n + 1); clearInterval(t); } }, 100);
+    return () => clearInterval(t);
+  }, []);
+  const sampleQr = _staticSampleQr;
 
   const wrapStyle: React.CSSProperties = {
     width: w,
