@@ -1065,10 +1065,11 @@ function TplMinimal({ fs, config, profile }: { fs: number; config: PrintConfig; 
 // THERMAL TEMPLATE RENDERERS  (width â‰ˆ 260 px)
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
+function ThermalBase({ c, fs, config, profile, children, headerVariant, sampleQrUrl }: {
   c: string; fs: number; config: PrintConfig; profile: ProfileArg;
   children: React.ReactNode;
   headerVariant?: "centered" | "leftright" | "boxed";
+  sampleQrUrl?: string | null;
 }) {
   const hv = headerVariant ?? "centered";
   const logoSz = config.logoSize ?? 48;    // use the slider value
@@ -1155,7 +1156,30 @@ function ThermalBase({ c, fs, config, profile, children, headerVariant }: {
         </div>
       )}
       {children}
-      {/* Footer */}
+      {/* ── QR after totals ── */}
+      {config.showQR && (
+        <>
+          <div style={{ borderTop: "1px dashed #94A3B8", margin: "6px 0 4px" }} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, marginBottom: 6 }}>
+            <div style={{ fontSize: fs - 1, fontWeight: 700, color: c }}>Scan &amp; Pay</div>
+            <div style={{ border: `2px solid ${c}`, borderRadius: 6, padding: 4, background: "#fff" }}>
+              {sampleQrUrl
+                ? <img src={sampleQrUrl} width={config.qrSize ?? 120} height={config.qrSize ?? 120} style={{ display: "block" }} alt="UPI QR" />
+                : <div style={{ width: config.qrSize ?? 120, height: config.qrSize ?? 120, background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: fs - 2, color: "#94A3B8", borderRadius: 4 }}>QR</div>
+              }
+            </div>
+            <div style={{ fontSize: fs + 2, fontWeight: 900, color: c }}>₹100</div>
+            <div style={{ fontSize: fs - 2, color: "#94A3B8" }}>{profile.upiId || "yourname@upi"}</div>
+          </div>
+        </>
+      )}
+      {/* ── Terms ── */}
+      {config.showTerms && config.termsText && (
+        <div style={{ borderTop: "1px dashed #94A3B8", paddingTop: 4, marginTop: 4, fontSize: fs - 2, color: "#64748B" }}>
+          {config.termsText}
+        </div>
+      )}
+      {/* ── Footer ── */}
       <div style={{ borderTop: "1px dashed #94A3B8", paddingTop: 4, marginTop: 6, textAlign: "center", fontSize: fs - 2, color: "#64748B" }}>
         {config.footerText}
       </div>
@@ -1204,24 +1228,23 @@ function ThermalTotals({ c, fs, config }: { c: string; fs: number; config: Print
 }
 
 // â”€â”€ Thermal: th-retail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TplThRetail({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+function TplThRetail({ c, fs, config, profile, sampleQrUrl }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg; sampleQrUrl?: string | null }) {
   return (
-    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered" sampleQrUrl={sampleQrUrl}>
       <div style={{ textAlign: "center", fontSize: fs - 1, marginBottom: 4 }}>
         <div>** RETAIL RECEIPT **</div>
         <div style={{ color: "#64748B" }}>Cust: Rajesh Kumar | INV-0123 | 24 May 2024</div>
       </div>
       <ThermalItems c={c} fs={fs} config={config} />
       <ThermalTotals c={c} fs={fs} config={config} />
-      {config.showQR && <div style={{ textAlign: "center" }}><div style={{ display: "inline-block", width: 44, height: 44, border: "1px solid #E2E8F0", fontSize: 8, color: "#94A3B8", display: "flex", alignItems: "center", justifyContent: "center", margin: "4px auto" }}>QR</div></div>}
     </ThermalBase>
   );
 }
 
 // â”€â”€ Thermal: th-grocery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TplThGrocery({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+function TplThGrocery({ c, fs, config, profile, sampleQrUrl }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg; sampleQrUrl?: string | null }) {
   return (
-    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed">
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed" sampleQrUrl={sampleQrUrl}>
       <div style={{ fontSize: fs - 1, marginBottom: 4, borderBottom: `1px dashed ${c}`, paddingBottom: 4 }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <span>Bill No: INV-0123</span><span>24 May 2024</span>
@@ -1246,9 +1269,9 @@ function TplThGrocery({ c, fs, config, profile }: { c: string; fs: number; confi
 }
 
 // â”€â”€ Thermal: th-restaurant â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TplThRestaurant({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+function TplThRestaurant({ c, fs, config, profile, sampleQrUrl }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg; sampleQrUrl?: string | null }) {
   return (
-    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered" sampleQrUrl={sampleQrUrl}>
       <div style={{ textAlign: "center", marginBottom: 6, borderTop: `1px dashed ${c}`, borderBottom: `1px dashed ${c}`, padding: "3px 0" }}>
         <div style={{ fontWeight: 700, color: c }}>TABLE 5 | DINE IN</div>
         <div style={{ fontSize: fs - 2 }}>KOT: 0456 | 24 May 8:30 PM | Server: Amit</div>
@@ -1275,9 +1298,9 @@ function TplThRestaurant({ c, fs, config, profile }: { c: string; fs: number; co
 }
 
 // â”€â”€ Thermal: th-pharmacy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TplThPharmacy({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+function TplThPharmacy({ c, fs, config, profile, sampleQrUrl }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg; sampleQrUrl?: string | null }) {
   return (
-    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed">
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed" sampleQrUrl={sampleQrUrl}>
       <div style={{ fontSize: fs - 2, marginBottom: 4, color: "#64748B", textAlign: "center" }}>
         Lic. No: MH-12345 | DL: AB-678
       </div>
@@ -1302,9 +1325,9 @@ function TplThPharmacy({ c, fs, config, profile }: { c: string; fs: number; conf
 }
 
 // â”€â”€ Thermal: th-fashion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TplThFashion({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+function TplThFashion({ c, fs, config, profile, sampleQrUrl }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg; sampleQrUrl?: string | null }) {
   return (
-    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered" sampleQrUrl={sampleQrUrl}>
       <div style={{ textAlign: "center", marginBottom: 6 }}>
         <div style={{ fontSize: fs - 1, color: c, letterSpacing: 3 }}>â€” RECEIPT â€”</div>
         <div style={{ fontSize: fs - 2, color: "#64748B" }}>Priya Sharma | Member #PM-456</div>
@@ -1331,9 +1354,9 @@ function TplThFashion({ c, fs, config, profile }: { c: string; fs: number; confi
 }
 
 // â”€â”€ Thermal: th-electronics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TplThElectronics({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+function TplThElectronics({ c, fs, config, profile, sampleQrUrl }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg; sampleQrUrl?: string | null }) {
   return (
-    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="leftright">
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="leftright" sampleQrUrl={sampleQrUrl}>
       <div style={{ fontSize: fs - 1, marginBottom: 4, display: "flex", justifyContent: "space-between", borderBottom: `1px solid ${c}`, paddingBottom: 3 }}>
         <span>IMEI: 356-XXX-XXX</span><span>Warranty: 1yr</span>
       </div>
@@ -1358,9 +1381,9 @@ function TplThElectronics({ c, fs, config, profile }: { c: string; fs: number; c
 }
 
 // â”€â”€ Thermal: th-cafe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TplThCafe({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+function TplThCafe({ c, fs, config, profile, sampleQrUrl }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg; sampleQrUrl?: string | null }) {
   return (
-    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered">
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="centered" sampleQrUrl={sampleQrUrl}>
       <div style={{ textAlign: "center", fontSize: fs - 1, marginBottom: 4, borderBottom: `1px dashed ${c}`, paddingBottom: 3 }}>
         <div style={{ fontWeight: 700, color: c }}>â˜• ORDER RECEIPT</div>
         <div style={{ fontSize: fs - 2, color: "#64748B" }}>Order #456 | Takeaway | 10:30 AM</div>
@@ -1384,9 +1407,9 @@ function TplThCafe({ c, fs, config, profile }: { c: string; fs: number; config: 
 }
 
 // â”€â”€ Thermal: th-hardware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TplThHardware({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+function TplThHardware({ c, fs, config, profile, sampleQrUrl }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg; sampleQrUrl?: string | null }) {
   return (
-    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="leftright">
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="leftright" sampleQrUrl={sampleQrUrl}>
       <div style={{ fontSize: fs - 1, marginBottom: 4, borderBottom: `1px dashed ${c}`, paddingBottom: 3 }}>
         <div>Cust: Rajesh Kumar</div>
         <div style={{ color: "#64748B", fontSize: fs - 2 }}>Vehicle: MH-12-AB-3456 | Job: #789</div>
@@ -1412,9 +1435,9 @@ function TplThHardware({ c, fs, config, profile }: { c: string; fs: number; conf
 }
 
 // â”€â”€ Thermal: th-services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TplThServices({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+function TplThServices({ c, fs, config, profile, sampleQrUrl }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg; sampleQrUrl?: string | null }) {
   return (
-    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed">
+    <ThermalBase c={c} fs={fs} config={config} profile={profile} headerVariant="boxed" sampleQrUrl={sampleQrUrl}>
       <div style={{ textAlign: "center", fontSize: fs - 1, marginBottom: 4 }}>
         <div style={{ fontWeight: 700, color: c }}>SERVICE RECEIPT</div>
         <div style={{ fontSize: fs - 2, color: "#64748B" }}>INV-0123 | 24 May 2024</div>
@@ -1436,7 +1459,7 @@ function TplThServices({ c, fs, config, profile }: { c: string; fs: number; conf
 }
 
 // â”€â”€ Thermal: th-minimal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function TplThMinimal({ c, fs, config, profile }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg }) {
+function TplThMinimal({ c, fs, config, profile, sampleQrUrl }: { c: string; fs: number; config: PrintConfig; profile: ProfileArg; sampleQrUrl?: string | null }) {
   return (
     <div style={{ width: 260, background: "#fff", fontFamily: config.fontFamily, fontSize: fs,
       color: "#000", padding: "14px 16px", minHeight: 280 }}>
@@ -1493,20 +1516,20 @@ function InvoicePreview({ config, template, profile }: {
     config.paperType === "Thermal 58mm" ? 195
     : config.paperType === "Thermal 72mm" ? 240
     : config.paperType === "Thermal 76mm" ? 253
-    : 266   // 80mm
+    : 266
   ) : (config.paperType === "A5" ? 380 : 480);
 
-  // Generate a sample QR for ₹100 preview — always shown regardless of payment mode
+  // Generate a real sample QR (₹100) — regenerates when UPI ID or QR size changes
   const [sampleQr, setSampleQr] = useState<string | null>(null);
   useEffect(() => {
     const upiId = profile.upiId || "sample@upi";
     const url = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(profile.storeName || "Store")}&am=100.00&cu=INR&tn=Sample`;
     import("qrcode").then((QRCode) => {
-      const qrSize = config.qrSize ?? 160;
-      (QRCode.default ?? QRCode).toDataURL(url, { width: qrSize, margin: 1, color: { dark: "#000000", light: "#ffffff" } })
+      const sz = config.qrSize ?? 160;
+      (QRCode.default ?? QRCode).toDataURL(url, { width: sz, margin: 1, color: { dark: "#000000", light: "#ffffff" } })
         .then((dataUrl: string) => setSampleQr(dataUrl))
         .catch(() => setSampleQr(null));
-    });
+    }).catch(() => setSampleQr(null));
   }, [profile.upiId, profile.storeName, config.qrSize]);
 
   const wrapStyle: React.CSSProperties = {
@@ -1514,23 +1537,23 @@ function InvoicePreview({ config, template, profile }: {
     background: "#fff",
     boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
     borderRadius: 4,
-    overflow: "hidden",
     fontFamily: config.fontFamily,
   };
 
   const renderContent = () => {
-    const props = { c, fs, config, profile };
+    // Pass sampleQr to thermal templates so ThermalBase can render it
+    const props = { c, fs, config, profile, sampleQrUrl: sampleQr };
     switch (template.id) {
-      case "modern":      return <TplModern      {...props} />;
-      case "elegant":     return <TplElegant     {...props} />;
-      case "premium":     return <TplPremium     {...props} />;
-      case "pharmacy":    return <TplPharmacy    {...props} />;
-      case "restaurant":  return <TplRestaurant  {...props} />;
-      case "boutique":    return <TplBoutique    {...props} />;
-      case "electronics": return <TplElectronics {...props} />;
-      case "wholesale":   return <TplWholesale   {...props} />;
-      case "services":    return <TplServices    {...props} />;
-      case "minimal":     return <TplMinimal     c={c} fs={fs} config={config} profile={profile} />;
+      case "modern":         return <TplModern      {...props} />;
+      case "elegant":        return <TplElegant     {...props} />;
+      case "premium":        return <TplPremium     {...props} />;
+      case "pharmacy":       return <TplPharmacy    {...props} />;
+      case "restaurant":     return <TplRestaurant  {...props} />;
+      case "boutique":       return <TplBoutique    {...props} />;
+      case "electronics":    return <TplElectronics {...props} />;
+      case "wholesale":      return <TplWholesale   {...props} />;
+      case "services":       return <TplServices    {...props} />;
+      case "minimal":        return <TplMinimal     c={c} fs={fs} config={config} profile={profile} />;
       case "th-retail":      return <TplThRetail      {...props} />;
       case "th-grocery":     return <TplThGrocery     {...props} />;
       case "th-restaurant":  return <TplThRestaurant  {...props} />;
@@ -1541,24 +1564,22 @@ function InvoicePreview({ config, template, profile }: {
       case "th-hardware":    return <TplThHardware    {...props} />;
       case "th-services":    return <TplThServices    {...props} />;
       case "th-minimal":     return <TplThMinimal     {...props} />;
-      default:            return <TplModern      {...props} />;
+      default:               return <TplModern      {...props} />;
     }
   };
 
   const qrSize = config.qrSize ?? 160;
-  const pad = isTherm ? "0 8px 8px" : "0 16px 16px";
 
   return (
     <div style={wrapStyle}>
       {renderContent()}
 
-      {/* ── SAMPLE QR — always visible in preview after bill content ── */}
-      {config.showQR && (
-        <div style={{ padding: pad }}>
-          {/* dashed separator */}
+      {/* QR for A4 templates — thermal templates render QR inside ThermalBase */}
+      {config.showQR && !isTherm && (
+        <div style={{ padding: "0 16px 16px" }}>
           <div style={{ borderTop: `2px dashed ${c}`, margin: "8px 0" }} />
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, paddingBottom: 8 }}>
-            <div style={{ fontSize: fs, fontWeight: 700, color: c, letterSpacing: 0.3 }}>Scan & Pay</div>
+            <div style={{ fontSize: fs, fontWeight: 700, color: c }}>Scan &amp; Pay</div>
             <div style={{ border: `2px solid ${c}`, borderRadius: 8, padding: 6, background: "#fff" }}>
               {sampleQr
                 ? <img src={sampleQr} width={qrSize} height={qrSize} style={{ display: "block" }} alt="QR" />
@@ -1568,13 +1589,11 @@ function InvoicePreview({ config, template, profile }: {
             <div style={{ fontSize: fs + 4, fontWeight: 900, color: c }}>₹100</div>
             <div style={{ fontSize: fs - 1, color: "#94A3B8" }}>{profile.upiId || "yourname@upi"}</div>
           </div>
-          {/* Terms */}
           {config.showTerms && config.termsText && (
-            <div style={{ fontSize: fs - 1, color: "#64748B", borderTop: `1px solid #E2E8F0`, paddingTop: 6, marginTop: 4 }}>
+            <div style={{ fontSize: fs - 1, color: "#64748B", borderTop: "1px solid #E2E8F0", paddingTop: 6, marginTop: 4 }}>
               <strong style={{ color: c }}>Terms: </strong>{config.termsText}
             </div>
           )}
-          {/* Footer */}
           {config.footerText && (
             <div style={{ marginTop: 8, paddingTop: 6, borderTop: `2px solid ${c}`, textAlign: "center", fontStyle: "italic", color: c, fontSize: fs }}>
               {config.footerText}
@@ -1585,6 +1604,8 @@ function InvoicePreview({ config, template, profile }: {
     </div>
   );
 }
+
+
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SVG THUMBNAILS â€” each template gets a unique miniature layout
