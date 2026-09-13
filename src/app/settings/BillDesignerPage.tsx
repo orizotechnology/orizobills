@@ -1916,11 +1916,49 @@ export default function BillDesignerPage() {
 
       {/* â”€â”€ Top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 20px", height: 52, background: "#fff", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
+        padding: "0 20px", height: 58, background: "#fff", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>Bill Designer</div>
           <div style={{ fontSize: 11, color: "#94A3B8" }}>Design and customize your invoice templates</div>
         </div>
+
+        {/* ── Print Mode toggle — always visible in centre ── */}
+        <div style={{ display: "flex", background: "#F1F5F9", borderRadius: 10, padding: 3, gap: 2 }}>
+          {([
+            { key: "Thermal" as const, icon: "🧾", label: "Thermal", sub: "80mm / 58mm roll" },
+            { key: "A4"      as const, icon: "📄", label: "A4 / A5", sub: "Full page" },
+          ]).map(({ key, icon, label, sub }) => {
+            const active = activeTab === key;
+            return (
+              <button key={key}
+                onClick={() => {
+                  setActiveTab(key);
+                  if (key === "Thermal") {
+                    C({ paperType: "Thermal 80mm" });
+                    if (!selectedId.startsWith("th-")) setSelectedId("th-retail");
+                  } else {
+                    C({ paperType: "A4" });
+                    if (selectedId.startsWith("th-")) setSelectedId("modern");
+                  }
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "5px 20px", borderRadius: 8, border: "none",
+                  background: active ? "#fff" : "transparent",
+                  boxShadow: active ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                  cursor: "pointer", fontFamily: "inherit", outline: "none",
+                  transition: "all 0.15s",
+                }}>
+                <span style={{ fontSize: 18 }}>{icon}</span>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? "#0F172A" : "#64748B", lineHeight: 1.2 }}>{label}</div>
+                  <div style={{ fontSize: 10, color: active ? "#F97316" : "#94A3B8", fontWeight: active ? 600 : 400 }}>{sub}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <TopBtn icon={<HelpCircle size={14} />}  label="Help"    onClick={() => {}} />
           <TopBtn icon={<Upload size={14} />}       label="Import"  onClick={handleImport} />
@@ -2058,45 +2096,6 @@ export default function BillDesignerPage() {
 
         {/* â”€â”€ RIGHT: Properties panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div style={{ background: "#fff", borderLeft: "1px solid #E2E8F0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-
-          {/* ── Print Mode selector — top of right panel ── */}
-          <div style={{ padding: "10px 14px 8px", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 6 }}>Print Mode</div>
-            <div style={{ display: "flex", background: "#F1F5F9", borderRadius: 8, padding: 3, gap: 3 }}>
-              {([
-                { key: "Thermal", label: "🧾 Thermal", desc: "80mm / 58mm roll" },
-                { key: "A4",      label: "📄 A4 / A5",  desc: "Full page" },
-              ] as const).map(({ key, label, desc }) => (
-                <button key={key}
-                  onClick={() => {
-                    setActiveTab(key);
-                    // Switch paper type to match mode
-                    if (key === "Thermal") {
-                      C({ paperType: "Thermal 80mm" });
-                      // Switch to first thermal template if current is A4
-                      if (!selectedId.startsWith("th-")) setSelectedId("th-retail");
-                    } else {
-                      C({ paperType: "A4" });
-                      // Switch to first A4 template if current is thermal
-                      if (selectedId.startsWith("th-")) setSelectedId("modern");
-                    }
-                  }}
-                  style={{
-                    flex: 1, padding: "6px 4px", borderRadius: 6, border: "none",
-                    background: activeTab === key ? "#fff" : "transparent",
-                    color: activeTab === key ? "#0F172A" : "#64748B",
-                    fontSize: 12, fontWeight: activeTab === key ? 700 : 500,
-                    cursor: "pointer", fontFamily: "inherit", outline: "none",
-                    boxShadow: activeTab === key ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
-                    transition: "all 0.15s",
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
-                  }}>
-                  <span>{label}</span>
-                  <span style={{ fontSize: 9, color: activeTab === key ? "#64748B" : "#94A3B8", fontWeight: 400 }}>{desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div style={{ display: "flex", borderBottom: "1px solid #E2E8F0", flexShrink: 0 }}>
             {(["properties", "arrange"] as const).map(t => (
