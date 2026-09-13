@@ -82,7 +82,6 @@ export default function PaymentInPage() {
   const [showAdd,    setShowAdd]   = useState(false);
   const [isFetching, setIsFetch]   = useState(false);
   const [methodFilter, setMethodFilter] = useState("All");
-  const [methodsExpanded, setMethodsExpanded] = useState(false);
   const [datePreset,   setDatePreset]   = useState("Today");  // "All" | "This Month" | "Today"
 
   // ── Resolve from/to from preset ───────────────────────────
@@ -157,10 +156,10 @@ export default function PaymentInPage() {
   };
 
   return (
-    <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC", boxSizing: "border-box", display: "flex", gap: 14, alignItems: "flex-start" }}>
+    <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC", boxSizing: "border-box" }}>
 
-      {/* ── LEFT: full main content column ── */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* ── Main content column — full width ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -180,7 +179,7 @@ export default function PaymentInPage() {
           </div>
         </div>
 
-        {/* Date filter bar */}
+        {/* Date filter bar + Method filter inline */}
         <div style={{
           background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10,
           padding: "10px 14px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
@@ -199,10 +198,33 @@ export default function PaymentInPage() {
               {p}
             </button>
           ))}
+
+          {/* Divider */}
+          <div style={{ width: 1, height: 20, background: "#E2E8F0", margin: "0 4px", flexShrink: 0 }} />
+
+          {/* METHOD filter — inline compact pills */}
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase", marginRight: 2 }}>Method</span>
+          {["All", ...availableMethods].map((m) => {
+            const isActive = methodFilter === m;
+            const ms = m === "All" ? null : METHOD_STYLE[m] ?? METHOD_STYLE["Bank Transfer"];
+            return (
+              <button key={m} onClick={() => setMethodFilter(m)}
+                style={{
+                  padding: "5px 13px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit", outline: "none",
+                  border: isActive ? "none" : "1px solid #E2E8F0",
+                  background: isActive ? (ms ? ms.color : "#F97316") : "#fff",
+                  color:      isActive ? "#fff" : (ms ? ms.color : "#64748B"),
+                  transition: "all 0.12s", whiteSpace: "nowrap",
+                }}>
+                {m}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, width: "100%" }}>
+        {/* Stat cards — full width 2-col */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           {[
             { label: "Today's Collection", value: fmtAmt(stats.todayAmount), sub: `${stats.todayCount} transaction${stats.todayCount !== 1 ? "s" : ""}`, color: "#F97316", bg: "rgba(249,115,22,0.07)", icon: <Banknote size={20} color="#F97316" />, byMethod: stats.todayByMethod },
             { label: "This Month",         value: fmtAmt(stats.monthAmount),  sub: "Month total",                                                          color: "#8B5CF6", bg: "rgba(139,92,246,0.07)", icon: <TrendingUp size={20} color="#8B5CF6" />, byMethod: stats.monthByMethod },
@@ -305,49 +327,7 @@ export default function PaymentInPage() {
           })}
         </div>
 
-      </div>{/* end LEFT column */}
-
-      {/* ── RIGHT: Method sidebar ── */}
-      <div style={{
-        width: 148, flexShrink: 0, background: "#fff",
-        border: "1px solid #E2E8F0", borderRadius: 10,
-        padding: "8px 6px", display: "flex", flexDirection: "column", gap: 2,
-        position: "sticky", top: 24, alignSelf: "flex-start",
-      }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 8px 6px" }}>Method</div>
-
-        {/* All — toggles expansion */}
-        <button onClick={() => { setMethodFilter("All"); setMethodsExpanded((v) => !v); }}
-          style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", padding: "7px 8px", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", outline: "none", border: "none", transition: "all 0.12s", background: methodFilter === "All" ? "#F97316" : "transparent", color: methodFilter === "All" ? "#fff" : "#64748B" }}>
-          <span style={{ width: 11, flexShrink: 0 }} />
-          <span style={{ flex: 1 }}>All</span>
-          <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 5px", background: methodFilter === "All" ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.08)", color: methodFilter === "All" ? "#fff" : "inherit" }}>{payments.length}</span>
-          <span style={{ fontSize: 9, marginLeft: 2, color: methodFilter === "All" ? "rgba(255,255,255,0.7)" : "#94A3B8" }}>{methodsExpanded ? "▲" : "▼"}</span>
-        </button>
-
-        {/* Method rows — only when expanded */}
-        {methodsExpanded && availableMethods.map((m) => {
-          const isActive = methodFilter === m;
-          const count    = payments.filter((p) => p.paymentMethod === m).length;
-          const ms       = METHOD_STYLE[m] ?? METHOD_STYLE["Bank Transfer"];
-          return (
-            <button key={m} onClick={() => setMethodFilter(m)}
-              style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", padding: "7px 8px", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", outline: "none", border: "none", transition: "all 0.12s", opacity: count > 0 ? 1 : 0.35, background: isActive ? ms.color : (count > 0 ? ms.bg : "transparent"), color: isActive ? "#fff" : ms.color }}>
-              <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{ms.icon}</span>
-              <span style={{ flex: 1 }}>{m}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 5px", background: isActive ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.08)", color: isActive ? "#fff" : "inherit" }}>{count}</span>
-            </button>
-          );
-        })}
-
-        {/* Filtered total */}
-        {methodFilter !== "All" && (
-          <div style={{ borderTop: "1px solid #F1F5F9", marginTop: 4, padding: "8px 8px 4px" }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#0F172A" }}>{fmtAmt(filteredPayments.reduce((s, p) => s + p.amount, 0))}</div>
-            <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 1 }}>{filteredPayments.length} txn{filteredPayments.length !== 1 ? "s" : ""}</div>
-          </div>
-        )}
-      </div>{/* end RIGHT sidebar */}
+      </div>{/* end main content column */}
 
       {/* Add payment dialog */}
       <AnimatePresence>
