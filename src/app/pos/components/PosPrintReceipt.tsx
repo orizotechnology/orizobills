@@ -53,14 +53,13 @@ function fmtDate(d: Date): string {
  * not allow the customer to change it.
  */
 function buildUpiUrl(upiId: string, name: string, amount: number): string {
-  return (
-    "upi://pay" +
-    `?pa=${encodeURIComponent(upiId)}` +
-    `&pn=${encodeURIComponent(name || "Store")}` +
-    `&am=${Math.round(amount)}` +
-    "&cu=INR" +
-    `&tn=${encodeURIComponent("Invoice payment - amount fixed")}`
-  );
+  // UPI deep-link spec: pa (payee address), pn (payee name), am (amount as X.XX), cu (currency)
+  // Amount MUST be a decimal string — integer breaks scanning on many UPI apps
+  const amStr = amount.toFixed(2);
+  // Do NOT encode the UPI ID — @ and . must remain literal for apps to parse correctly
+  const pa = upiId.trim();
+  const pn = encodeURIComponent((name || "Store").trim());
+  return `upi://pay?pa=${pa}&pn=${pn}&am=${amStr}&cu=INR`;
 }
 
 // ── Pre-generate QR data URL (call BEFORE window.print()) ────
@@ -75,9 +74,10 @@ export async function generateQrDataUrl(
     const url = buildUpiUrl(upiId, shopName, amount);
     const QRCode = await import("qrcode");
     return await (QRCode.default ?? QRCode).toDataURL(url, {
-      width:  size,
-      margin: 1,
-      color:  { dark: "#000000", light: "#ffffff" },
+      width:          size,
+      margin:         2,
+      errorCorrectionLevel: "M",
+      color:          { dark: "#000000", light: "#ffffff" },
     });
   } catch {
     return null;
