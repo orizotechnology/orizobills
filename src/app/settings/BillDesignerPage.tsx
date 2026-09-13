@@ -2214,24 +2214,27 @@ export default function BillDesignerPage() {
                   <PR label="Bank Details">       <Tog value={config.showBankDetails}   onChange={v => C({ showBankDetails: v })} /></PR>
                   <PR label="QR Code">            <Tog value={config.showQR}            onChange={v => C({ showQR: v })} /></PR>
                   {config.showQR && (
-                    <PR label="QR Size">
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <input
-                          type="range" min={80} max={320} step={8}
-                          value={config.qrSize ?? 180}
-                          onChange={e => C({ qrSize: Number(e.target.value) })}
-                          style={{ flex: 1, cursor: "pointer", accentColor: "#F97316" }}
-                        />
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", minWidth: 40, textAlign: "right" }}>
-                          {config.qrSize ?? 180}px
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ fontSize: 12, color: "#475569" }}>QR Size</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#F97316" }}>{config.qrSize ?? 180}px</span>
+                      </div>
+                      <input
+                        type="range" min={80} max={320} step={8}
+                        value={config.qrSize ?? 180}
+                        onChange={e => C({ qrSize: Number(e.target.value) })}
+                        style={{ width: "100%", cursor: "pointer", accentColor: "#F97316", display: "block" }}
+                      />
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                        <span style={{ fontSize: 10, color: "#94A3B8" }}>80px</span>
+                        <span style={{ fontSize: 10, color: "#94A3B8" }}>
+                          {(config.qrSize ?? 180) < 120 ? "⚠ Small — may be hard to scan" :
+                           (config.qrSize ?? 180) > 240 ? "Large — easy to scan" :
+                           "✓ Good size for scanning"}
                         </span>
+                        <span style={{ fontSize: 10, color: "#94A3B8" }}>320px</span>
                       </div>
-                      <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 4 }}>
-                        {(config.qrSize ?? 180) < 120 ? "Small — may be hard to scan" :
-                         (config.qrSize ?? 180) > 240 ? "Large — easy to scan, takes more space" :
-                         "Good size for scanning"}
-                      </div>
-                    </PR>
+                    </div>
                   )}
                   <PR label="Terms & Conditions"> <Tog value={config.showTerms}         onChange={v => C({ showTerms: v })} /></PR>
                   <PR label="Amount in Words">    <Tog value={config.showAmountInWords} onChange={v => C({ showAmountInWords: v })} /></PR>
@@ -2313,6 +2316,32 @@ export default function BillDesignerPage() {
                   <input type="color" value={config.primaryColor} onChange={e => C({ primaryColor: e.target.value })}
                     style={{ width: 28, height: 28, border: "1px solid #E2E8F0", borderRadius: 6, cursor: "pointer", padding: 2 }} />
                 </PR>
+                <PR label="QR Code">
+                  <Tog value={config.showQR} onChange={v => C({ showQR: v })} />
+                </PR>
+                {config.showQR && (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: "#475569" }}>QR Size</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#F97316" }}>{config.qrSize ?? 180}px</span>
+                    </div>
+                    <input
+                      type="range" min={80} max={320} step={8}
+                      value={config.qrSize ?? 180}
+                      onChange={e => C({ qrSize: Number(e.target.value) })}
+                      style={{ width: "100%", cursor: "pointer", accentColor: "#F97316", display: "block" }}
+                    />
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                      <span style={{ fontSize: 10, color: "#94A3B8" }}>80px</span>
+                      <span style={{ fontSize: 10, color: "#94A3B8" }}>
+                        {(config.qrSize ?? 180) < 120 ? "⚠ Small — may be hard to scan" :
+                         (config.qrSize ?? 180) > 240 ? "Large — easy to scan" :
+                         "✓ Good size for scanning"}
+                      </span>
+                      <span style={{ fontSize: 10, color: "#94A3B8" }}>320px</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
