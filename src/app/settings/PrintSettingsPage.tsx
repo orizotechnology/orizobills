@@ -515,7 +515,7 @@ function ReceiptPreview({ s, shopName, address, phone, logoUrl }: {
 // =============================================================
 export default function PrintSettingsPage() {
   const { settings: stored, updateSettings } = usePrintStore();
-  const { profile } = useBusinessStore();
+  const { profile, updateProfile } = useBusinessStore();
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [s, setS] = useState<LocalSettings>({
@@ -525,8 +525,8 @@ export default function PrintSettingsPage() {
     headerAlign:       "center",
     bodyAlign:         "left",
     footerAlign:       "center",
-    showLogo:          stored.showLogo,
-    logoUrl:           "",
+    showLogo:          stored.showLogo ?? true,
+    logoUrl:           profile?.logoUrl || "",   // ← seed from persisted business profile
     fontSize:          stored.fontSize,
     fontFamily:        stored.fontFamily,
     copies:            stored.copies,
@@ -545,6 +545,7 @@ export default function PrintSettingsPage() {
     marginRight:       stored.marginRight,
   });
 
+  const [logoSize, setLogoSize] = useState(stored.logoSize ?? 48);
   const [dirty, setDirty]   = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -558,8 +559,12 @@ export default function PrintSettingsPage() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
-      setS(p => ({ ...p, logoUrl: ev.target?.result as string, showLogo: true }));
-      setDirty(true);
+      const dataUrl = ev.target?.result as string;
+      if (dataUrl) {
+        setS(p => ({ ...p, logoUrl: dataUrl, showLogo: true }));
+        updateProfile({ logoUrl: dataUrl });   // ← persist immediately to business store
+        setDirty(true);
+      }
     };
     reader.readAsDataURL(file);
   }
@@ -567,9 +572,12 @@ export default function PrintSettingsPage() {
   async function handleSave() {
     setSaving(true);
     await new Promise(r => setTimeout(r, 300));
+    // Persist logo to business store (covers case where logo was already there or removed)
+    updateProfile({ logoUrl: s.logoUrl });
     updateSettings({
       paperType:         s.printMode === "A4" ? "A4" : (s.paperWidthMm <= 60 ? "Thermal 58mm" : "Thermal 80mm"),
       showLogo:          s.showLogo,
+      logoSize,          // ← persist logo size
       fontSize:          s.fontSize,
       fontFamily:        s.fontFamily,
       copies:            s.copies,
@@ -715,6 +723,40 @@ export default function PrintSettingsPage() {
                   </button>
                 )}
                 <input ref={logoInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleLogoUpload} />
+              </div>
+            )}
+
+            {/* Logo Size slider — same style as Paper Width */}
+            {s.showLogo && (
+              <div style={{ paddingTop: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#111" }}>Logo Size</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#111", fontVariantNumeric: "tabular-nums" }}>
+                    {logoSize} px
+                  </span>
+                </div>
+                <input type="range" min={24} max={120} step={4}
+                  value={logoSize}
+                  onChange={e => { setLogoSize(Number(e.target.value)); setDirty(true); }}
+                  style={{ width: "100%", accentColor: "#111", cursor: "pointer", height: 4 }} />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+                  <span style={{ fontSize: 10, color: "#9CA3AF" }}>24 px</span>
+                  <span style={{ fontSize: 10, color: "#9CA3AF" }}>120 px</span>
+                </div>
+                {/* Live size preview */}
+                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: logoSize, height: logoSize, flexShrink: 0,
+                    border: "1px solid #E5E7EB", borderRadius: 6, overflow: "hidden",
+                    background: "#F9FAFB", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {s.logoUrl
+                      ? <img src={s.logoUrl} alt="preview" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                      : <span style={{ fontSize: Math.max(10, logoSize * 0.35), color: "#D1D5DB" }}>▣</span>
+                    }
+                  </div>
+                  <span style={{ fontSize: 11, color: "#9CA3AF" }}>
+                    {logoSize < 40 ? "Small" : logoSize > 80 ? "Large" : "Good size"}
+                  </span>
+                </div>
               </div>
             )}
           </Panel>

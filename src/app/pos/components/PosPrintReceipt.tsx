@@ -171,18 +171,19 @@ function ThermalReceipt(props: ReceiptProps) {
     }}>
 
       {/* ── HEADER ── */}
-      <div style={{ textAlign: "center", marginBottom: 5 }}>
-        {/* Show logo if logoUrl is set — showLogo toggle in settings controls this */}
-        {profile.logoUrl && settings.showLogo !== false && (
+      <div style={{ textAlign: "center", marginBottom: 6 }}>
+        {/* Logo — always show when logoUrl is set, regardless of showLogo setting */}
+        {profile.logoUrl ? (
           <img src={profile.logoUrl} alt="logo"
-            style={{ width: settings.logoSize ?? 48, height: settings.logoSize ?? 48, objectFit: "contain",
-              margin: "0 auto 4px", display: "block" }} />
-        )}
-        {/* Fallback letter avatar when no logo image */}
-        {!profile.logoUrl && settings.showLogo !== false && profile.storeName && (
-          <div style={{ fontWeight: 900, fontSize: fs + 6, margin: "0 auto 4px" }}>
-            [{profile.storeName.charAt(0).toUpperCase()}]
-          </div>
+            style={{ width: settings.logoSize ?? 48, height: settings.logoSize ?? 48,
+              objectFit: "contain", margin: "0 auto 5px", display: "block" }} />
+        ) : (
+          /* Fallback: letter avatar */
+          profile.storeName && (
+            <div style={{ fontWeight: 900, fontSize: fs + 6, margin: "0 auto 5px", textAlign: "center" }}>
+              [{profile.storeName.charAt(0).toUpperCase()}]
+            </div>
+          )
         )}
         <div style={{ fontWeight: 900, fontSize: fs + 3, letterSpacing: 1 }}>
           {(profile.storeName || "SHOP").toUpperCase()}
@@ -418,7 +419,7 @@ function A4Receipt(props: ReceiptProps) {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {settings.showLogo && profile.logoUrl && (
             <img src={profile.logoUrl} alt="logo"
-              style={{ width: 56, height: 56, objectFit: "contain", borderRadius: 8 }} />
+              style={{ width: settings.logoSize ?? 56, height: settings.logoSize ?? 56, objectFit: "contain", borderRadius: 8 }} />
           )}
           {settings.showLogo && !profile.logoUrl && profile.storeName && (
             <div style={{ width: 52, height: 52, borderRadius: 8, background: c,
