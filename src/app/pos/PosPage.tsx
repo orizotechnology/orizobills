@@ -2,8 +2,8 @@
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  UserRound, Printer, Save, RefreshCw, Archive,
-  CheckCircle2, AlertCircle, X, Loader2,
+  UserRound, Printer, Save, CheckCircle2, AlertCircle, X, Loader2,
+  Calculator,
 } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useQueryClient } from "@tanstack/react-query";
@@ -39,6 +39,7 @@ export default function PosPage() {
   const [showAddProdDlg, setShowAddProdDlg] = useState(false);
   const [printing,      setPrinting]      = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showCalc,        setShowCalc]        = useState(false);
   // Tracks the last saved invoice snapshot for printing
   const [printData,     setPrintData]     = useState<{
     invoiceNo: string; customerName: string; invoiceDate: Date;
@@ -239,21 +240,24 @@ export default function PosPage() {
   // ── Keyboard shortcuts ──────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Escape — if a dialog is already open close it, otherwise ask to exit POS
+      // Escape — close calc first, then dialogs, then ask to exit
       if (e.key === "Escape") {
         e.preventDefault();
+        if (showCalc)        { setShowCalc(false);       return; }
         if (showCustDlg)     { setShowCustDlg(false);    return; }
         if (showAddProdDlg)  { setShowAddProdDlg(false); return; }
         if (showExitConfirm) { setShowExitConfirm(false); return; }
         setShowExitConfirm(true);
         return;
       }
-      // Enter — confirm exit when the dialog is showing
+      // Enter — confirm exit when dialog is showing
       if (e.key === "Enter" && showExitConfirm) {
         e.preventDefault();
         navigate("/app/dashboard");
         return;
       }
+      // F4 — toggle calculator
+      if (e.key === "F4")  { e.preventDefault(); setShowCalc(p => !p); return; }
       if (e.key === "F2")  { e.preventDefault(); void handleSave(false); }
       if (e.key === "F3")  { e.preventDefault(); addBill(); }
       if (e.key === "F5")  { e.preventDefault(); navigate("/app/sales/invoices"); }
@@ -261,7 +265,7 @@ export default function PosPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleSave, addBill, navigate, showCustDlg, showAddProdDlg, showExitConfirm]);
+  }, [handleSave, addBill, navigate, showCustDlg, showAddProdDlg, showExitConfirm, showCalc]);
 
   if (!bill) return null;
 
@@ -502,9 +506,7 @@ export default function PosPage() {
 
           {/* Footer nav */}
           <div style={{ borderTop: "1px solid #E2E8F0", padding: "6px 14px", display: "flex", alignItems: "center", gap: 8, background: "#F8FAFC", flexShrink: 0 }}>
-            <FooterBtn icon={<RefreshCw size={13} />} label="Update (F4)"   v="outline" onClick={() => void handleSave(false)} />
-            <FooterBtn icon={<Archive   size={13} />} label="Old Bill (F5)" v="outline" onClick={() => navigate("/app/sales/invoices")} />
-            <FooterBtn icon={<Printer   size={13} />} label="Print (F6)"    v="outline" onClick={() => void triggerPrint()} />
+            <FooterBtn icon={<Calculator size={13} />} label="Calculator (F4)" v="outline" onClick={() => setShowCalc(p => !p)} />
           </div>
         </div>
 
@@ -582,6 +584,28 @@ export default function PosPage() {
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* ── Calculator Dialog (F4) ───────────────────────────── */}
+      <AnimatePresence>
+        {showCalc && (
+          <motion.div
+            key="calc-backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: "fixed", inset: 0, zIndex: 3500, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center" }}
+            onClick={() => setShowCalc(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1,    y: 0  }}
+              exit={{    opacity: 0, scale: 0.95, y: 10  }}
+              transition={{ duration: 0.16 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <PosCalculator onClose={() => setShowCalc(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── ESC Exit Confirm Dialog ──────────────────────────── */}
       <AnimatePresence>
@@ -754,6 +778,123 @@ function AddCustomerDialog({
 }
 
 // ── FooterBtn ─────────────────────────────────────────────────
+
+// ── Inline Calculator ─────────────────────────────────────────
+function PosCalculator({ onClose }: { onClose: () => void }) {
+  const [display, setDisplay] = useState("0");
+  const [expr,    setExpr]    = useState("");
+  const [fresh,   setFresh]   = useState(true); // next digit replaces display
+
+  const append = (ch: string) => {
+    setDisplay(prev => {
+      if (fresh) { setFresh(false); return ch === "." ? "0." : ch; }
+      if (ch === "." && prev.includes(".")) return prev;
+      if (prev === "0" && ch !== ".") return ch;
+      return prev + ch;
+    });
+  };
+
+  const op = (o: string) => {
+    setExpr(display + " " + o + " ");
+    setFresh(true);
+  };
+
+  const calculate = () => {
+    try {
+      if (!expr) return;
+      // eslint-disable-next-line no-new-func
+      const result = Function(`"use strict"; return (${expr.replace(/×/g, "*").replace(/÷/g, "/")} ${display})`)();
+      const str = String(parseFloat(Number(result).toFixed(6)));
+      setDisplay(str);
+      setExpr(str + " =");
+      setFresh(true);
+    } catch { setDisplay("Error"); setExpr(""); setFresh(true); }
+  };
+
+  const clear   = () => { setDisplay("0"); setExpr(""); setFresh(true); };
+  const back    = () => {
+    if (fresh) { setDisplay("0"); setFresh(false); return; }
+    const next = display.slice(0, -1);
+    setDisplay(next === "" || next === "-" ? "0" : next);
+  };
+  const pct = () => { setDisplay(String(parseFloat((parseFloat(display) / 100).toFixed(8)))); setFresh(true); };
+  const neg = () => { setDisplay(d => d.startsWith("-") ? d.slice(1) : "-" + d); };
+
+  const BTN_ROWS = [
+    ["C", "±", "%", "÷"],
+    ["7", "8", "9", "×"],
+    ["4", "5", "6", "−"],
+    ["1", "2", "3", "+"],
+    ["⌫", "0", ".", "="],
+  ];
+
+  const handleKey = (k: string) => {
+    if ("0123456789".includes(k)) append(k);
+    else if (k === ".") append(".");
+    else if (k === "C") clear();
+    else if (k === "⌫") back();
+    else if (k === "±") neg();
+    else if (k === "%") pct();
+    else if (k === "=") calculate();
+    else op(k === "−" ? "-" : k === "×" ? "*" : k === "÷" ? "/" : k);
+  };
+
+  // Keyboard support inside calculator
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "Enter" || e.key === "=") { calculate(); return; }
+      if (e.key === "Backspace") { back(); return; }
+      if ("0123456789.".includes(e.key)) { append(e.key); return; }
+      if (["+", "-", "*", "/"].includes(e.key)) { op(e.key === "*" ? "×" : e.key === "/" ? "÷" : e.key === "-" ? "−" : e.key); return; }
+    };
+    window.addEventListener("keydown", h, true);
+    return () => window.removeEventListener("keydown", h, true);
+  }, [display, expr, fresh]);
+
+  const isOp  = (k: string) => ["÷","×","−","+"].includes(k);
+  const isEq  = (k: string) => k === "=";
+  const isDel = (k: string) => k === "C" || k === "⌫";
+
+  return (
+    <div style={{ background: "#1E293B", borderRadius: 18, width: 280, boxShadow: "0 24px 64px rgba(0,0,0,0.35)", overflow: "hidden", userSelect: "none" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px 0" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: "0.08em" }}>CALCULATOR  <span style={{ fontWeight: 400, color: "#475569" }}>F4 / Esc</span></span>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748B", padding: 2, display: "flex" }}>
+          <X size={15} />
+        </button>
+      </div>
+      {/* Display */}
+      <div style={{ padding: "8px 16px 10px", textAlign: "right" }}>
+        <div style={{ fontSize: 11, color: "#475569", minHeight: 16, fontFamily: "monospace" }}>{expr || " "}</div>
+        <div style={{ fontSize: 34, fontWeight: 700, color: "#F8FAFC", letterSpacing: "-1px", lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {display}
+        </div>
+      </div>
+      {/* Buttons */}
+      <div style={{ padding: "0 10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+        {BTN_ROWS.map((row, ri) => (
+          <div key={ri} style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+            {row.map((k) => {
+              const bg = isEq(k) ? "#F97316" : isOp(k) ? "#334155" : isDel(k) ? "#334155" : "#2D3F55";
+              const cl = isEq(k) ? "#fff" : isOp(k) ? "#F97316" : isDel(k) ? "#EF4444" : "#F1F5F9";
+              return (
+                <button key={k} onClick={() => handleKey(k)}
+                  style={{ height: 52, borderRadius: 10, border: "none", background: bg, color: cl, fontSize: k === "⌫" ? 16 : 18, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "filter 0.1s" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.filter = "brightness(1.2)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.filter = "brightness(1)"; }}>
+                  {k}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function FooterBtn({ icon, label, v, onClick, disabled }: {
   icon: React.ReactNode; label: string;
