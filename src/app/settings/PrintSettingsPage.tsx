@@ -278,8 +278,8 @@ function Stepper({ value, onChange, min = 1, max = 5 }: {
 // =============================================================
 // LIVE RECEIPT PREVIEW
 // =============================================================
-function ReceiptPreview({ s, shopName, address, phone, logoUrl }: {
-  s: LocalSettings; shopName: string; address: string; phone: string; logoUrl: string;
+function ReceiptPreview({ s, shopName, address, phone, logoUrl, logoSize }: {
+  s: LocalSettings; shopName: string; address: string; phone: string; logoUrl: string; logoSize: number;
 }) {
   const w   = Math.round(s.paperWidthMm * MM_TO_PX);
   const fs  = s.fontSize === "small" ? 9 : s.fontSize === "large" ? 13 : 11;
@@ -290,8 +290,8 @@ function ReceiptPreview({ s, shopName, address, phone, logoUrl }: {
   const Solid = () => <div style={{ borderTop: "1px solid #000", margin: "4px 0" }} />;
 
   const LogoEl = () => !s.showLogo ? null : logoUrl
-    ? <img src={logoUrl} alt="logo" style={{ width: 40, height: 40, objectFit: "contain", display: "block" }} />
-    : <div style={{ width: 36, height: 36, borderRadius: "50%", border: "2px solid #000",
+    ? <img src={logoUrl} alt="logo" style={{ width: logoSize, height: logoSize, objectFit: "contain", display: "block" }} />
+    : <div style={{ width: Math.max(24, logoSize - 4), height: Math.max(24, logoSize - 4), borderRadius: "50%", border: "2px solid #000",
         display: "flex", alignItems: "center", justifyContent: "center",
         fontWeight: 900, fontSize: fs + 5, flexShrink: 0 }}>
         {shopName.charAt(0).toUpperCase()}
@@ -321,7 +321,7 @@ function ReceiptPreview({ s, shopName, address, phone, logoUrl }: {
 
     if (bs === "banner") return (
       <div style={{ background: "#000", color: "#fff", padding: "6px 8px", textAlign: s.headerAlign }}>
-        {s.showLogo && logoUrl && <img src={logoUrl} alt="logo" style={{ width: 30, height: 30, objectFit: "contain", display: "inline-block", verticalAlign: "middle", marginRight: 6 }} />}
+        {s.showLogo && logoUrl && <img src={logoUrl} alt="logo" style={{ width: logoSize, height: logoSize, objectFit: "contain", display: "inline-block", verticalAlign: "middle", marginRight: 6 }} />}
         <div style={{ fontWeight: 900, fontSize: fs + 3, letterSpacing: 1 }}>{(shopName || "YOUR SHOP").toUpperCase()}</div>
         {address && <div style={{ fontSize: fs - 1, color: "#ccc" }}>{address}</div>}
         {phone   && <div style={{ fontSize: fs - 1, color: "#ccc" }}>{phone}</div>}
@@ -914,7 +914,7 @@ export default function PrintSettingsPage() {
             </div>
           </div>
 
-          <ReceiptPreview s={s} shopName={shopName} address={address} phone={phone} logoUrl={logoUrl} />
+          <ReceiptPreview s={s} shopName={shopName} address={address} phone={phone} logoUrl={logoUrl} logoSize={logoSize} />
 
           <div style={{ marginTop: 20, fontSize: 11, color: "#9CA3AF", textAlign: "center", lineHeight: 1.6 }}>
             Preview uses sample data.<br />Actual print uses your transaction details.
