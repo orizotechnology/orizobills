@@ -199,28 +199,27 @@ export default function PaymentInPage() {
             </button>
           ))}
 
-          {/* Divider */}
-          <div style={{ width: 1, height: 20, background: "#E2E8F0", margin: "0 4px", flexShrink: 0 }} />
-
-          {/* METHOD filter — inline compact pills */}
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase", marginRight: 2 }}>Method</span>
-          {["All", ...availableMethods].map((m) => {
-            const isActive = methodFilter === m;
-            const ms = m === "All" ? null : METHOD_STYLE[m] ?? METHOD_STYLE["Bank Transfer"];
-            return (
-              <button key={m} onClick={() => setMethodFilter(m)}
-                style={{
-                  padding: "5px 13px", borderRadius: 6, fontSize: 12, fontWeight: 600,
-                  cursor: "pointer", fontFamily: "inherit", outline: "none",
-                  border: isActive ? "none" : "1px solid #E2E8F0",
-                  background: isActive ? (ms ? ms.color : "#F97316") : "#fff",
-                  color:      isActive ? "#fff" : (ms ? ms.color : "#64748B"),
-                  transition: "all 0.12s", whiteSpace: "nowrap",
-                }}>
-                {m}
-              </button>
-            );
-          })}
+          {/* METHOD filter — pushed to the right end */}
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase", marginRight: 2 }}>Method</span>
+            {["All", ...availableMethods].map((m) => {
+              const isActive = methodFilter === m;
+              const ms = m === "All" ? null : METHOD_STYLE[m] ?? METHOD_STYLE["Bank Transfer"];
+              return (
+                <button key={m} onClick={() => setMethodFilter(m)}
+                  style={{
+                    padding: "5px 13px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit", outline: "none",
+                    border: isActive ? "none" : "1px solid #E2E8F0",
+                    background: isActive ? (ms ? ms.color : "#F97316") : "#fff",
+                    color:      isActive ? "#fff" : (ms ? ms.color : "#64748B"),
+                    transition: "all 0.12s", whiteSpace: "nowrap",
+                  }}>
+                  {m}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Stat cards — full width 2-col */}
