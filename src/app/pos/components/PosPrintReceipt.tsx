@@ -555,8 +555,8 @@ function A4Receipt(props: ReceiptProps) {
         </div>
       )}
 
-      {/* ── UPI QR — after total, before terms/footer ── */}
-      {settings.showQR && profile.upiId && (
+      {/* ── UPI QR — only for UPI / Split payments ── */}
+      {(isUpi || isSplit) && settings.showQR && profile.upiId && qrAmount > 0 && (
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: `2px dashed ${c}`, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, marginBottom: 16 }}>
           <div style={{ fontSize: fs + 1, fontWeight: 800, color: c, letterSpacing: 0.5 }}>
             {isSplit ? "Scan QR to Pay UPI Portion" : "Scan QR to Pay"}

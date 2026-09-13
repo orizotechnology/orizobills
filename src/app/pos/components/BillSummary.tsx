@@ -30,7 +30,9 @@ function fmt(n: number) {
 }
 
 function buildUpiUrl(upiId: string, amount: number): string {
-  return `upi://pay?pa=${encodeURIComponent(upiId)}&pn=Store&am=${amount.toFixed(2)}&cu=INR&tn=Payment`;
+  // pa must NOT be encoded — @ and . are literal in VPA
+  // pn omitted to avoid "temporary technical issue" from bank name mismatch
+  return `upi://pay?pa=${upiId.trim().toLowerCase()}&am=${amount.toFixed(2)}&cu=INR&tn=Invoice`;
 }
 
 // ── Pure canvas QR renderer (no Node deps) ───────────────────
