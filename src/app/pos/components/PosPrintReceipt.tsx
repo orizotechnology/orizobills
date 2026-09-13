@@ -326,8 +326,8 @@ function ThermalReceipt(props: ReceiptProps) {
         </div>
       )}
 
-      {/* ── UPI QR — after total, before terms/footer ── */}
-      {settings.showQR && profile.upiId && (
+      {/* ── UPI QR — only for UPI / Split payments ── */}
+      {(isUpi || isSplit) && settings.showQR && profile.upiId && qrAmount > 0 && (
         <>
           <Dash />
           <div style={{ textAlign: "center", marginTop: 4, marginBottom: 4 }}>
@@ -341,13 +341,11 @@ function ThermalReceipt(props: ReceiptProps) {
               {fmt(qrAmount)}
             </div>
             {isSplit && cashPortion !== null && (
-              <div style={{ fontSize: fs - 1, color: "#555", marginBottom: 1 }}>
+              <div style={{ fontSize: fs - 1, marginBottom: 1 }}>
                 (Cash {fmt(cashPortion)} + UPI {fmt(qrAmount)})
               </div>
             )}
-            {profile.upiId && (
-              <div style={{ fontSize: fs - 2, color: "#555" }}>{profile.upiId}</div>
-            )}
+            <div style={{ fontSize: fs - 2 }}>{profile.upiId}</div>
           </div>
           <Dash />
         </>
@@ -375,30 +373,6 @@ function ThermalReceipt(props: ReceiptProps) {
             Authorised Signatory
           </div>
         </div>
-      )}
-
-      {/* ── UPI QR — always at bottom for UPI / Split ── */}
-      {(isUpi || isSplit) && profile.upiId && qrAmount > 0 && (
-        <>
-          <Dash />
-          <div style={{ textAlign: "center", marginTop: 6, marginBottom: 4 }}>
-            <div style={{ fontSize: fs - 1, fontWeight: 700, letterSpacing: 0.3, marginBottom: 3 }}>
-              {isSplit ? "Pay UPI Portion" : "Scan & Pay"}
-            </div>
-            <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 6px" }}>
-              <QrImg dataUrl={props.qrDataUrl} size={qrSize} />
-            </div>
-            <div style={{ fontSize: fs - 1, fontWeight: 900, letterSpacing: -0.5, marginBottom: 2 }}>
-              {fmt(qrAmount)}
-            </div>
-            {isSplit && cashPortion !== null && (
-              <div style={{ fontSize: fs - 1, marginBottom: 2 }}>
-                (Cash {fmt(cashPortion)} + UPI {fmt(qrAmount)})
-              </div>
-            )}
-          </div>
-          <Dash />
-        </>
       )}
     </div>
   );
