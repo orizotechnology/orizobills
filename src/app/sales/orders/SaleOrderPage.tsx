@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { RefreshCw, AlertTriangle, ShoppingBag, Search } from "lucide-react";
+import { RefreshCw, AlertTriangle, ShoppingBag, Search, Plus, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { http } from "@/lib/axios";
 
 interface SaleOrder {
@@ -25,6 +25,9 @@ const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
 
 const STATUS_FILTERS = ["ALL", "PENDING", "CONFIRMED", "DELIVERED", "CANCELLED"];
 
+type SortKey = "orderDate" | "totalAmt" | "status" | null;
+type SortDir = "asc" | "desc";
+
 function toStr(d: Date) { return d.toISOString().slice(0, 10); }
 
 function getPreset(f: string): { start: string; end: string } {
@@ -44,6 +47,29 @@ function getPreset(f: string): { start: string; end: string } {
 
 function fmtAmt(n: number) { return `₹${Math.round(n)}`; }
 
+function exportCsv(orders: SaleOrder[]) {
+  const header = ["Order #", "Customer", "Order Date", "Due Date", "Items", "Total", "Status"];
+  const rows = orders.map((o) => [
+    o.orderNumber,
+    o.customerName,
+    o.orderDate,
+    o.dueDate ?? "",
+    String(o.itemCount),
+    o.totalAmt.toFixed(2),
+    o.status,
+  ]);
+  const csv = [header, ...rows]
+    .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `sale-orders-${toStr(new Date())}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function SaleOrderPage() {
   const qc    = useQueryClient();
   const today = toStr(new Date());
@@ -54,6 +80,8 @@ export default function SaleOrderPage() {
   const [fromDate,  setFromDate]  = useState(today);
   const [toDate,    setToDate]    = useState(today);
   const [statusF,   setStatusF]   = useState("ALL");
+  const [sortKey,   setSortKey]   = useState<SortKey>(null);
+  const [sortDir,   setSortDir]   = useState<SortDir>("desc");
 
   const PERIODS = ["All", "This Month",  "Today", ];
 
@@ -78,11 +106,25 @@ export default function SaleOrderPage() {
   });
 
   const allOrders = data?.data ?? [];
-  const orders    = allOrders.filter((o) =>
+  const filtered = allOrders.filter((o) =>
     !search ||
     o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
     o.customerName.toLowerCase().includes(search.toLowerCase())
   );
+
+  const orders = useMemo(() => {
+    if (!sortKey) return filtered;
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "orderDate") cmp = new Date(a.orderDate).getTime() - new Date(b.orderDate).getTime();
+      else if (sortKey === "totalAmt") cmp = a.totalAmt - b.totalAmt;
+      else if (sortKey === "status") cmp = a.status.localeCompare(b.status);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
   const total      = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / 20));
   const sumTotal   = orders.reduce((s, o) => s + o.totalAmt, 0);
@@ -93,6 +135,20 @@ export default function SaleOrderPage() {
   };
 
   const handlePeriod = (p: string) => { setPeriod(p); setPage(1); };
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortKey !== col) return <ArrowUpDown size={12} style={{ opacity: 0.4 }} />;
+    return sortDir === "asc" ? <ArrowUp size={12} color="#F97316" /> : <ArrowDown size={12} color="#F97316" />;
+  };
 
   return (
     <div style={{ padding: "24px 28px", minHeight: "100%", background: "#F8FAFC" }}>
@@ -108,10 +164,18 @@ export default function SaleOrderPage() {
               : ""}
           </div>
         </div>
-        <button onClick={() => void handleRefresh()} style={iconBtn} title="Refresh">
-          <RefreshCw size={15} color="#64748B"
-            style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => orders.length && exportCsv(orders)} style={iconBtn} title="Export CSV" disabled={!orders.length}>
+            <Download size={15} color={orders.length ? "#64748B" : "#CBD5E1"} />
+          </button>
+          <button onClick={() => void handleRefresh()} style={iconBtn} title="Refresh">
+            <RefreshCw size={15} color="#64748B"
+              style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
+          </button>
+          <button style={createBtn} title="New Sale Order">
+            <Plus size={15} /> New Order
+          </button>
+        </div>
       </div>
 
       {/* ── Toolbar ─────────────────────────────────────────── */}
@@ -210,73 +274,98 @@ export default function SaleOrderPage() {
 
       {/* ── Table ───────────────────────────────────────────── */}
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-              {["Order #", "Customer", "Order Date", "Due Date", "Items", "Total", "Status"].map((h) => (
-                <th key={h} style={thStyle}>{h}</th>
+        <div style={{ maxHeight: 560, overflowY: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                <th style={thStyle}>Order #</th>
+                <th style={thStyle}>Customer</th>
+                <th style={thStyle}>
+                  <button style={sortHeaderBtn} onClick={() => handleSort("orderDate")}>
+                    Order Date <SortIcon col="orderDate" />
+                  </button>
+                </th>
+                <th style={thStyle}>Due Date</th>
+                <th style={{ ...thStyle, textAlign: "center" }}>Items</th>
+                <th style={{ ...thStyle, textAlign: "right" }}>
+                  <button style={{ ...sortHeaderBtn, marginLeft: "auto" }} onClick={() => handleSort("totalAmt")}>
+                    Total <SortIcon col="totalAmt" />
+                  </button>
+                </th>
+                <th style={thStyle}>
+                  <button style={sortHeaderBtn} onClick={() => handleSort("status")}>
+                    Status <SortIcon col="status" />
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading && Array.from({ length: 6 }).map((_, i) => (
+                <tr key={i} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                  {Array.from({ length: 7 }).map((_, j) => (
+                    <td key={j} style={tdStyle}>
+                      <div style={{ height: 14, borderRadius: 4, background: "#F1F5F9",
+                        animation: "pulse 1.4s ease-in-out infinite",
+                        width: j === 1 ? "70%" : j === 5 ? "50%" : "60%" }} />
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr><td colSpan={7} style={{ padding: "48px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  <div style={{ width: 18, height: 18, border: "2px solid #F97316", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-                  Loading orders…
-                </div>
-              </td></tr>
-            )}
-            {isError && (
-              <tr><td colSpan={7} style={{ padding: "40px", textAlign: "center", color: "#EF4444", fontSize: 13 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  <AlertTriangle size={18} /> Backend not connected
-                </div>
-              </td></tr>
-            )}
-            {!isLoading && !isError && orders.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: "64px", textAlign: "center" }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                  <div style={{ fontWeight: 600, color: "#94A3B8" }}>
-                    {search ? `No orders matching "${search}"` : "No orders in this period"}
+              {isError && (
+                <tr><td colSpan={7} style={{ padding: "40px", textAlign: "center", color: "#EF4444", fontSize: 13 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    <AlertTriangle size={18} /> Backend not connected
                   </div>
-                  {(period !== "All" || statusF !== "ALL") && (
-                    <button onClick={() => { setPeriod("All"); setStatusF("ALL"); setPage(1); }}
-                      style={{ fontSize: 12, color: "#F97316", background: "none", border: "none",
-                        cursor: "pointer", textDecoration: "underline" }}>
-                      Clear filters
-                    </button>
-                  )}
-                </div>
-              </td></tr>
-            )}
-            <AnimatePresence initial={false}>
-              {orders.map((o, idx) => {
-                const sc = STATUS_COLOR[o.status] ?? STATUS_COLOR.PENDING;
-                return (
-                  <motion.tr key={o.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    style={{ borderBottom: idx < orders.length - 1 ? "1px solid #F1F5F9" : "none" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
-                    <td style={tdStyle}><code style={chip}>{o.orderNumber}</code></td>
-                    <td style={{ ...tdStyle, fontWeight: 500 }}>{o.customerName}</td>
-                    <td style={{ ...tdStyle, color: "#64748B", whiteSpace: "nowrap" }}>
-                      {new Date(o.orderDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                    </td>
-                    <td style={{ ...tdStyle, color: "#94A3B8", whiteSpace: "nowrap" }}>
-                      {o.dueDate ? new Date(o.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
-                    </td>
-                    <td style={{ ...tdStyle, color: "#64748B", textAlign: "center" }}>{o.itemCount}</td>
-                    <td style={{ ...tdStyle, fontWeight: 700 }}>{fmtAmt(o.totalAmt)}</td>
-                    <td style={tdStyle}>
-                      <span style={{ ...badge, background: sc.bg, color: sc.color }}>{o.status}</span>
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </AnimatePresence>
-          </tbody>
-        </table>
+                </td></tr>
+              )}
+              {!isLoading && !isError && orders.length === 0 && (
+                <tr><td colSpan={7} style={{ padding: "64px", textAlign: "center" }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#F1F5F9",
+                      display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <ShoppingBag size={20} color="#94A3B8" />
+                    </div>
+                    <div style={{ fontWeight: 600, color: "#94A3B8" }}>
+                      {search ? `No orders matching "${search}"` : "No orders in this period"}
+                    </div>
+                    {(period !== "All" || statusF !== "ALL") && (
+                      <button onClick={() => { setPeriod("All"); setStatusF("ALL"); setPage(1); }}
+                        style={{ fontSize: 12, color: "#F97316", background: "none", border: "none",
+                          cursor: "pointer", textDecoration: "underline" }}>
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                </td></tr>
+              )}
+              <AnimatePresence initial={false}>
+                {orders.map((o, idx) => {
+                  const sc = STATUS_COLOR[o.status] ?? STATUS_COLOR.PENDING;
+                  return (
+                    <motion.tr key={o.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      style={{ borderBottom: idx < orders.length - 1 ? "1px solid #F1F5F9" : "none", cursor: "pointer" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
+                      <td style={tdStyle}><code style={chip}>{o.orderNumber}</code></td>
+                      <td style={{ ...tdStyle, fontWeight: 500 }}>{o.customerName}</td>
+                      <td style={{ ...tdStyle, color: "#64748B", whiteSpace: "nowrap" }}>
+                        {new Date(o.orderDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                      </td>
+                      <td style={{ ...tdStyle, color: "#94A3B8", whiteSpace: "nowrap" }}>
+                        {o.dueDate ? new Date(o.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                      </td>
+                      <td style={{ ...tdStyle, color: "#64748B", textAlign: "center" }}>{o.itemCount}</td>
+                      <td style={{ ...tdStyle, fontWeight: 700, textAlign: "right" }}>{fmtAmt(o.totalAmt)}</td>
+                      <td style={tdStyle}>
+                        <span style={{ ...badge, background: sc.bg, color: sc.color }}>{o.status}</span>
+                      </td>
+                    </motion.tr>
+                  );
+                })}
+              </AnimatePresence>
+            </tbody>
+          </table>
+        </div>
 
         {totalPages > 1 && (
           <div style={paginationRow}>
@@ -291,17 +380,22 @@ export default function SaleOrderPage() {
         )}
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+      `}</style>
     </div>
   );
 }
 
 // ── Styles ────────────────────────────────────────────────────
-const iconBtn:      React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
-const dateInp:      React.CSSProperties = { border: "1px solid hsl(var(--border))", borderRadius: 8, padding: "6px 10px", fontSize: 13, color: "hsl(var(--foreground))", background: "hsl(var(--card))", outline: "none", fontFamily: "inherit", cursor: "pointer" };
-const thStyle:      React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "hsl(var(--muted-foreground))", letterSpacing: "0.04em", whiteSpace: "nowrap" };
-const tdStyle:      React.CSSProperties = { padding: "12px 14px", fontSize: 13 };
-const chip:         React.CSSProperties = { fontSize: 12, background: "#F1F5F9", borderRadius: 4, padding: "2px 6px", color: "#475569" };
-const badge:        React.CSSProperties = { fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px" };
+const iconBtn:       React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
+const createBtn:     React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, height: 34, padding: "0 14px", borderRadius: 8, border: "none", background: "#F97316", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" };
+const dateInp:       React.CSSProperties = { border: "1px solid #E2E8F0", borderRadius: 8, padding: "6px 10px", fontSize: 13, color: "#0F172A", background: "#fff", outline: "none", fontFamily: "inherit", cursor: "pointer" };
+const thStyle:       React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.04em", whiteSpace: "nowrap" };
+const sortHeaderBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", fontWeight: 700, fontSize: 11, letterSpacing: "0.04em", cursor: "pointer" };
+const tdStyle:       React.CSSProperties = { padding: "12px 14px", fontSize: 13 };
+const chip:          React.CSSProperties = { fontSize: 12, background: "#F1F5F9", borderRadius: 4, padding: "2px 6px", color: "#475569" };
+const badge:         React.CSSProperties = { fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px" };
 const paginationRow: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderTop: "1px solid #F1F5F9" };
 const pgBtn = (d: boolean): React.CSSProperties => ({ padding: "6px 14px", borderRadius: 7, border: "1px solid #E2E8F0", background: d ? "#F8FAFC" : "#fff", color: d ? "#CBD5E1" : "#475569", fontSize: 13, cursor: d ? "not-allowed" : "pointer", fontFamily: "inherit" });

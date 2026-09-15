@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Truck, RefreshCw, Plus, Search } from "lucide-react";
+import { AlertTriangle, Truck, RefreshCw, Plus, Search, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { http } from "@/lib/axios";
 
 interface Challan {
@@ -23,11 +23,40 @@ const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
 
 const STATUS_FILTERS = ["All", "PENDING", "DELIVERED", "CANCELLED"];
 
+type SortKey = "challanDate" | "status" | null;
+type SortDir = "asc" | "desc";
+
+function toStr(d: Date) { return d.toISOString().slice(0, 10); }
+
+function exportCsv(challans: Challan[]) {
+  const header = ["Challan No", "Party", "Date", "Vehicle No", "Items", "Status"];
+  const rows = challans.map((c) => [
+    c.challanNumber,
+    c.customerName,
+    c.challanDate,
+    c.vehicleNo ?? "",
+    String(c.itemCount),
+    c.status,
+  ]);
+  const csv = [header, ...rows]
+    .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `delivery-challans-${toStr(new Date())}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function DeliveryChallanPage() {
   const qc = useQueryClient();
   const [page,   setPage]   = useState(1);
   const [search, setSearch] = useState("");
   const [statusF, setStatusF] = useState("All");
+  const [sortKey, setSortKey] = useState<SortKey>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["challans", page],
@@ -41,17 +70,44 @@ export default function DeliveryChallanPage() {
   });
 
   const allChallans = data?.data ?? [];
-  const challans = allChallans.filter((c) => {
+  const filtered = allChallans.filter((c) => {
     const matchSearch  = !search || c.challanNumber.toLowerCase().includes(search.toLowerCase()) || c.customerName.toLowerCase().includes(search.toLowerCase());
     const matchStatus  = statusF === "All" || c.status === statusF;
     return matchSearch && matchStatus;
   });
+
+  const challans = useMemo(() => {
+    if (!sortKey) return filtered;
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "challanDate") cmp = new Date(a.challanDate).getTime() - new Date(b.challanDate).getTime();
+      else if (sortKey === "status") cmp = a.status.localeCompare(b.status);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
   const total      = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / 20));
 
   const handleRefresh = async () => {
     await qc.invalidateQueries({ queryKey: ["challans"], refetchType: "active" });
     await refetch();
+  };
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortKey !== col) return <ArrowUpDown size={12} style={{ opacity: 0.4 }} />;
+    return sortDir === "asc" ? <ArrowUp size={12} color="#F97316" /> : <ArrowDown size={12} color="#F97316" />;
   };
 
   return (
@@ -67,6 +123,9 @@ export default function DeliveryChallanPage() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => challans.length && exportCsv(challans)} style={iconBtn} title="Export CSV" disabled={!challans.length}>
+            <Download size={15} color={challans.length ? "#64748B" : "#CBD5E1"} />
+          </button>
           <button onClick={() => void handleRefresh()} style={iconBtn} title="Refresh">
             <RefreshCw size={15} color="#64748B"
               style={isFetching ? { animation: "spin 0.8s linear infinite" } : undefined} />
@@ -130,61 +189,88 @@ export default function DeliveryChallanPage() {
 
       {/* ── Table ───────────────────────────────────────────── */}
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-              {["Challan No", "Party", "Date", "Vehicle No", "Items", "Status"].map((h) => (
-                <th key={h} style={thStyle}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  <div style={{ width: 18, height: 18, border: "2px solid #F97316", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-                  Loading challans…
-                </div>
-              </td></tr>
-            )}
-            {isError && (
-              <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#EF4444", fontSize: 13 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  <AlertTriangle size={18} /> Backend not connected
-                </div>
-              </td></tr>
-            )}
-            {!isLoading && !isError && challans.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: "64px", textAlign: "center" }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                  <div style={{ fontWeight: 600, color: "#94A3B8" }}>
-                    {search ? `No challans matching "${search}"` : "No delivery challans yet"}
-                  </div>
-                </div>
-              </td></tr>
-            )}
-            <AnimatePresence initial={false}>
-              {challans.map((c, idx) => {
-                const sc = STATUS_COLOR[c.status] ?? STATUS_COLOR.PENDING;
-                return (
-                  <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    style={{ borderBottom: idx < challans.length - 1 ? "1px solid #F1F5F9" : "none" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
-                    <td style={tdStyle}><code style={chip}>{c.challanNumber}</code></td>
-                    <td style={{ ...tdStyle, fontWeight: 500 }}>{c.customerName}</td>
-                    <td style={{ ...tdStyle, color: "#64748B", whiteSpace: "nowrap" }}>
-                      {new Date(c.challanDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+        <div style={{ maxHeight: 560, overflowY: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                <th style={thStyle}>Challan No</th>
+                <th style={thStyle}>Party</th>
+                <th style={thStyle}>
+                  <button style={sortHeaderBtn} onClick={() => handleSort("challanDate")}>
+                    Date <SortIcon col="challanDate" />
+                  </button>
+                </th>
+                <th style={thStyle}>Vehicle No</th>
+                <th style={{ ...thStyle, textAlign: "center" }}>Items</th>
+                <th style={thStyle}>
+                  <button style={sortHeaderBtn} onClick={() => handleSort("status")}>
+                    Status <SortIcon col="status" />
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading && Array.from({ length: 6 }).map((_, i) => (
+                <tr key={i} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                  {Array.from({ length: 6 }).map((_, j) => (
+                    <td key={j} style={tdStyle}>
+                      <div style={{ height: 14, borderRadius: 4, background: "#F1F5F9",
+                        animation: "pulse 1.4s ease-in-out infinite",
+                        width: j === 1 ? "70%" : j === 3 ? "50%" : "60%" }} />
                     </td>
-                    <td style={{ ...tdStyle, color: "#94A3B8" }}>{c.vehicleNo ?? "—"}</td>
-                    <td style={{ ...tdStyle, color: "#64748B", textAlign: "center" }}>{c.itemCount}</td>
-                    <td style={tdStyle}><span style={{ ...badge, background: sc.bg, color: sc.color }}>{c.status}</span></td>
-                  </motion.tr>
-                );
-              })}
-            </AnimatePresence>
-          </tbody>
-        </table>
+                  ))}
+                </tr>
+              ))}
+              {isError && (
+                <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#EF4444", fontSize: 13 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    <AlertTriangle size={18} /> Backend not connected
+                  </div>
+                </td></tr>
+              )}
+              {!isLoading && !isError && challans.length === 0 && (
+                <tr><td colSpan={6} style={{ padding: "64px", textAlign: "center" }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#F1F5F9",
+                      display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Truck size={20} color="#94A3B8" />
+                    </div>
+                    <div style={{ fontWeight: 600, color: "#94A3B8" }}>
+                      {search ? `No challans matching "${search}"` : "No delivery challans yet"}
+                    </div>
+                    {statusF !== "All" && (
+                      <button onClick={() => setStatusF("All")}
+                        style={{ fontSize: 12, color: "#F97316", background: "none", border: "none",
+                          cursor: "pointer", textDecoration: "underline" }}>
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                </td></tr>
+              )}
+              <AnimatePresence initial={false}>
+                {challans.map((c, idx) => {
+                  const sc = STATUS_COLOR[c.status] ?? STATUS_COLOR.PENDING;
+                  return (
+                    <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      style={{ borderBottom: idx < challans.length - 1 ? "1px solid #F1F5F9" : "none", cursor: "pointer" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#FAFAFA"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}>
+                      <td style={tdStyle}><code style={chip}>{c.challanNumber}</code></td>
+                      <td style={{ ...tdStyle, fontWeight: 500 }}>{c.customerName}</td>
+                      <td style={{ ...tdStyle, color: "#64748B", whiteSpace: "nowrap" }}>
+                        {new Date(c.challanDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                      </td>
+                      <td style={{ ...tdStyle, color: "#94A3B8" }}>{c.vehicleNo ?? "—"}</td>
+                      <td style={{ ...tdStyle, color: "#64748B", textAlign: "center" }}>{c.itemCount}</td>
+                      <td style={tdStyle}><span style={{ ...badge, background: sc.bg, color: sc.color }}>{c.status}</span></td>
+                    </motion.tr>
+                  );
+                })}
+              </AnimatePresence>
+            </tbody>
+          </table>
+        </div>
         {totalPages > 1 && (
           <div style={paginationRow}>
             <span style={{ fontSize: 13, color: "#64748B" }}>Page <strong>{page}</strong> of {totalPages} · {total} total</span>
@@ -195,16 +281,20 @@ export default function DeliveryChallanPage() {
           </div>
         )}
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+      `}</style>
     </div>
   );
 }
 
-const primaryBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
-const iconBtn:    React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
-const thStyle:    React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "hsl(var(--muted-foreground))", letterSpacing: "0.04em", whiteSpace: "nowrap" };
-const tdStyle:    React.CSSProperties = { padding: "12px 14px", fontSize: 13 };
-const chip:       React.CSSProperties = { fontSize: 12, background: "hsl(var(--muted))", borderRadius: 4, padding: "2px 6px", color: "hsl(var(--foreground))" };
-const badge:      React.CSSProperties = { fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px" };
+const primaryBtn:    React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, background: "#F97316", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
+const iconBtn:       React.CSSProperties = { width: 34, height: 34, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
+const thStyle:       React.CSSProperties = { padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.04em", whiteSpace: "nowrap" };
+const sortHeaderBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", fontWeight: 700, fontSize: 11, letterSpacing: "0.04em", cursor: "pointer" };
+const tdStyle:       React.CSSProperties = { padding: "12px 14px", fontSize: 13 };
+const chip:          React.CSSProperties = { fontSize: 12, background: "#F1F5F9", borderRadius: 4, padding: "2px 6px", color: "#475569" };
+const badge:         React.CSSProperties = { fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "3px 10px" };
 const paginationRow: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderTop: "1px solid #F1F5F9" };
 const pgBtn = (d: boolean): React.CSSProperties => ({ padding: "6px 14px", borderRadius: 7, border: "1px solid #E2E8F0", background: d ? "#F8FAFC" : "#fff", color: d ? "#CBD5E1" : "#475569", fontSize: 13, cursor: d ? "not-allowed" : "pointer", fontFamily: "inherit" });
