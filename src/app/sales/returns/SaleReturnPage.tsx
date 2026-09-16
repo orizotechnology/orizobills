@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import type { ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, AlertTriangle, TrendingDown, Wallet, Clock, Plus, Search, Pencil, Trash2 } from "lucide-react";
@@ -28,8 +29,21 @@ function toStr(d: Date) { return d.toISOString().slice(0, 10); }
 
 function fmtAmt(n: number | undefined | null) {
   const safe = typeof n === "number" && !Number.isNaN(n) ? n : 0;
-  const s = safe.toFixed(2);
-  return `₹${s.endsWith(".00") ? s.slice(0, -3) : s}`;
+  return `₹${Math.round(safe)}`;
+}
+
+function SummaryCard({ icon, iconBg, label, value, valueColor }: {
+  icon: ReactNode; iconBg: string; label: string; value: string; valueColor: string;
+}) {
+  return (
+    <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 8, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{icon}</div>
+      <div>
+        <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.04em", marginBottom: 3 }}>{label}</div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: valueColor }}>{value}</div>
+      </div>
+    </div>
+  );
 }
 
 type FilterKey = "all" | "month" | "today";
