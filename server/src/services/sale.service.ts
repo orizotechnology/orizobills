@@ -102,6 +102,24 @@ export async function createSale(data: {
 }): Promise<SaleResult> {
   const invoiceNumber = await getNextSaleNumber();
 
+  // ── Stock availability check ───────────────────────────────
+  // Reject the sale if any item would push currentStock below 0
+  const stockErrors: string[] = [];
+  for (const item of data.items) {
+    if (!item.productId) continue;
+    const inv = await prisma.inventoryItem.findUnique({ where: { productId: item.productId } });
+    if (!inv) continue;
+    const current = parseFloat(String(inv.openingStock))
+      + parseFloat(String(inv.stockIn))
+      - parseFloat(String(inv.stockOut));
+    if (item.quantity > current) {
+      stockErrors.push(`"${item.itemName}" — available: ${Math.floor(current)}, requested: ${item.quantity}`);
+    }
+  }
+  if (stockErrors.length > 0) {
+    throw new Error(`Insufficient stock:\n${stockErrors.join("\n")}`);
+  }
+
   const subtotal    = data.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const discountAmt = subtotal * (data.discountPct / 100);
   const cgst        = Math.round(data.items.reduce((s, i) => s + i.taxAmount / 2, 0));

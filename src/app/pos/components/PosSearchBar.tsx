@@ -32,9 +32,19 @@ interface Product {
   id: string; name: string; code: string;
   barcode: string | null; mrp: number;
   salePrice: number; taxPct: number; unit: string;
+  currentStock: number | null; lowStockAlert: number;
 }
 
 const SCANNER_THRESHOLD_MS = 80;
+
+function StockBadge({ stock, alert }: { stock: number | null; alert: number }) {
+  if (stock === null) return null;
+  if (stock <= 0)
+    return <span style={{ fontSize: 10, fontWeight: 700, background: "rgba(239,68,68,0.12)", color: "#EF4444", borderRadius: 4, padding: "2px 6px", whiteSpace: "nowrap" }}>Out of Stock</span>;
+  if (stock <= alert)
+    return <span style={{ fontSize: 10, fontWeight: 700, background: "rgba(249,115,22,0.12)", color: "#F97316", borderRadius: 4, padding: "2px 6px", whiteSpace: "nowrap" }}>Low: {Math.floor(stock)}</span>;
+  return <span style={{ fontSize: 10, fontWeight: 600, background: "rgba(34,197,94,0.1)", color: "#16A34A", borderRadius: 4, padding: "2px 6px", whiteSpace: "nowrap" }}>{Math.floor(stock)} in stock</span>;
+}
 
 export function PosSearchBar({ onProductAdded }: PosSearchBarProps) {
   const { activeBillId, addRowToBill } = usePosStore();
@@ -82,6 +92,7 @@ export function PosSearchBar({ onProductAdded }: PosSearchBarProps) {
   // ── Add product row ─────────────────────────────────────────
   const addProduct = useCallback((p: Product) => {
     if (!activeBillId) return;
+    // Warn but still allow adding if out of stock (backend will reject on save)
     const taxAmt = Math.round((p.salePrice * p.taxPct) / 100 * 100) / 100;
     const total  = Math.round((p.salePrice + taxAmt) * 100) / 100;
     const row: ProductRow = {
@@ -90,6 +101,7 @@ export function PosSearchBar({ onProductAdded }: PosSearchBarProps) {
       mrp: p.mrp, price: p.salePrice,
       discPct: 0, discAmt: 0, taxPct: p.taxPct, taxAmt,
       total,
+      currentStock: p.currentStock ?? null,
     };
     addRowToBill(activeBillId, row);
     onProductAdded?.();
@@ -309,11 +321,13 @@ export function PosSearchBar({ onProductAdded }: PosSearchBarProps) {
               </div>
 
               {/* Results */}
-              {results.map((p, idx) => (
+              {results.map((p, idx) => {
+                const outOfStock = p.currentStock !== null && p.currentStock <= 0;
+                return (
                 <div
                   key={p.id}
                   onMouseDown={(e) => {
-                    e.preventDefault(); // prevent input blur before selection
+                    e.preventDefault();
                     addProduct(p);
                     setQuery(""); setResults([]); setShowDrop(false);
                     inputRef.current?.focus();
@@ -324,10 +338,11 @@ export function PosSearchBar({ onProductAdded }: PosSearchBarProps) {
                     alignItems: "center",
                     justifyContent: "space-between",
                     padding: "9px 14px",
-                    cursor: "pointer",
-                    background: idx === activeIdx ? "#FFF7ED" : "transparent",
+                    cursor: outOfStock ? "not-allowed" : "pointer",
+                    background: idx === activeIdx ? "#FFF7ED" : outOfStock ? "#FFF5F5" : "transparent",
                     borderBottom: "1px solid #F8FAFC",
                     transition: "background 0.08s",
+                    opacity: outOfStock ? 0.65 : 1,
                   }}
                 >
                   {/* Left: product info */}
@@ -338,27 +353,29 @@ export function PosSearchBar({ onProductAdded }: PosSearchBarProps) {
                     }}>
                       {p.name}
                     </div>
-                    <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2, display: "flex", gap: 8 }}>
+                    <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                       <span>{p.code}</span>
                       {p.unit && <span>· {p.unit}</span>}
                       {p.taxPct > 0 && <span>· GST {p.taxPct}%</span>}
                       {p.barcode && <span style={{ color: "#CBD5E1" }}>· {p.barcode}</span>}
+                      <StockBadge stock={p.currentStock} alert={p.lowStockAlert} />
                     </div>
                   </div>
 
                   {/* Right: price */}
                   <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#F97316" }}>
-                      ₹{p.salePrice.toFixed(2)}
+                    <div style={{ fontSize: 14, fontWeight: 800, color: outOfStock ? "#94A3B8" : "#F97316" }}>
+                      ₹{Math.round(p.salePrice)}
                     </div>
                     {p.mrp > p.salePrice && (
                       <div style={{ fontSize: 10, color: "#CBD5E1", textDecoration: "line-through" }}>
-                        ₹{p.mrp.toFixed(2)}
+                        ₹{Math.round(p.mrp)}
                       </div>
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </motion.div>
           )}
 

@@ -118,6 +118,19 @@ export default function PosPage() {
       setTimeout(() => setFeedback(null), 3000);
       return;
     }
+
+    // ── Frontend stock check ────────────────────────────────
+    const stockIssues = validRows.filter(
+      (r) => r.currentStock !== null && r.qty > r.currentStock
+    );
+    if (stockIssues.length > 0) {
+      const names = stockIssues.map((r) =>
+        `${r.product} (available: ${Math.floor(r.currentStock!)}, requested: ${r.qty})`
+      ).join(", ");
+      setFeedback({ type: "error", msg: `Insufficient stock — ${names}` });
+      setTimeout(() => setFeedback(null), 5000);
+      return;
+    }
     setSaving(true);
     const isEdit = !!bill.editingInvoiceId;
     try {

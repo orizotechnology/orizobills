@@ -16,6 +16,7 @@ export interface ProductRow {
   taxPct: number;
   taxAmt: number;
   total: number;
+  currentStock: number | null;  // null = no inventory tracked (free-text product)
 }
 
 interface ProductTableProps {
@@ -113,7 +114,17 @@ export function ProductTable({ rows, onRemoveRow, onUpdateRow }: ProductTablePro
               >
                 <td style={{ padding: "6px 10px", textAlign: "center", color: "#94A3B8" }}>{idx + 1}</td>
                 <td style={{ padding: "6px 10px", color: "#1E293B", fontWeight: 500, textAlign: "left" }}>
-                  {row.product || "—"}
+                  <div>{row.product || "—"}</div>
+                  {row.currentStock !== null && row.currentStock <= 0 && (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", marginTop: 2 }}>
+                      ⚠ Out of stock
+                    </div>
+                  )}
+                  {row.currentStock !== null && row.currentStock > 0 && row.qty > row.currentStock && (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#F97316", marginTop: 2 }}>
+                      ⚠ Only {Math.floor(row.currentStock)} available
+                    </div>
+                  )}
                 </td>
                 <td style={{ padding: "6px 10px", textAlign: "right", color: "#64748B" }}>{row.code}</td>
                 <td style={{ padding: "6px 10px" }}>

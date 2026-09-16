@@ -100,18 +100,19 @@ export function AddProductToBillDialog({ onClose, onAdded }: Props) {
       const discAmt = 0;
       const total   = +(spNum * 1 - discAmt + taxAmt).toFixed(2);
       const row: ProductRow = {
-        id:        nanoid(),
-        product:   p.name,
-        code:      p.code,
-        productId: p.id,
-        qty:       1,
-        mrp:       p.mrp,
-        price:     p.salePrice,
-        discPct:   0,
-        discAmt:   0,
-        taxPct:    p.taxPct,
+        id:           nanoid(),
+        product:      p.name,
+        code:         p.code,
+        productId:    p.id,
+        qty:          1,
+        mrp:          p.mrp,
+        price:        p.salePrice,
+        discPct:      0,
+        discAmt:      0,
+        taxPct:       p.taxPct,
         taxAmt,
         total,
+        currentStock: parseFloat(form.openingStock) || 0,
       };
 
       setSuccess(true);

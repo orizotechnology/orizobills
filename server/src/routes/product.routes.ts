@@ -10,6 +10,10 @@ import { z } from "zod";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toResult(p: any) {
+  const inv = p.inventory;
+  const currentStock = inv
+    ? parseFloat(String(inv.openingStock)) + parseFloat(String(inv.stockIn)) - parseFloat(String(inv.stockOut))
+    : null;
   return {
     id:             String(p.id),
     name:           String(p.name),
@@ -31,10 +35,14 @@ function toResult(p: any) {
     conversionRate: p.conversionRate != null ? parseFloat(String(p.conversionRate)) : null,
     location:       p.location      ? String(p.location)      : null,
     isActive:       Boolean(p.isActive),
+    currentStock:   currentStock,
+    lowStockAlert:  inv ? parseFloat(String(inv.lowStockAlert)) : 5,
     createdAt:      p.createdAt instanceof Date ? p.createdAt.toISOString() : String(p.createdAt ?? ""),
     updatedAt:      p.updatedAt instanceof Date ? p.updatedAt.toISOString() : String(p.updatedAt ?? ""),
   };
 }
+
+const INVENTORY_SELECT = { select: { openingStock: true, stockIn: true, stockOut: true, lowStockAlert: true } };
 
 export async function productRoutes(fastify: FastifyInstance) {
 
@@ -52,6 +60,7 @@ export async function productRoutes(fastify: FastifyInstance) {
             { code: term },
           ],
         },
+        include: { inventory: INVENTORY_SELECT },
       });
       if (!product) return reply.status(HTTP_STATUS.NOT_FOUND).send(
         errorResponse(`No product found for barcode: ${req.params.code}`, HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND)
@@ -80,6 +89,7 @@ export async function productRoutes(fastify: FastifyInstance) {
           },
           take: 20,
           orderBy: { name: "asc" },
+          include: { inventory: INVENTORY_SELECT },
         });
         return reply.send(successResponse(results.map(toResult)));
       }
@@ -87,7 +97,7 @@ export async function productRoutes(fastify: FastifyInstance) {
       const f = (filter === "all" || filter === "inactive") ? filter : "active";
       const where = f === "all" ? {} : f === "inactive" ? { isActive: false } : { isActive: true };
       const [data, total] = await Promise.all([
-        db.product.findMany({ where, skip: (Number(page ?? 1) - 1) * Number(pageSize ?? 20), take: Number(pageSize ?? 20), orderBy: { name: "asc" } }),
+        db.product.findMany({ where, skip: (Number(page ?? 1) - 1) * Number(pageSize ?? 20), take: Number(pageSize ?? 20), orderBy: { name: "asc" }, include: { inventory: INVENTORY_SELECT } }),
         db.product.count({ where }),
       ]);
       return reply.send(successResponse({ data: data.map(toResult), total }));
@@ -99,7 +109,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   // GET /api/products/:id
   fastify.get("/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
     try {
-      const product = await req.prisma.product.findUnique({ where: { id: req.params.id } });
+      const product = await req.prisma.product.findUnique({ where: { id: req.params.id }, include: { inventory: INVENTORY_SELECT } });
       if (!product) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
       return reply.send(successResponse(toResult(product)));
     } catch (err) {

@@ -258,17 +258,19 @@ export default function SaleInvoicesPage() {
       if (!res.success || !res.data) { toast.error("Could not load invoice"); return; }
       const d = res.data;
       const rows: ProductRow[] = d.items.map((item, i) => ({
-        id:      String(i),
-        product: item.itemName,
-        code:    item.itemCode ?? "",
-        qty:     Number(item.quantity),
-        mrp:     Number(item.mrp),
-        price:   Number(item.unitPrice),
-        discPct: Number(item.discountPct),
-        discAmt: Number(item.discountAmt),
-        taxPct:  Number(item.taxPercent),
-        taxAmt:  Number(item.taxAmount),
-        total:   Number(item.totalAmount),
+        id:           String(i),
+        product:      item.itemName,
+        code:         item.itemCode ?? "",
+        productId:    item.id,
+        qty:          Number(item.quantity),
+        mrp:          Number(item.mrp),
+        price:        Number(item.unitPrice),
+        discPct:      Number(item.discountPct),
+        discAmt:      Number(item.discountAmt),
+        taxPct:       Number(item.taxPercent),
+        taxAmt:       Number(item.taxAmount),
+        total:        Number(item.totalAmount),
+        currentStock: null,   // not checked on edit
       }));
       const validMode = ["Cash", "UPI", "Card", "Split"].includes(d.paymentMethod)
         ? (d.paymentMethod as "Cash" | "UPI" | "Card" | "Split")
