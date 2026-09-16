@@ -20,7 +20,7 @@ import PrintSettingsPage from "./PrintSettingsPage";
 // SETTINGS PAGE
 // =============================================================
 
-// â”€â”€ Shared helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Shared helpers ─────────────────────────────────────────
 
 function SettingRow({
   label,
@@ -38,16 +38,17 @@ function SettingRow({
         alignItems: "center",
         justifyContent: "space-between",
         gap: 24,
-        padding: "14px 0",
-        borderBottom: "1px solid #F8FAFC",
+        padding: "16px 0",
+        borderBottom: "1px solid #F1F5F9",
       }}
     >
       <div style={{ minWidth: 0, flex: 1 }}>
         <div
           style={{
-            fontSize: 13,
+            fontSize: 13.5,
             fontWeight: 600,
             color: "#1E293B",
+            letterSpacing: "-0.01em",
           }}
         >
           {label}
@@ -58,7 +59,8 @@ function SettingRow({
             style={{
               fontSize: 12,
               color: "#94A3B8",
-              marginTop: 2,
+              marginTop: 3,
+              lineHeight: 1.4,
             }}
           >
             {description}
@@ -66,7 +68,16 @@ function SettingRow({
         )}
       </div>
 
-      <div style={{ flexShrink: 0 }}>{children}</div>
+      <div
+        style={{
+          flexShrink: 0,
+          width: 220,
+          display: "flex",
+          justifyContent: "flex-end",
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -86,30 +97,34 @@ function Toggle({
     <button
       type="button"
       onClick={() => setOn((prev) => !prev)}
+      aria-pressed={on}
       style={{
-        width: 40,
-        height: 22,
-        borderRadius: 11,
-        background: on ? "#F97316" : "#E2E8F0",
+        width: 44,
+        height: 24,
+        borderRadius: 12,
+        background: on ? "#F97316" : "#CBD5E1",
         border: "none",
         cursor: "pointer",
         outline: "none",
         position: "relative",
-        transition: "background 0.2s",
+        transition: "background 0.2s ease",
         flexShrink: 0,
+        boxShadow: on
+          ? "inset 0 0 0 1px rgba(249,115,22,0.4)"
+          : "inset 0 0 0 1px rgba(148,163,184,0.3)",
       }}
     >
       <span
         style={{
           position: "absolute",
           top: 3,
-          left: on ? 21 : 3,
-          width: 16,
-          height: 16,
+          left: on ? 23 : 3,
+          width: 18,
+          height: 18,
           borderRadius: "50%",
           background: "#fff",
-          transition: "left 0.2s",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+          transition: "left 0.2s ease",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
         }}
       />
     </button>
@@ -128,26 +143,43 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ marginBottom: 28 }}>
+    <div style={{ marginBottom: 32 }}>
       <div
         style={{
-          fontSize: 12,
-          fontWeight: 700,
-          color: "#94A3B8",
-          letterSpacing: "0.05em",
-          textTransform: "uppercase",
-          marginBottom: 8,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: 10,
         }}
       >
-        {title}
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: "#64748B",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            flex: 1,
+            height: 1,
+            background: "#E2E8F0",
+          }}
+        />
       </div>
 
       <div
         style={{
           background: "#fff",
           border: "1px solid #E2E8F0",
-          borderRadius: 10,
-          padding: "0 18px",
+          borderRadius: 12,
+          padding: "4px 20px",
+          boxShadow: "0 1px 2px rgba(15,23,42,0.03)",
         }}
       >
         {children}
@@ -438,10 +470,10 @@ function GeneralSettings() {
               English
             </option>
             <option value="ta">
-              à®¤à®®à®¿à®´à¯ (Tamil)
+              தமிழ் (Tamil)
             </option>
             <option value="hi">
-              à¤¹à¤¿à¤¨à¥à¤¦à¥€ (Hindi)
+              हिन्दी (Hindi)
             </option>
           </select>
         </SettingRow>
@@ -510,7 +542,6 @@ function TransactionSettings() {
         />
       </SettingRow>
 
-      {/* NEW: Starting Invoice Number */}
       <SettingRow
         label="Starting Invoice Number"
         description="Invoice numbering will begin from this number"
@@ -523,15 +554,12 @@ function TransactionSettings() {
         />
       </SettingRow>
 
-      {/* NEW: Reset Numbering per Financial Year */}
       <SettingRow
         label="Reset Numbering Every Financial Year"
         description="Invoice number restarts from 1 (or start number) each new financial year"
       >
         <Toggle />
       </SettingRow>
-
-      
 
       <SettingRow
         label="Allow Negative Stock"
@@ -547,7 +575,6 @@ function TransactionSettings() {
         <Toggle defaultOn />
       </SettingRow>
 
-      {/* NEW: Round Off Method direction */}
       <SettingRow
         label="Round Off Method"
         description="How the total should be rounded"
@@ -559,7 +586,6 @@ function TransactionSettings() {
         </select>
       </SettingRow>
 
-      {/* NEW: Default Payment Mode */}
       <SettingRow
         label="Default Payment Mode"
         description="Pre-selected payment mode on new transactions"
@@ -573,7 +599,6 @@ function TransactionSettings() {
         </select>
       </SettingRow>
 
-      {/* NEW: Lock Invoice after Save */}
       <SettingRow
         label="Lock Invoice After Save"
         description="Prevent editing invoices once they are saved"
@@ -583,7 +608,6 @@ function TransactionSettings() {
     </Section>
   );
 }
-
 // =============================================================
 // TAX SETTINGS
 // =============================================================
@@ -602,10 +626,7 @@ function TaxSettings() {
         />
       </SettingRow>
 
-      <SettingRow
-        label="State"
-        description="State of business registration"
-      >
+      <SettingRow label="State">
         <select style={inp}>
           <option>Tamil Nadu</option>
           <option>Karnataka</option>
@@ -616,11 +637,7 @@ function TaxSettings() {
         </select>
       </SettingRow>
 
-      {/* NEW: GST Registration Type (replaces Composition Scheme toggle) */}
-      <SettingRow
-        label="GST Registration Type"
-        description="Type of GST registration for your business"
-      >
+      <SettingRow label="GST Registration Type">
         <select style={inp} defaultValue="regular">
           <option value="regular">Regular</option>
           <option value="composition">Composition</option>
@@ -646,7 +663,6 @@ function TaxSettings() {
         </select>
       </SettingRow>
 
-      {/* NEW: HSN/SAC Code Mandatory */}
       <SettingRow
         label="HSN/SAC Code Mandatory"
         description="Require HSN/SAC code when adding products"
@@ -654,7 +670,6 @@ function TaxSettings() {
         <Toggle defaultOn />
       </SettingRow>
 
-      {/* NEW: Show Tax Breakup on Invoice */}
       <SettingRow
         label="Show Tax Breakup on Invoice"
         description="Show CGST/SGST/IGST separately instead of combined GST"
@@ -662,7 +677,6 @@ function TaxSettings() {
         <Toggle defaultOn />
       </SettingRow>
 
-      {/* NEW: E-Way Bill Threshold Amount */}
       <SettingRow
         label="E-Way Bill Threshold Amount"
         description="Generate e-way bill prompt above this invoice value (₹)"
@@ -700,10 +714,7 @@ function MessageSettings() {
         />
       </SettingRow>
 
-      <SettingRow
-        label="Payment Reminder Message"
-        description="Sent with payment reminder"
-      >
+      <SettingRow label="Payment Reminder Message">
         <textarea
           style={{
             ...inp,
@@ -715,7 +726,6 @@ function MessageSettings() {
         />
       </SettingRow>
 
-      {/* NEW: Overdue Payment Message */}
       <SettingRow
         label="Overdue Payment Message"
         description="Sent when payment is past the due date"
@@ -724,17 +734,15 @@ function MessageSettings() {
           style={{
             ...inp,
             width: 260,
-            height: 64,
+            height: 84,
             resize: "none",
+            lineHeight: 1.5,
           }}
           placeholder="Dear {name}, your payment of ₹{amount} is overdue since {due_date}. Please clear it at the earliest."
         />
       </SettingRow>
 
-      <SettingRow
-        label="WhatsApp Message Template"
-        description="Template for WhatsApp invoice sharing"
-      >
+      <SettingRow label="WhatsApp Message Template">
         <textarea
           style={{
             ...inp,
@@ -746,9 +754,6 @@ function MessageSettings() {
         />
       </SettingRow>
 
-    
-
-      {/* NEW: Send WhatsApp Automatically on Invoice Save */}
       <SettingRow
         label="Send WhatsApp Automatically on Invoice Save"
         description="Auto-send WhatsApp message when an invoice is saved"
@@ -756,10 +761,9 @@ function MessageSettings() {
         <Toggle />
       </SettingRow>
 
-      {/* NEW: Available Variables hint */}
       <div
         style={{
-          padding: "12px 0 16px",
+          padding: "14px 0 18px",
           fontSize: 11.5,
           color: "#94A3B8",
           lineHeight: 1.6,
@@ -779,10 +783,7 @@ function MessageSettings() {
 function PartySettings() {
   return (
     <Section title="Customer / Supplier Defaults">
-      <SettingRow
-        label="Default Credit Limit"
-        description="Default credit limit for new customers"
-      >
+      <SettingRow label="Default Credit Limit">
         <input
           style={inp}
           type="text" inputMode="decimal"
@@ -790,7 +791,6 @@ function PartySettings() {
         />
       </SettingRow>
 
-      {/* NEW: Block Sale When Credit Limit Exceeded */}
       <SettingRow
         label="Block Sale When Credit Limit Exceeded"
         description="Prevent new sales once customer crosses their credit limit"
@@ -809,17 +809,20 @@ function PartySettings() {
         />
       </SettingRow>
 
-      <SettingRow label="Show Party Balance on POS">
+      <SettingRow
+        label="Show Party Balance on POS"
+        description="Display outstanding balance during billing"
+      >
         <Toggle defaultOn />
       </SettingRow>
 
-      <SettingRow label="Mandatory Mobile Number">
+      <SettingRow
+        label="Mandatory Mobile Number"
+        description="Require mobile number when adding a new party"
+      >
         <Toggle />
       </SettingRow>
 
-     
-
-      {/* NEW: Allow Opening Balance for New Party */}
       <SettingRow
         label="Allow Opening Balance for New Party"
         description="Let new parties be added with an existing due/advance balance"
@@ -827,11 +830,7 @@ function PartySettings() {
         <Toggle defaultOn />
       </SettingRow>
 
-      {/* NEW: Default Party Category */}
-      <SettingRow
-        label="Default Party Category"
-        description="Default category assigned to new parties"
-      >
+      <SettingRow label="Default Party Category">
         <select style={inp} defaultValue="retail">
           <option value="retail">Retail</option>
           <option value="wholesale">Wholesale</option>
@@ -849,7 +848,10 @@ function PartySettings() {
 function ProductSettings() {
   return (
     <Section title="Product Defaults">
-      <SettingRow label="Default Unit">
+      <SettingRow
+        label="Default Unit"
+        description="Unit assigned to new products by default"
+      >
         <select style={inp}>
           <option>Nos</option>
           <option>Kg</option>
@@ -858,7 +860,10 @@ function ProductSettings() {
         </select>
       </SettingRow>
 
-      <SettingRow label="Low Stock Alert Threshold">
+      <SettingRow
+        label="Low Stock Alert Threshold"
+        description="Notify when stock quantity falls below this number"
+      >
         <input
           style={inp}
           type="text" inputMode="decimal"
@@ -866,19 +871,31 @@ function ProductSettings() {
         />
       </SettingRow>
 
-      <SettingRow label="Enable Batch Tracking">
+      <SettingRow
+        label="Enable Batch Tracking"
+        description="Track products by batch or lot number"
+      >
         <Toggle />
       </SettingRow>
 
-      <SettingRow label="Enable Expiry Date Tracking">
+      <SettingRow
+        label="Enable Expiry Date Tracking"
+        description="Track and alert on product expiry dates"
+      >
         <Toggle />
       </SettingRow>
 
-      <SettingRow label="Show MRP on Invoice">
+      <SettingRow
+        label="Show MRP on Invoice"
+        description="Display maximum retail price alongside selling price"
+      >
         <Toggle defaultOn />
       </SettingRow>
 
-      <SettingRow label="Allow Price Edit on POS">
+      <SettingRow
+        label="Allow Price Edit on POS"
+        description="Let staff change item price while billing"
+      >
         <Toggle defaultOn />
       </SettingRow>
     </Section>
@@ -892,11 +909,17 @@ function ProductSettings() {
 function ReminderSettings() {
   return (
     <Section title="Service Reminder Configuration">
-      <SettingRow label="Enable Service Reminders">
+      <SettingRow
+        label="Enable Service Reminders"
+        description="Turn on automatic reminders for upcoming services"
+      >
         <Toggle />
       </SettingRow>
 
-      <SettingRow label="Reminder Days Before Due">
+      <SettingRow
+        label="Reminder Days Before Due"
+        description="Send the first reminder this many days before the due date"
+      >
         <input
           style={inp}
           type="text" inputMode="decimal"
@@ -904,11 +927,17 @@ function ReminderSettings() {
         />
       </SettingRow>
 
-      <SettingRow label="Send WhatsApp Reminder">
+      <SettingRow
+        label="Send WhatsApp Reminder"
+        description="Notify customers via WhatsApp"
+      >
         <Toggle />
       </SettingRow>
 
-      <SettingRow label="Send SMS Reminder">
+      <SettingRow
+        label="Send SMS Reminder"
+        description="Notify customers via SMS"
+      >
         <Toggle />
       </SettingRow>
 
@@ -923,7 +952,6 @@ function ReminderSettings() {
         />
       </SettingRow>
 
-      {/* NEW: Maximum Reminders to Send */}
       <SettingRow
         label="Maximum Reminders to Send"
         description="Stop sending after this many reminders"
@@ -936,7 +964,6 @@ function ReminderSettings() {
         />
       </SettingRow>
 
-      {/* NEW: Send Reminder After Due Date Also */}
       <SettingRow
         label="Send Reminder After Due Date Also"
         description="Continue sending reminders even after the due date has passed"
@@ -944,7 +971,6 @@ function ReminderSettings() {
         <Toggle defaultOn />
       </SettingRow>
 
-      {/* NEW: Auto-create Next Service Reminder After Completion */}
       <SettingRow
         label="Auto-create Next Service Reminder After Completion"
         description="Automatically schedule the next reminder once a service is marked complete"
@@ -1004,11 +1030,11 @@ function AccountingSettings() {
 function OfficerManagement() {
   const {
     session,
-    officers,          // source of truth from store (last saved state)
+    officers,
     addOfficer,
     removeOfficer: removeOfficerInStore,
     toggleOfficer: toggleOfficerInStore,
-    saveOfficerChanges, // NEW: bulk-save function you add to your store
+    saveOfficerChanges,
   } = useAuthStore();
 
   const isAdmin = session?.role === "admin";
@@ -1022,14 +1048,10 @@ function OfficerManagement() {
   const [formError, setFormError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // ---- NEW: local pending copy + dirty tracking ----
   const [localOfficers, setLocalOfficers] = useState(officers);
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Keep localOfficers in sync whenever the store's officers list
-  // changes from outside (e.g. after Add Officer, or after a
-  // successful Save Changes / initial load).
   useEffect(() => {
     setLocalOfficers(officers);
     setIsDirty(false);
@@ -1072,13 +1094,11 @@ function OfficerManagement() {
       setMobile("");
       setPassword("");
       setShowForm(false);
-      // store's `officers` will update -> useEffect above resyncs localOfficers
     } else {
       setFormError(result.error ?? "Failed to add officer.");
     }
   };
 
-  // ---- NEW: toggle/remove only affect LOCAL pending state ----
   const handleToggle = (id: string) => {
     setLocalOfficers((prev) =>
       prev.map((o) =>
@@ -1095,7 +1115,6 @@ function OfficerManagement() {
     setSuccess("");
   };
 
-  // ---- NEW: commit pending changes to backend/store ----
   const handleSaveChanges = async () => {
     setSaving(true);
     setFormError("");
@@ -1170,7 +1189,6 @@ function OfficerManagement() {
         </div>
       )}
 
-      {/* Officers sub-header */}
       <div
         style={{
           display: "flex",
@@ -1216,7 +1234,6 @@ function OfficerManagement() {
         </button>
       </div>
 
-      {/* Success */}
       {success && (
         <div
           style={{
@@ -1233,7 +1250,6 @@ function OfficerManagement() {
         </div>
       )}
 
-      {/* Add Form */}
       {showForm && (
         <div
           style={{
@@ -1386,7 +1402,6 @@ function OfficerManagement() {
         </div>
       )}
 
-      {/* Officers List — now reads from localOfficers (pending state) */}
       {localOfficers.length === 0 ? (
         <div
           style={{
@@ -1593,15 +1608,18 @@ const inp2: React.CSSProperties = {
 // ROUTE MAP
 // =============================================================
 
-const ROUTE_MAP: Record<
-  string,
-  {
-    key: string;
-    label: string;
-    content: React.ReactNode;
-    fullPage?: boolean;
-  }
-> = {
+type SettingsRouteEntry = {
+  key: string;
+  label: string;
+  content: React.ReactNode;
+  fullPage?: boolean;
+};
+
+type SettingsRouteMap = {
+  [path: string]: SettingsRouteEntry;
+};
+
+const ROUTE_MAP: SettingsRouteMap = {
   "/app/settings/general": {
     key: "general",
     label: "General",
@@ -1672,14 +1690,14 @@ export default function SettingsPage() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-const [hasChanges, setHasChanges] =
+  const [hasChanges, setHasChanges] =
     useState(false);
 
   const [isSaving, setIsSaving] =
     useState(false);
 
-const [flash, setFlash] = useState<FlashState | null>(null);
- type FlashState = { type: "saved" | "changed"; key: number };  
+  const [flash, setFlash] = useState<FlashState | null>(null);
+  type FlashState = { type: "saved" | "changed"; key: number };
 
   const triggerFlash = (type: "saved" | "changed") => {
     setFlash({ type, key: Date.now() });
@@ -1707,7 +1725,7 @@ const [flash, setFlash] = useState<FlashState | null>(null);
   // MARK PAGE AS DIRTY WHEN FORM VALUES CHANGE
   // =========================================================
 
- const markAsChanged = () => {
+  const markAsChanged = () => {
     if (!hasChanges) {
       triggerFlash("changed");
     }
@@ -1739,7 +1757,7 @@ const [flash, setFlash] = useState<FlashState | null>(null);
       previousPathRef.current = pathname;
     }
   }, [pathname, hasChanges, navigate]);
-  
+
 
   // =========================================================
   // BROWSER / TAB CLOSE CONFIRMATION
@@ -1783,10 +1801,6 @@ const [flash, setFlash] = useState<FlashState | null>(null);
     setIsSaving(true);
 
     try {
-      // -----------------------------------------------------
-      // API SAVE LOGIC CAN BE CONNECTED HERE
-      // -----------------------------------------------------
-
       await new Promise(
         (resolve) =>
           setTimeout(resolve, 500)
@@ -1822,7 +1836,7 @@ const [flash, setFlash] = useState<FlashState | null>(null);
   // =========================================================
   // NORMAL SETTINGS PAGE
   // =========================================================
-return (
+  return (
     <div
       style={{
         height: "100%",
@@ -1848,7 +1862,7 @@ return (
           padding: "24px 28px",
         }}
       >
-  
+
         {/* =================================================
             PAGE HEADER
         ================================================== */}
@@ -1989,7 +2003,6 @@ return (
             const target =
               event.target as HTMLElement;
 
-            // Mark toggle/button based settings as changed.
             if (
               target.closest(
                 "button"
@@ -2000,7 +2013,6 @@ return (
                   "button"
                 );
 
-              // Ignore officer form helper buttons.
               const isOfficerHelper =
                 button?.type ===
                   "button" &&
@@ -2033,13 +2045,16 @@ return (
 // =============================================================
 
 const inp: React.CSSProperties = {
-  border: "1px solid #E2E8F0",
-  borderRadius: 7,
-  padding: "7px 10px",
+  border: "1.5px solid #E2E8F0",
+  borderRadius: 8,
+  padding: "8px 12px",
   fontSize: 13,
+  fontWeight: 500,
   color: "#1E293B",
   outline: "none",
   fontFamily: "inherit",
   background: "#F8FAFC",
+  width: "100%",
   minWidth: 160,
+  transition: "border-color 0.15s ease, background 0.15s ease",
 };

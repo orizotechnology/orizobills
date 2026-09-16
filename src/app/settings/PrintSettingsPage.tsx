@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import {
   Printer, AlignLeft, AlignCenter, AlignRight,
-  ChevronDown, ChevronUp, Upload, X, Check,
+  ChevronDown, ChevronUp, Upload, X, Check, RotateCcw, ZoomIn,
 } from "lucide-react";
 import { usePrintStore } from "@/store/print.store";
 import { useBusinessStore } from "@/store/business.store";
@@ -16,6 +16,8 @@ type BillStyleId =
   | "banner"  | "split"  | "stamp"    | "clean"  | "invoice";
 
 type Align = "left" | "center" | "right";
+
+type StyleCategory = "all" | "simple" | "bold" | "formal";
 
 interface LocalSettings {
   printMode:         "Thermal" | "A4";
@@ -45,16 +47,50 @@ interface LocalSettings {
 }
 
 // =============================================================
+// DEFAULT SETTINGS (used by Reset to Default)
+// =============================================================
+
+const DEFAULT_LOCAL_SETTINGS: LocalSettings = {
+  printMode:         "Thermal",
+  billStyle:         "classic",
+  paperWidthMm:      80,
+  headerAlign:       "center",
+  bodyAlign:         "left",
+  footerAlign:       "center",
+  showLogo:          true,
+  logoUrl:           "",
+  fontSize:          "medium",
+  fontFamily:        "Inter",
+  copies:            1,
+  autoCut:           false,
+  showFooter:        true,
+  footerText:        "Thank you for your business!",
+  showTerms:         false,
+  termsText:         "",
+  showAmountInWords: false,
+  showSignature:     false,
+  showGST:           true,
+  tableStyle:        "minimal",
+  marginTop:         8,
+  marginBottom:      8,
+  marginLeft:        8,
+  marginRight:       8,
+};
+
+const DEFAULT_LOGO_SIZE = 48;
+
+// =============================================================
 // 10 BILL STYLE DEFINITIONS — each has a unique preview renderer
 // =============================================================
 const BILL_STYLES: {
-  id:      BillStyleId;
-  name:    string;
-  desc:    string;
-  preview: (shopName: string) => React.ReactNode;
+  id:       BillStyleId;
+  name:     string;
+  desc:     string;
+  category: Exclude<StyleCategory, "all">;
+  preview:  (shopName: string) => React.ReactNode;
 }[] = [
   {
-    id: "classic", name: "Classic", desc: "Centred header, dashed dividers",
+    id: "classic", name: "Classic", desc: "Centred header, dashed dividers", category: "simple",
     preview: n => (
       <div style={{ textAlign: "center", fontFamily: "monospace" }}>
         <div style={{ fontWeight: 900, fontSize: 8, letterSpacing: 1, marginBottom: 2 }}>{n}</div>
@@ -68,7 +104,7 @@ const BILL_STYLES: {
     ),
   },
   {
-    id: "bold", name: "Bold", desc: "Oversized shop name, double rule",
+    id: "bold", name: "Bold", desc: "Oversized shop name, double rule", category: "bold",
     preview: n => (
       <div style={{ fontFamily: "monospace" }}>
         <div style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "2px 0", textAlign: "center", fontWeight: 900, fontSize: 9, letterSpacing: 2 }}>{n}</div>
@@ -79,7 +115,7 @@ const BILL_STYLES: {
     ),
   },
   {
-    id: "minimal", name: "Minimal", desc: "Pure text, zero decoration",
+    id: "minimal", name: "Minimal", desc: "Pure text, zero decoration", category: "simple",
     preview: n => (
       <div style={{ fontFamily: "monospace" }}>
         <div style={{ fontWeight: 700, fontSize: 7.5 }}>{n}</div>
@@ -91,7 +127,7 @@ const BILL_STYLES: {
     ),
   },
   {
-    id: "boxed", name: "Boxed", desc: "Outline border around header",
+    id: "boxed", name: "Boxed", desc: "Outline border around header", category: "bold",
     preview: n => (
       <div style={{ fontFamily: "monospace" }}>
         <div style={{ border: "1px solid #000", padding: "3px 5px", textAlign: "center", fontWeight: 900, fontSize: 8, marginBottom: 3 }}>{n}</div>
@@ -102,7 +138,7 @@ const BILL_STYLES: {
     ),
   },
   {
-    id: "double-line", name: "Double Line", desc: "CASH MEMO band under header",
+    id: "double-line", name: "Double Line", desc: "CASH MEMO band under header", category: "simple",
     preview: n => (
       <div style={{ textAlign: "center", fontFamily: "monospace" }}>
         <div style={{ fontWeight: 900, fontSize: 8 }}>{n}</div>
@@ -114,7 +150,7 @@ const BILL_STYLES: {
     ),
   },
   {
-    id: "banner", name: "Banner", desc: "Black inverted header bar",
+    id: "banner", name: "Banner", desc: "Black inverted header bar", category: "bold",
     preview: n => (
       <div style={{ fontFamily: "monospace" }}>
         <div style={{ background: "#000", color: "#fff", padding: "3px 5px", textAlign: "center", fontWeight: 900, fontSize: 8, letterSpacing: 1 }}>{n}</div>
@@ -125,7 +161,7 @@ const BILL_STYLES: {
     ),
   },
   {
-    id: "split", name: "Split", desc: "Logo circle left, details right",
+    id: "split", name: "Split", desc: "Logo circle left, details right", category: "simple",
     preview: n => (
       <div style={{ fontFamily: "monospace" }}>
         <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 3 }}>
@@ -142,7 +178,7 @@ const BILL_STYLES: {
     ),
   },
   {
-    id: "stamp", name: "Stamp", desc: "Dotted frame, centred bold total",
+    id: "stamp", name: "Stamp", desc: "Dotted frame, centred bold total", category: "bold",
     preview: n => (
       <div style={{ fontFamily: "monospace" }}>
         <div style={{ border: "2px dotted #000", padding: "3px 5px", textAlign: "center", fontWeight: 900, fontSize: 8, marginBottom: 3 }}>{n}</div>
@@ -153,7 +189,7 @@ const BILL_STYLES: {
     ),
   },
   {
-    id: "clean", name: "Clean", desc: "Thick top rule, date on right",
+    id: "clean", name: "Clean", desc: "Thick top rule, date on right", category: "formal",
     preview: n => (
       <div style={{ fontFamily: "monospace" }}>
         <div style={{ borderTop: "3px solid #000", paddingTop: 2 }}>
@@ -169,7 +205,7 @@ const BILL_STYLES: {
     ),
   },
   {
-    id: "invoice", name: "Invoice", desc: "Formal GST invoice header",
+    id: "invoice", name: "Invoice", desc: "Formal GST invoice header", category: "formal",
     preview: n => (
       <div style={{ fontFamily: "monospace" }}>
         <div style={{ textAlign: "center", borderBottom: "1px solid #000", paddingBottom: 2, marginBottom: 2 }}>
@@ -183,6 +219,13 @@ const BILL_STYLES: {
       </div>
     ),
   },
+];
+
+const STYLE_CATEGORIES: { key: StyleCategory; label: string }[] = [
+  { key: "all",    label: "All" },
+  { key: "simple", label: "Simple" },
+  { key: "bold",   label: "Bold" },
+  { key: "formal", label: "Formal" },
 ];
 
 const FONT_OPTIONS = ["Inter", "Roboto", "Mono", "Noto Sans", "Poppins"];
@@ -278,11 +321,8 @@ function Stepper({ value, onChange, min = 1, max = 5 }: {
 // =============================================================
 // LIVE RECEIPT PREVIEW
 // =============================================================
-function ReceiptPreview({ s, shopName, address, phone, logoUrl, logoSize, activeSection, lineSpacing, onSectionClick }: {
+function ReceiptPreview({ s, shopName, address, phone, logoUrl, logoSize }: {
   s: LocalSettings; shopName: string; address: string; phone: string; logoUrl: string; logoSize: number;
-  activeSection: string | null;
-  lineSpacing: Record<string, number>;
-  onSectionClick: (section: string) => void;
 }) {
   const w   = Math.round(s.paperWidthMm * MM_TO_PX);
   const fs  = s.fontSize === "small" ? 9 : s.fontSize === "large" ? 13 : 11;
@@ -514,6 +554,42 @@ function ReceiptPreview({ s, shopName, address, phone, logoUrl, logoSize, active
 }
 
 // =============================================================
+// ZOOM LIGHTBOX
+// =============================================================
+function PreviewZoomModal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(15,15,15,0.72)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 1000, padding: 40, cursor: "zoom-out",
+      }}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        style={{
+          position: "absolute", top: 20, right: 24, width: 36, height: 36,
+          borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.12)",
+          color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", outline: "none",
+        }}
+      >
+        <X size={18} />
+      </button>
+
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ transform: "scale(1.6)", cursor: "default" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================
 // MAIN PAGE
 // =============================================================
 export default function PrintSettingsPage() {
@@ -552,6 +628,15 @@ export default function PrintSettingsPage() {
   const [dirty, setDirty]   = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // ── Style gallery category filter ─────────────────────────
+  const [styleCategory, setStyleCategory] = useState<StyleCategory>("all");
+  const visibleStyles = styleCategory === "all"
+    ? BILL_STYLES
+    : BILL_STYLES.filter(bs => bs.category === styleCategory);
+
+  // ── Zoom preview modal ─────────────────────────────────────
+  const [zoomOpen, setZoomOpen] = useState(false);
+
   // ── Line spacing per section ──────────────────────────────
   type SectionKey = "header" | "meta" | "items" | "totals" | "footer";
   const [activeSection,  setActiveSection]  = useState<SectionKey | null>(null);
@@ -582,6 +667,20 @@ export default function PrintSettingsPage() {
       }
     };
     reader.readAsDataURL(file);
+  }
+
+  function handleResetToDefault() {
+    const confirmed = window.confirm(
+      "Reset all print settings to default? This cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setS(DEFAULT_LOCAL_SETTINGS);
+    setLogoSize(DEFAULT_LOGO_SIZE);
+    setStyleCategory("all");
+    setLineSpacing({ header: 1.4, meta: 1.4, items: 1.4, totals: 1.4, footer: 1.4 });
+    setDirty(true);
+    toast.success("Settings reset to default. Click Save to apply.");
   }
 
   async function handleSave() {
@@ -623,7 +722,7 @@ export default function PrintSettingsPage() {
 
       {/* top bar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "13px 24px", background: "#fff", borderBottom: "1px solid #E5E7EB", flexShrink: 0 }}>
+        padding: "13px 24px", background: "#fff", borderBottom: "1px solid #E5E7EB", flexShrink: 0, gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Printer size={18} color="#111" />
           <div>
@@ -660,13 +759,32 @@ export default function PrintSettingsPage() {
           })}
         </div>
 
-        <button type="button" onClick={handleSave} disabled={!dirty || saving}
-          style={{ background: dirty ? "#111" : "#E5E7EB", color: dirty ? "#fff" : "#9CA3AF",
-            border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 700,
-            cursor: dirty ? "pointer" : "not-allowed", fontFamily: "inherit", outline: "none",
-            transition: "background 0.2s, color 0.2s" }}>
-          {saving ? "Saving…" : "Save"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            type="button"
+            onClick={handleResetToDefault}
+            title="Reset all print settings to default"
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "#fff", color: "#6B7280", border: "1px solid #D1D5DB",
+              borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit", outline: "none",
+              transition: "background 0.15s, color 0.15s, border-color 0.15s",
+            }}
+          >
+            <RotateCcw size={13} />
+            Reset to Default
+          </button>
+
+          <button type="button" onClick={handleSave} disabled={!dirty || saving}
+            title={dirty ? "Save your changes" : "No changes to save"}
+            style={{ background: dirty ? "#111" : "#E5E7EB", color: dirty ? "#fff" : "#9CA3AF",
+              border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 700,
+              cursor: dirty ? "pointer" : "not-allowed", fontFamily: "inherit", outline: "none",
+              transition: "background 0.2s, color 0.2s" }}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
       </div>
 
       {/* body */}
@@ -677,32 +795,82 @@ export default function PrintSettingsPage() {
 
           {/* ── 10 BILL STYLE GALLERY ── */}
           <Panel title="Bill Layout Style">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, paddingTop: 10 }}>
-              {BILL_STYLES.map(bs => (
-                <div key={bs.id} onClick={() => update("billStyle", bs.id)} style={{ cursor: "pointer" }}>
-                  {/* thumbnail card */}
-                  <div style={{
-                    height: 88, background: "#fff",
-                    border: s.billStyle === bs.id ? "2px solid #111" : "1px solid #D1D5DB",
-                    borderRadius: 7, overflow: "hidden", padding: "6px 8px",
-                    boxSizing: "border-box", position: "relative",
-                    transition: "border 0.15s",
-                  }}>
-                    {s.billStyle === bs.id && (
-                      <span style={{ position: "absolute", top: 4, right: 4, width: 15, height: 15,
-                        borderRadius: "50%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Check size={9} color="#fff" strokeWidth={3} />
-                      </span>
-                    )}
-                    {bs.preview(shopName.slice(0, 8).toUpperCase() || "SHOP")}
-                  </div>
-                  {/* label */}
-                  <div style={{ marginTop: 5, paddingLeft: 2 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#111" }}>{bs.name}</div>
-                    <div style={{ fontSize: 10, color: "#9CA3AF", lineHeight: 1.3 }}>{bs.desc}</div>
-                  </div>
-                </div>
-              ))}
+
+            {/* category tabs */}
+            <div style={{ display: "flex", gap: 6, paddingTop: 10, marginBottom: 4 }}>
+              {STYLE_CATEGORIES.map(({ key, label }) => {
+                const active = styleCategory === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setStyleCategory(key)}
+                    style={{
+                      padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                      border: active ? "1px solid #111" : "1px solid #E5E7EB",
+                      background: active ? "#111" : "#fff",
+                      color: active ? "#fff" : "#6B7280",
+                      cursor: "pointer", fontFamily: "inherit", outline: "none",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* scrollable gallery with bottom fade indicator */}
+            <div style={{ position: "relative" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, paddingTop: 6, paddingBottom: 4 }}>
+                {visibleStyles.map(bs => {
+                  const selected = s.billStyle === bs.id;
+                  return (
+                    <div key={bs.id} onClick={() => update("billStyle", bs.id)} style={{ cursor: "pointer" }}>
+                      {/* thumbnail card */}
+                      <div style={{
+                        height: 88, background: "#fff",
+                        border: selected ? "2px solid #111" : "1px solid #D1D5DB",
+                        borderRadius: 7, overflow: "hidden", padding: "6px 8px",
+                        boxSizing: "border-box", position: "relative",
+                        transition: "border 0.15s",
+                      }}>
+                        {selected && (
+                          <span style={{ position: "absolute", top: 4, right: 4, width: 15, height: 15,
+                            borderRadius: "50%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Check size={9} color="#fff" strokeWidth={3} />
+                          </span>
+                        )}
+                        {bs.preview(shopName.slice(0, 8).toUpperCase() || "SHOP")}
+                      </div>
+                      {/* label */}
+                      <div style={{ marginTop: 5, paddingLeft: 2 }}>
+                        <div style={{
+                          fontSize: 11, fontWeight: selected ? 800 : 700,
+                          color: selected ? "#F97316" : "#111",
+                          display: "flex", alignItems: "center", gap: 4,
+                        }}>
+                          {bs.name}
+                          {selected && <Check size={10} color="#F97316" strokeWidth={3} />}
+                        </div>
+                        <div style={{ fontSize: 10, color: "#9CA3AF", lineHeight: 1.3 }}>{bs.desc}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* bottom fade scroll indicator */}
+              <div style={{
+                position: "sticky", bottom: 0, left: 0, right: 0, height: 22,
+                background: "linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.95))",
+                pointerEvents: "none", marginTop: -22,
+              }} />
+            </div>
+
+            <div style={{ fontSize: 10, color: "#9CA3AF", textAlign: "center", marginTop: 2 }}>
+              {visibleStyles.length} style{visibleStyles.length !== 1 ? "s" : ""}
+              {styleCategory !== "all" ? ` in "${STYLE_CATEGORIES.find(c => c.key === styleCategory)?.label}"` : ""}
             </div>
           </Panel>
 
@@ -929,14 +1097,38 @@ export default function PrintSettingsPage() {
             </div>
           </div>
 
-          <ReceiptPreview s={s} shopName={shopName} address={address} phone={phone} logoUrl={logoUrl} logoSize={logoSize} />
+          <div
+            onClick={() => setZoomOpen(true)}
+            style={{ position: "relative", cursor: "zoom-in" }}
+            title="Click to zoom"
+          >
+            <ReceiptPreview s={s} shopName={shopName} address={address} phone={phone} logoUrl={logoUrl} logoSize={logoSize} />
+
+            {/* zoom hint badge */}
+            <div style={{
+              position: "absolute", top: 8, right: 8,
+              width: 26, height: 26, borderRadius: "50%",
+              background: "rgba(17,17,17,0.75)", color: "#fff",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              opacity: 0.85,
+            }}>
+              <ZoomIn size={13} />
+            </div>
+          </div>
 
           <div style={{ marginTop: 20, fontSize: 11, color: "#9CA3AF", textAlign: "center", lineHeight: 1.6 }}>
-            Preview uses sample data.<br />Actual print uses your transaction details.
+            Preview uses sample data.<br />Actual print uses your transaction details.<br />
+            <span style={{ color: "#B0B4BA" }}>Click the receipt to zoom in.</span>
           </div>
         </div>
 
       </div>
+
+      {zoomOpen && (
+        <PreviewZoomModal onClose={() => setZoomOpen(false)}>
+          <ReceiptPreview s={s} shopName={shopName} address={address} phone={phone} logoUrl={logoUrl} logoSize={logoSize} />
+        </PreviewZoomModal>
+      )}
     </div>
   );
 }
