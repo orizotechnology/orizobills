@@ -69,6 +69,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Sale Invoices",             icon: FileText,      to: "/app/sales/invoices"   },
       { label: "Payment-In",                icon: CreditCard,    to: "/app/sales/payment-in" },
       { label: "Sale Order",                icon: ClipboardList, to: "/app/sales/orders"     },
+      { label: "Book Order",                icon: BookOpen,      to: "/app/sales/orders/new", isSubChild: true },
       { label: "Delivery Challan",          icon: PackageCheck,  to: "/app/sales/challan"    },
       { label: "Sale Return / Credit Note", icon: RotateCcw,     to: "/app/sales/returns"    },
     ],

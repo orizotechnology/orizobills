@@ -27,6 +27,7 @@ const ReceivedPage        = lazy(() => import("@/app/products/transfer/ReceivedP
 const SaleInvoicesPage    = lazy(() => import("@/app/sales/invoices/SaleInvoicesPage"));
 const PaymentInPage       = lazy(() => import("@/app/sales/payment-in/PaymentInPage"));
 const SaleOrderPage       = lazy(() => import("@/app/sales/orders/SaleOrderPage"));
+const OrderEntryPage      = lazy(() => import("@/app/sales/orders/OrderEntryPage"));
 const DeliveryChallanPage = lazy(() => import("@/app/sales/challan/DeliveryChallanPage"));
 const SaleReturnPage      = lazy(() => import("@/app/sales/returns/SaleReturnPage"));
 const ReturnEntryPage     = lazy(() => import("@/app/sales/returns/ReturnEntryPage"));
@@ -77,7 +78,8 @@ export function AppRoutes() {
         {/* Sales */}
         <Route path="/app/sales/invoices"   element={<W><SaleInvoicesPage /></W>} />
         <Route path="/app/sales/payment-in" element={<W><PaymentInPage /></W>} />
-        <Route path="/app/sales/orders"     element={<W><SaleOrderPage /></W>} />
+        <Route path="/app/sales/orders"          element={<W><SaleOrderPage /></W>} />
+        <Route path="/app/sales/orders/new"      element={<OrderEntryPage />} />
         <Route path="/app/sales/challan"    element={<W><DeliveryChallanPage /></W>} />
         <Route path="/app/sales/returns"          element={<W><SaleReturnPage /></W>} />
         <Route path="/app/sales/returns/new"       element={<ReturnEntryPage />} />

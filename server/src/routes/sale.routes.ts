@@ -64,7 +64,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
         req.prisma.saleOrder.count({ where }),
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return reply.send(successResponse({ data: rows.map((o: any) => ({ id: o.id, orderNumber: o.orderNumber, customerName: o.customerName, orderDate: o.orderDate?.toISOString?.() ?? "", dueDate: o.dueDate?.toISOString?.() ?? null, totalAmt: parseFloat(o.totalAmt), status: o.status, itemCount: o._count?.items ?? 0, createdAt: o.createdAt?.toISOString?.() ?? "" })), total }));
+      return reply.send(successResponse({ data: rows.map((o: any) => ({ id: o.id, orderNumber: o.orderNumber, customerName: o.customerName, phone: o.phone ?? null, orderDate: o.orderDate?.toISOString?.() ?? "", dueDate: o.dueDate?.toISOString?.() ?? null, source: o.source ?? "Walk-in", totalAmt: parseFloat(o.totalAmt), status: o.status, itemCount: o._count?.items ?? 0, createdAt: o.createdAt?.toISOString?.() ?? "" })), total }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
@@ -72,11 +72,11 @@ export async function saleRoutes(fastify: FastifyInstance) {
     try {
       const page = Number(req.query.page ?? 1), size = Number(req.query.pageSize ?? 20);
       const [rows, total] = await Promise.all([
-        req.prisma.deliveryChallan.findMany({ include: { _count: { select: { items: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
+        req.prisma.deliveryChallan.findMany({ include: { _count: { select: { items: true } }, order: { select: { orderNumber: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * size, take: size }),
         req.prisma.deliveryChallan.count(),
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return reply.send(successResponse({ data: rows.map((c: any) => ({ id: c.id, challanNumber: c.challanNumber, customerName: c.customerName, challanDate: c.challanDate?.toISOString?.() ?? "", vehicleNo: c.vehicleNo ?? null, status: c.status, itemCount: c._count?.items ?? 0, createdAt: c.createdAt?.toISOString?.() ?? "" })), total }));
+      return reply.send(successResponse({ data: rows.map((c: any) => ({ id: c.id, challanNumber: c.challanNumber, orderId: c.orderId ?? null, orderNumber: c.order?.orderNumber ?? null, customerName: c.customerName, challanDate: c.challanDate?.toISOString?.() ?? "", vehicleNo: c.vehicleNo ?? null, status: c.status, itemCount: c._count?.items ?? 0, createdAt: c.createdAt?.toISOString?.() ?? "" })), total }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
@@ -534,40 +534,267 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
   // ── Sale Orders ───────────────────────────────────────────
 
+  // helper
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function toOrderResult(o: any) {
+    return {
+      id: o.id, orderNumber: o.orderNumber,
+      customerName: o.customerName, customerId: o.customerId ?? null,
+      phone: o.phone ?? null,
+      orderDate: o.orderDate?.toISOString?.() ?? "",
+      dueDate: o.dueDate?.toISOString?.() ?? null,
+      source: o.source ?? "Walk-in",
+      subtotal: parseFloat(o.subtotal), totalAmt: parseFloat(o.totalAmt),
+      notes: o.notes ?? null, status: o.status,
+      itemCount: o._count?.items ?? o.items?.length ?? 0,
+      createdAt: o.createdAt?.toISOString?.() ?? "",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      items: o.items?.map((i: any) => ({
+        id: i.id, itemName: i.itemName, itemCode: i.itemCode,
+        productId: i.productId ?? null,
+        quantity: parseFloat(i.quantity), unitPrice: parseFloat(i.unitPrice),
+        mrp: parseFloat(i.mrp ?? 0), taxPct: parseFloat(i.taxPct ?? 0),
+        totalAmount: parseFloat(i.totalAmount),
+      })) ?? undefined,
+    };
+  }
+
+  const orderItemSchema = z.object({
+    productId:   z.string().optional(),
+    itemName:    z.string().min(1),
+    itemCode:    z.string().default(""),
+    quantity:    z.number().min(0.001),
+    unitPrice:   z.number().min(0),
+    mrp:         z.number().min(0).default(0),
+    taxPct:      z.number().min(0).default(0),
+    totalAmount: z.number().min(0),
+  });
+
+  const orderBodySchema = z.object({
+    customerName: z.string().default("Walk-in Customer"),
+    customerId:   z.string().optional(),
+    phone:        z.string().optional(),
+    orderDate:    z.string(),
+    dueDate:      z.string().optional(),
+    source:       z.string().default("Walk-in"),
+    notes:        z.string().optional(),
+    items:        z.array(orderItemSchema).min(1),
+  });
+
   fastify.post("/orders", async (req, reply) => {
-    const schema = z.object({
-      customerName: z.string().default("Walk-in Customer"), customerId: z.string().optional(),
-      orderDate: z.string(), dueDate: z.string().optional(), notes: z.string().optional(),
-      items: z.array(z.object({ productId: z.string().optional(), itemName: z.string(), itemCode: z.string(), quantity: z.number().min(0), unitPrice: z.number().min(0), totalAmount: z.number().min(0) })).min(1),
-    });
-    const parse = schema.safeParse(req.body);
+    const parse = orderBodySchema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
       const orderNumber = await getNextOrderNumber(req.prisma);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const totalAmt = parse.data.items.reduce((s: number, i: any) => s + i.totalAmount, 0);
       const order = await req.prisma.saleOrder.create({
-        data: { orderNumber, customerId: parse.data.customerId ?? null, customerName: parse.data.customerName, orderDate: new Date(parse.data.orderDate), dueDate: parse.data.dueDate ? new Date(parse.data.dueDate) : null, notes: parse.data.notes ?? null, totalAmt, subtotal: totalAmt, items: { create: parse.data.items } },
+        data: {
+          orderNumber, customerId: parse.data.customerId ?? null,
+          customerName: parse.data.customerName, phone: parse.data.phone ?? null,
+          orderDate: new Date(parse.data.orderDate),
+          dueDate: parse.data.dueDate ? new Date(parse.data.dueDate) : null,
+          source: parse.data.source, notes: parse.data.notes ?? null,
+          totalAmt, subtotal: totalAmt,
+          items: { create: parse.data.items },
+        },
+        include: { _count: { select: { items: true } } },
       });
-      return reply.status(HTTP_STATUS.CREATED).send(successResponse(order, "Order saved"));
+      return reply.status(HTTP_STATUS.CREATED).send(successResponse(toOrderResult(order), "Order saved"));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  fastify.get("/orders/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      const o = await req.prisma.saleOrder.findUnique({ where: { id: req.params.id }, include: { items: true } });
+      if (!o) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
+      return reply.send(successResponse(toOrderResult(o)));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  fastify.put("/orders/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    const parse = orderBodySchema.safeParse(req.body);
+    if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
+    try {
+      const existing = await req.prisma.saleOrder.findUnique({ where: { id: req.params.id } });
+      if (!existing) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const totalAmt = parse.data.items.reduce((s: number, i: any) => s + i.totalAmount, 0);
+      await req.prisma.saleOrderItem.deleteMany({ where: { orderId: req.params.id } });
+      const order = await req.prisma.saleOrder.update({
+        where: { id: req.params.id },
+        data: {
+          customerName: parse.data.customerName, customerId: parse.data.customerId ?? null,
+          phone: parse.data.phone ?? null,
+          orderDate: new Date(parse.data.orderDate),
+          dueDate: parse.data.dueDate ? new Date(parse.data.dueDate) : null,
+          source: parse.data.source, notes: parse.data.notes ?? null,
+          totalAmt, subtotal: totalAmt,
+          items: { create: parse.data.items },
+        },
+        include: { items: true },
+      });
+      return reply.send(successResponse(toOrderResult(order), "Order updated"));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  fastify.patch("/orders/:id/status", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    const parse = z.object({ status: z.enum(["PENDING", "CONFIRMED", "DELIVERED", "CANCELLED"]) }).safeParse(req.body);
+    if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse("Invalid status", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
+    try {
+      const order = await req.prisma.saleOrder.update({ where: { id: req.params.id }, data: { status: parse.data.status }, include: { _count: { select: { items: true } } } });
+      return reply.send(successResponse(toOrderResult(order), "Status updated"));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  fastify.delete("/orders/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      await req.prisma.saleOrderItem.deleteMany({ where: { orderId: req.params.id } });
+      await req.prisma.saleOrder.delete({ where: { id: req.params.id } });
+      return reply.send(successResponse(null, "Order deleted"));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  // Convert order → sale invoice
+  fastify.post("/orders/:id/convert-to-invoice", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      const order = await req.prisma.saleOrder.findUnique({ where: { id: req.params.id }, include: { items: true } });
+      if (!order) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Order not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
+      const invoiceNumber = await getNextSaleNumber(req.prisma);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items = order.items.map((i: any) => ({
+        productId: i.productId ?? null, itemName: i.itemName, itemCode: i.itemCode,
+        quantity: parseFloat(i.quantity), unit: "Nos", mrp: parseFloat(i.mrp ?? 0),
+        unitPrice: parseFloat(i.unitPrice), discountPct: 0, discountAmt: 0,
+        taxPercent: parseFloat(i.taxPct ?? 0), taxAmount: 0, totalAmount: parseFloat(i.totalAmount),
+      }));
+      const subtotal = items.reduce((s: number, i: { unitPrice: number; quantity: number }) => s + i.unitPrice * i.quantity, 0);
+      const totalAmt = parseFloat(String(order.totalAmt));
+      const sale = await req.prisma.$transaction(async (tx: typeof req.prisma) => {
+        const s = await tx.saleInvoice.create({
+          data: {
+            invoiceNumber, customerName: order.customerName, customerId: order.customerId ?? null,
+            invoiceDate: new Date(), paymentMethod: "Cash",
+            subtotal, discountPct: 0, discountAmt: 0, cgst: 0, sgst: 0,
+            totalAmt, paidAmt: 0, balanceDue: totalAmt, status: "UNPAID",
+            notes: order.notes ?? null,
+            items: { create: items },
+          },
+          include: { _count: { select: { items: true } } },
+        });
+        // Deduct stock
+        for (const item of items) {
+          if (item.productId) {
+            await tx.inventoryItem.upsert({ where: { productId: item.productId }, create: { productId: item.productId, openingStock: 0, stockIn: 0, stockOut: item.quantity, lowStockAlert: 5 }, update: { stockOut: { increment: item.quantity } } });
+          }
+        }
+        await tx.saleOrder.update({ where: { id: order.id }, data: { status: "DELIVERED" } });
+        return s;
+      });
+      return reply.status(HTTP_STATUS.CREATED).send(successResponse(toSaleResult(sale), "Invoice created"));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  // Create challan from order
+  fastify.post("/orders/:id/create-challan", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      const order = await req.prisma.saleOrder.findUnique({ where: { id: req.params.id }, include: { items: true } });
+      if (!order) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Order not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
+      const challanNumber = await getNextChallanNumber(req.prisma);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const challanItems = order.items.map((i: any) => ({
+        productId: i.productId ?? null, itemName: i.itemName, itemCode: i.itemCode,
+        quantity: parseFloat(i.quantity), unit: "Nos",
+      }));
+      const challan = await req.prisma.$transaction(async (tx: typeof req.prisma) => {
+        const c = await tx.deliveryChallan.create({
+          data: {
+            challanNumber, orderId: order.id,
+            customerId: order.customerId ?? null, customerName: order.customerName,
+            challanDate: new Date(), notes: order.notes ?? null,
+            items: { create: challanItems },
+          },
+          include: { _count: { select: { items: true } } },
+        });
+        await tx.saleOrder.update({ where: { id: order.id }, data: { status: "CONFIRMED" } });
+        return c;
+      });
+      return reply.status(HTTP_STATUS.CREATED).send(successResponse(toChallanResult(challan), "Challan created"));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 
   // ── Delivery Challans ─────────────────────────────────────
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function toChallanResult(c: any) {
+    return {
+      id: c.id, challanNumber: c.challanNumber,
+      orderId: c.orderId ?? null, orderNumber: c.order?.orderNumber ?? null,
+      customerName: c.customerName, customerId: c.customerId ?? null,
+      challanDate: c.challanDate?.toISOString?.() ?? "",
+      vehicleNo: c.vehicleNo ?? null, notes: c.notes ?? null,
+      status: c.status, itemCount: c._count?.items ?? c.items?.length ?? 0,
+      createdAt: c.createdAt?.toISOString?.() ?? "",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      items: c.items?.map((i: any) => ({
+        id: i.id, itemName: i.itemName, itemCode: i.itemCode,
+        productId: i.productId ?? null,
+        quantity: parseFloat(i.quantity), unit: i.unit,
+      })) ?? undefined,
+    };
+  }
+
   fastify.post("/challans", async (req, reply) => {
     const schema = z.object({
       customerName: z.string().default("Walk-in Customer"), customerId: z.string().optional(),
+      orderId: z.string().optional(),
       challanDate: z.string(), vehicleNo: z.string().optional(), notes: z.string().optional(),
-      items: z.array(z.object({ productId: z.string().optional(), itemName: z.string(), itemCode: z.string(), quantity: z.number().min(0), unit: z.string().default("Nos") })).min(1),
+      items: z.array(z.object({ productId: z.string().optional(), itemName: z.string(), itemCode: z.string().default(""), quantity: z.number().min(0), unit: z.string().default("Nos") })).min(1),
     });
     const parse = schema.safeParse(req.body);
     if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse(parse.error.errors[0]?.message ?? "Validation failed", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
     try {
       const challanNumber = await getNextChallanNumber(req.prisma);
       const challan = await req.prisma.deliveryChallan.create({
-        data: { challanNumber, customerId: parse.data.customerId ?? null, customerName: parse.data.customerName, challanDate: new Date(parse.data.challanDate), vehicleNo: parse.data.vehicleNo ?? null, notes: parse.data.notes ?? null, items: { create: parse.data.items } },
+        data: {
+          challanNumber, orderId: parse.data.orderId ?? null,
+          customerId: parse.data.customerId ?? null, customerName: parse.data.customerName,
+          challanDate: new Date(parse.data.challanDate), vehicleNo: parse.data.vehicleNo ?? null,
+          notes: parse.data.notes ?? null,
+          items: { create: parse.data.items },
+        },
+        include: { _count: { select: { items: true } } },
       });
-      return reply.status(HTTP_STATUS.CREATED).send(successResponse(challan, "Challan saved"));
+      return reply.status(HTTP_STATUS.CREATED).send(successResponse(toChallanResult(challan), "Challan saved"));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  fastify.get("/challans/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      const c = await req.prisma.deliveryChallan.findUnique({ where: { id: req.params.id }, include: { items: true, order: { select: { orderNumber: true } } } });
+      if (!c) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
+      return reply.send(successResponse(toChallanResult(c)));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  fastify.patch("/challans/:id/status", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    const parse = z.object({ status: z.enum(["PENDING", "DELIVERED", "CANCELLED"]) }).safeParse(req.body);
+    if (!parse.success) return reply.status(HTTP_STATUS.BAD_REQUEST).send(errorResponse("Invalid status", HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR));
+    try {
+      const challan = await req.prisma.deliveryChallan.update({ where: { id: req.params.id }, data: { status: parse.data.status }, include: { _count: { select: { items: true } }, order: { select: { orderNumber: true } } } });
+      // If challan delivered and linked to order → mark order DELIVERED too
+      if (parse.data.status === "DELIVERED" && challan.orderId) {
+        await req.prisma.saleOrder.update({ where: { id: challan.orderId }, data: { status: "DELIVERED" } }).catch(() => {});
+      }
+      return reply.send(successResponse(toChallanResult(challan), "Status updated"));
+    } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
+  });
+
+  fastify.delete("/challans/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    try {
+      await req.prisma.deliveryChallanItem.deleteMany({ where: { challanId: req.params.id } });
+      await req.prisma.deliveryChallan.delete({ where: { id: req.params.id } });
+      return reply.send(successResponse(null, "Challan deleted"));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
   });
 }
