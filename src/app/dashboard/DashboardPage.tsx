@@ -24,8 +24,9 @@ interface StatsResp {
     totalPurchases: number;
     totalProfit: number;
     outstanding: number;
-    todaySales: number;
+        todaySales: number;
     todayExpenses: number;
+    totalExpenses: number;
     totalStockValue: number;
   };
 }
@@ -126,13 +127,20 @@ export default function DashboardPage() {
   ];
 
   // ── Row 2: Today's Expenses + Total Stock Value + Outstanding ─
-  const ROW2 = [
+    const ROW2 = [
     {
       title: "Today's Expenses",
       value: isLoading ? "…" : fmt(stats?.todayExpenses ?? 0),
       change: 0, changeLabel: "today",
       icon: <Receipt size={20} strokeWidth={1.7} />,
       valueColor: !isLoading && (stats?.todayExpenses ?? 0) > 0 ? "#EF4444" : undefined,
+    },
+    {
+      title: "Expense Tracker",
+      value: isLoading ? "…" : fmt(stats?.totalExpenses ?? 0),
+      change: 0, changeLabel: "all-time",
+      icon: <TrendingUp size={20} strokeWidth={1.7} />,
+      valueColor: !isLoading && (stats?.totalExpenses ?? 0) > 0 ? "#EF4444" : undefined,
     },
     {
       title: "Stock Value",
@@ -241,7 +249,7 @@ export default function DashboardPage() {
             {ROW1.map((s, i) => <StatCard key={s.title} {...s} index={i} />)}
           </div>
           {/* Row 2: Today's Expenses + Stock Value + Outstanding */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
             {ROW2.map((s, i) => <StatCard key={s.title} {...s} index={i + 2} />)}
           </div>
         </div>

@@ -99,11 +99,28 @@ export async function saleRoutes(fastify: FastifyInstance) {
         purchaseDateWhere = { billDate:    { gte: start, lt: end } };
       }
 
-      // Today's date range (midnight → now)
-      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-      const todayEnd   = new Date(); todayEnd.setHours(23, 59, 59, 999);
+      // Today's date range (midnight → now) — anchored to IST (UTC+5:30) so
+// "today" always matches the business's local day, regardless of the
+// server's own system timezone (which is often UTC on hosting platforms).
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+const nowIst = new Date(Date.now() + IST_OFFSET_MS);
+const todayStart = new Date(
+  Date.UTC(nowIst.getUTCFullYear(), nowIst.getUTCMonth(), nowIst.getUTCDate(), 0, 0, 0) - IST_OFFSET_MS
+);
+const todayEnd = new Date(
+  Date.UTC(nowIst.getUTCFullYear(), nowIst.getUTCMonth(), nowIst.getUTCDate(), 23, 59, 59, 999) - IST_OFFSET_MS
+);
 
-      const [salesAgg, purchasesAgg, outstanding, todaySalesAgg, todayExpensesAgg, inventoryRows] = await Promise.all([
+// 🔍 DEBUG — temporary, remove after fixing
+console.log("=== STATS DEBUG ===");
+console.log("Server current time:", new Date().toString());
+console.log("todayStart:", todayStart.toISOString());
+console.log("todayEnd:", todayEnd.toISOString());
+const allExpenses = await req.prisma.expense.findMany({ select: { id: true, amount: true, expenseDate: true } });
+console.log("All expenses in DB:", JSON.stringify(allExpenses, null, 2));
+console.log("===================");
+
+       const [salesAgg, purchasesAgg, outstanding, todaySalesAgg, todayExpensesAgg, totalExpensesAgg, inventoryRows] = await Promise.all([
         req.prisma.saleInvoice.aggregate({
           _sum: { totalAmt: true, paidAmt: true },
           where: { status: { not: "CANCELLED" }, ...dateWhere },
@@ -126,11 +143,15 @@ export async function saleRoutes(fastify: FastifyInstance) {
           _sum: { amount: true },
           where: { expenseDate: { gte: todayStart, lte: todayEnd } },
         }),
+        // All-time total expenses — no date filter, everything ever recorded
+        req.prisma.expense.aggregate({
+          _sum: { amount: true },
+        }),
         // All inventory items for total stock value
         req.prisma.inventoryItem.findMany({
           include: { product: { select: { salePrice: true, isActive: true } } },
         }),
-      ]);
+      ]); 
 
       const totalSales     = parseFloat(String(salesAgg._sum.totalAmt ?? 0));
       const totalPurchases = parseFloat(String(purchasesAgg._sum.totalAmt ?? 0));
@@ -150,7 +171,8 @@ export async function saleRoutes(fastify: FastifyInstance) {
         totalProfit:     totalSales - totalPurchases,
         outstanding:     parseFloat(String(outstanding._sum.balanceDue ?? 0)),
         todaySales:      parseFloat(String(todaySalesAgg._sum.totalAmt ?? 0)),
-        todayExpenses:   parseFloat(String(todayExpensesAgg._sum.amount ?? 0)),
+               todayExpenses:   parseFloat(String(todayExpensesAgg._sum.amount ?? 0)),
+        totalExpenses:   parseFloat(String(totalExpensesAgg._sum.amount ?? 0)),
         totalStockValue: parseFloat(totalStockValue.toFixed(2)),
       }));
     } catch (err) { return reply.status(HTTP_STATUS.INTERNAL_ERROR).send(errorResponse(String(err), HTTP_STATUS.INTERNAL_ERROR, ERROR_CODES.DATABASE_ERROR)); }
