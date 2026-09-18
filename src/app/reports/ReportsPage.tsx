@@ -9,10 +9,6 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { http } from "@/lib/axios";
 
-// =============================================================
-// REPORTS PAGE — date-filtered real data views
-// =============================================================
-
 type ReportKey = "sales" | "purchases" | "stock" | "customers" | "pnl" | "gst" | null;
 type DateFilter = "all" | "today" | "week" | "month" | "custom";
 
@@ -25,7 +21,6 @@ interface Customer {
   createdAt: string;
 }
 
-/* ---------------- Single orange palette (no green/purple/red/blue/yellow) ---------------- */
 const ORANGE = {
   base:   "#F97316",
   dark:   "#EA580C",
@@ -44,7 +39,6 @@ const CARDS = [
   { key: "gst"       as ReportKey, icon: FileText,    color: ORANGE.pale,   title: "GST Reports",       desc: "GSTR-1, GSTR-3B and HSN summary" },
 ];
 
-// All first, then date presets, custom last
 const DATE_FILTERS: { key: DateFilter; label: string }[] = [
   { key: "all",    label: "All" },
   { key: "today",  label: "Today" },
@@ -53,7 +47,6 @@ const DATE_FILTERS: { key: DateFilter; label: string }[] = [
   { key: "custom", label: "Custom" },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────
 function toStr(d: Date) { return d.toISOString().slice(0, 10); }
 
 function getPreset(f: DateFilter): DateRange {
@@ -74,7 +67,6 @@ function getPreset(f: DateFilter): DateRange {
   return { start: "", end: "" };
 }
 
-// Immediately-preceding period of the same length — used for trend/comparison badges
 function getPrevRange(dr: DateRange): DateRange {
   if (!dr.start || !dr.end) return { start: "", end: "" };
   const start = new Date(dr.start);
@@ -87,7 +79,6 @@ function getPrevRange(dr: DateRange): DateRange {
   return { start: toStr(prevStart), end: toStr(prevEnd) };
 }
 
-// Returns query params object — undefined when no date filter (avoids appending "?" to URL)
 function dp(dr: DateRange): Record<string, string | number | boolean> | undefined {
   return dr.start && dr.end ? { startDate: dr.start, endDate: dr.end } : undefined;
 }
@@ -98,28 +89,38 @@ function periodLabel(dr: DateRange): string {
   return `${f(dr.start)} – ${f(dr.end)}`;
 }
 
-// ── Real Excel (.xlsx) export via SheetJS ───────────────────────
-function exportExcel(filename: string, sheetName: string, headers: string[], rows: (string | number)[][]) {
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  // Auto column widths based on header/content length
-  ws["!cols"] = headers.map((h, i) => {
-    const maxLen = Math.max(h.length, ...rows.map((r) => String(r[i] ?? "").length));
-    return { wch: Math.min(Math.max(maxLen + 3, 12), 40) };
-  });
+function exportExcel(
+  filename: string,
+  sheetName: string,
+  headers: string[],
+  rows: (string | number)[][],
+  extraSheets?: { sheetName: string; headers: string[]; rows: (string | number)[][] }[],
+) {
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31)); // sheet name max 31 chars
+
+  const addSheet = (name: string, hdrs: string[], rws: (string | number)[][]) => {
+    const ws = XLSX.utils.aoa_to_sheet([hdrs, ...rws]);
+    ws["!cols"] = hdrs.map((h, i) => {
+      const maxLen = Math.max(h.length, ...rws.map((r) => String(r[i] ?? "").length));
+      return { wch: Math.min(Math.max(maxLen + 3, 12), 40) };
+    });
+    XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+  };
+
+  addSheet(sheetName, headers, rows);
+  extraSheets?.forEach((s) => addSheet(s.sheetName, s.headers, s.rows));
+
   XLSX.writeFile(wb, filename);
 }
 
-// ── Real branded PDF export via jsPDF + autoTable ───────────────
 function exportPDF(opts: {
   filename: string; title: string; subtitle: string;
   headers: string[]; rows: (string | number)[][];
+  extraTables?: { heading: string; headers: string[]; rows: (string | number)[][] }[];
 }) {
-  const { filename, title, subtitle, headers, rows } = opts;
+  const { filename, title, subtitle, headers, rows, extraTables } = opts;
   const doc = new jsPDF();
 
-  // Header
   doc.setFontSize(16);
   doc.setTextColor(15, 23, 42);
   doc.setFont("helvetica", "bold");
@@ -143,7 +144,28 @@ function exportPDF(opts: {
     margin: { left: 14, right: 14 },
   });
 
-  // Footer — page numbers + generated timestamp on every page
+  if (extraTables && extraTables.length > 0) {
+    for (const t of extraTables) {
+      doc.addPage();
+      doc.setFontSize(13);
+      doc.setTextColor(51, 65, 85);
+      doc.setFont("helvetica", "bold");
+      doc.text(t.heading, 14, 16);
+      doc.setFont("helvetica", "normal");
+
+      autoTable(doc, {
+        startY: 22,
+        head: [t.headers],
+        body: t.rows.map((r) => r.map(String)),
+        theme: "striped",
+        headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontSize: 9, fontStyle: "bold" },
+        bodyStyles: { fontSize: 8, textColor: [51, 65, 85] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: 14, right: 14 },
+      });
+    }
+  }
+
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -159,7 +181,6 @@ function exportPDF(opts: {
   doc.save(filename);
 }
 
-// ── Export button (Excel .xlsx + PDF + Print) ────────────────────
 function ExportButton({
   onExportExcel, onExportPDF, disabled,
 }: {
@@ -210,7 +231,6 @@ const menuItemStyle: React.CSSProperties = {
   background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
 };
 
-// ── Empty state ──────────────────────────────────────────────
 function EmptyState({ text }: { text: string }) {
   return (
     <div style={{
@@ -223,9 +243,8 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
-// ── Trend badge (week-over-week / period-over-period) ─────────
 function TrendBadge({ current, previous }: { current: number; previous: number }) {
-  if (previous === 0) return null; // avoid infinite % when no baseline
+  if (previous === 0) return null;
   const pct = ((current - previous) / previous) * 100;
   const up = pct >= 0;
   return (
@@ -239,7 +258,6 @@ function TrendBadge({ current, previous }: { current: number; previous: number }
   );
 }
 
-// ── Skeleton loaders ─────────────────────────────────────────
 function SkeletonCards({ count, cols }: { count: number; cols: number }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols},1fr)`, gap: 16 }}>
@@ -285,7 +303,6 @@ function SkeletonList({ rows = 4 }: { rows?: number }) {
   );
 }
 
-// ── Date filter bar ───────────────────────────────────────────
 function DateFilterBar({
   value, onChange, fromDate, toDate, onFromDate, onToDate,
 }: {
@@ -328,7 +345,22 @@ function DateFilterBar({
   );
 }
 
-// ── Sale Summary ──────────────────────────────────────────────
+interface SaleInvoiceRow {
+  invoiceNumber: string;
+  customerName: string;
+  invoiceDate: string;
+  paymentMethod: string;
+  subtotal: number;
+  discountAmt: number;
+  cgst: number;
+  sgst: number;
+  totalAmt: number;
+  paidAmt: number;
+  balanceDue: number;
+  status: string;
+  itemCount: number;
+}
+
 function SalesSummaryReport({ dateRange, prevDateRange, isAllTime }: { dateRange: DateRange; prevDateRange: DateRange; isAllTime: boolean }) {
   const { data, isLoading } = useQuery({
     queryKey: ["report-sales-stats", dateRange.start, dateRange.end],
@@ -343,6 +375,14 @@ function SalesSummaryReport({ dateRange, prevDateRange, isAllTime }: { dateRange
       "/sales/stats", { params: dp(prevDateRange) },
     ),
     enabled: !isAllTime && !!prevDateRange.start,
+    staleTime: 30_000,
+  });
+
+  const invoices = useQuery({
+    queryKey: ["report-sales-invoices", dateRange.start, dateRange.end],
+    queryFn: () => http.get<ApiResp<{ data: SaleInvoiceRow[]; total: number }>>(
+      "/sales", { params: { page: 1, pageSize: 10000, ...dp(dateRange) } },
+    ),
     staleTime: 30_000,
   });
 
@@ -370,11 +410,40 @@ function SalesSummaryReport({ dateRange, prevDateRange, isAllTime }: { dateRange
     ["Outstanding Due", s?.outstanding ?? 0],
   ];
 
-  const handleExportExcel = () => exportExcel("sale-summary.xlsx", "Sale Summary", headers, dataRows);
+  const invoiceRows = invoices.data?.data?.data ?? [];
+  const billHeaders = [
+    "Invoice No", "Date", "Customer", "Payment", "Items",
+    "Subtotal", "Discount", "CGST", "SGST", "Total", "Paid", "Balance Due", "Status",
+  ];
+  const billDataRows: (string | number)[][] = invoiceRows.map((inv) => [
+    inv.invoiceNumber,
+    inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString("en-IN") : "",
+    inv.customerName,
+    inv.paymentMethod,
+    inv.itemCount,
+    Number(inv.subtotal ?? 0).toFixed(2),
+    Number(inv.discountAmt ?? 0).toFixed(2),
+    Number(inv.cgst ?? 0).toFixed(2),
+    Number(inv.sgst ?? 0).toFixed(2),
+    Number(inv.totalAmt ?? 0).toFixed(2),
+    Number(inv.paidAmt ?? 0).toFixed(2),
+    Number(inv.balanceDue ?? 0).toFixed(2),
+    inv.status,
+  ]);
+
+  const handleExportExcel = () => exportExcel(
+    "sale-summary.xlsx", "Sale Summary", headers, dataRows,
+    billDataRows.length > 0
+      ? [{ sheetName: "Bill Details", headers: billHeaders, rows: billDataRows }]
+      : undefined,
+  );
   const handleExportPDF = () => exportPDF({
     filename: "sale-summary.pdf", title: "Sale Summary",
     subtitle: `Total sales, returns & net revenue · ${periodLabel(dateRange)}`,
     headers, rows: dataRows,
+    extraTables: billDataRows.length > 0
+      ? [{ heading: "Bill Details", headers: billHeaders, rows: billDataRows }]
+      : undefined,
   });
 
   const rows: { label: string; value: number; formatted: string; color: string; trend?: boolean }[] = [
@@ -403,7 +472,6 @@ function SalesSummaryReport({ dateRange, prevDateRange, isAllTime }: { dateRange
   );
 }
 
-// ── Purchase Summary ──────────────────────────────────────────
 function PurchaseSummaryReport({ dateRange }: { dateRange: DateRange }) {
   const { data, isLoading } = useQuery({
     queryKey: ["report-purchase-stats", dateRange.start, dateRange.end],
@@ -474,7 +542,6 @@ function PurchaseSummaryReport({ dateRange }: { dateRange: DateRange }) {
   );
 }
 
-// ── Stock Report (point-in-time, no date filter) ──────────────
 function StockReport() {
   const { data, isLoading } = useQuery({
     queryKey: ["report-inventory"],
@@ -568,7 +635,6 @@ function StockReport() {
   );
 }
 
-// ── Customer Report (point-in-time, no date filter) ───────────
 function CustomerReport() {
   const { data, isLoading } = useQuery({
     queryKey: ["report-customers"],
@@ -653,7 +719,6 @@ function CustomerReport() {
   );
 }
 
-// ── P&L Report ────────────────────────────────────────────────
 function PnLReport({ dateRange }: { dateRange: DateRange }) {
   const stats = useQuery({
     queryKey: ["report-pnl-stats", dateRange.start, dateRange.end],
@@ -727,7 +792,6 @@ function PnLReport({ dateRange }: { dateRange: DateRange }) {
   );
 }
 
-// ── GST Report ────────────────────────────────────────────────
 function GstReport({ dateRange }: { dateRange: DateRange }) {
   const { data, isLoading } = useQuery({
     queryKey: ["report-gst", dateRange.start, dateRange.end],
@@ -795,7 +859,6 @@ function GstReport({ dateRange }: { dateRange: DateRange }) {
   );
 }
 
-// ── Route to correct report component ────────────────────────
 function ReportContent({ reportKey, dateRange, prevDateRange, isAllTime }: {
   reportKey: NonNullable<ReportKey>; dateRange: DateRange; prevDateRange: DateRange; isAllTime: boolean;
 }) {
@@ -809,7 +872,6 @@ function ReportContent({ reportKey, dateRange, prevDateRange, isAllTime }: {
   }
 }
 
-// ── Main page ─────────────────────────────────────────────────
 export default function ReportsPage() {
   const today = toStr(new Date());
   const [active,     setActive]     = useState<ReportKey>(null);
@@ -825,7 +887,6 @@ export default function ReportsPage() {
 
   const prevDateRange = useMemo<DateRange>(() => getPrevRange(dateRange), [dateRange]);
 
-  // ── Detail view ───────────────────────────────────────────
   if (active) {
     const card = CARDS.find((c) => c.key === active)!;
     const Icon = card.icon;
@@ -884,7 +945,6 @@ export default function ReportsPage() {
     );
   }
 
-  // ── Report card grid ──────────────────────────────────────
   return (
     <div style={{ padding: "24px 28px", background: "#F8FAFC", minHeight: "100%" }}>
       <div style={{ marginBottom: 24 }}>
@@ -919,7 +979,6 @@ export default function ReportsPage() {
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────
 const dateInp: React.CSSProperties = {
   border: "1px solid #E2E8F0", borderRadius: 8, padding: "6px 10px",
   fontSize: 13, color: "#1E293B", background: "#fff",
