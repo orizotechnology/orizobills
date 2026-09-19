@@ -10,7 +10,7 @@ import { z } from "zod";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toResult(p: any) {
-  const inv = p.inventory;
+  const inv = p.inventoryItem;
   const currentStock = inv
     ? parseFloat(String(inv.openingStock)) + parseFloat(String(inv.stockIn)) - parseFloat(String(inv.stockOut))
     : null;
@@ -60,7 +60,7 @@ export async function productRoutes(fastify: FastifyInstance) {
             { code: term },
           ],
         },
-        include: { inventory: INVENTORY_SELECT },
+        include: { inventoryItem: INVENTORY_SELECT },
       });
       if (!product) return reply.status(HTTP_STATUS.NOT_FOUND).send(
         errorResponse(`No product found for barcode: ${req.params.code}`, HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND)
@@ -89,7 +89,7 @@ export async function productRoutes(fastify: FastifyInstance) {
           },
           take: 20,
           orderBy: { name: "asc" },
-          include: { inventory: INVENTORY_SELECT },
+          include: { inventoryItem: INVENTORY_SELECT },
         });
         return reply.send(successResponse(results.map(toResult)));
       }
@@ -97,7 +97,7 @@ export async function productRoutes(fastify: FastifyInstance) {
       const f = (filter === "all" || filter === "inactive") ? filter : "active";
       const where = f === "all" ? {} : f === "inactive" ? { isActive: false } : { isActive: true };
       const [data, total] = await Promise.all([
-        db.product.findMany({ where, skip: (Number(page ?? 1) - 1) * Number(pageSize ?? 20), take: Number(pageSize ?? 20), orderBy: { name: "asc" }, include: { inventory: INVENTORY_SELECT } }),
+        db.product.findMany({ where, skip: (Number(page ?? 1) - 1) * Number(pageSize ?? 20), take: Number(pageSize ?? 20), orderBy: { name: "asc" }, include: { inventoryItem: INVENTORY_SELECT } }),
         db.product.count({ where }),
       ]);
       return reply.send(successResponse({ data: data.map(toResult), total }));
@@ -109,7 +109,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   // GET /api/products/:id
   fastify.get("/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
     try {
-      const product = await req.prisma.product.findUnique({ where: { id: req.params.id }, include: { inventory: INVENTORY_SELECT } });
+      const product = await req.prisma.product.findUnique({ where: { id: req.params.id }, include: { inventoryItem: INVENTORY_SELECT } });
       if (!product) return reply.status(HTTP_STATUS.NOT_FOUND).send(errorResponse("Not found", HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND));
       return reply.send(successResponse(toResult(product)));
     } catch (err) {
