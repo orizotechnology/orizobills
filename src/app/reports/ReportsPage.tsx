@@ -129,6 +129,11 @@ interface PdfSection {
 
 interface PdfSummaryItem { label: string; value: string }
 
+// jsPDF's built-in Helvetica cannot render the ₹ symbol — replace with Rs.
+function pdfRs(v: string | number): string {
+  return String(v).replace(/₹/g, "Rs.");
+}
+
 function buildPDF(opts: {
   filename:    string;
   reportTitle: string;
@@ -212,8 +217,8 @@ function buildPDF(opts: {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(...DARK_RGB);
-      // Truncate long values
-      const val = String(item.value);
+      // Truncate long values — use pdfRs to replace ₹ with Rs. for Helvetica compatibility
+      const val = pdfRs(item.value);
       const maxChars = Math.floor(cardMaxW / 3.2);
       doc.text(val.length > maxChars ? val.slice(0, maxChars - 1) + "…" : val, cx + 3, cy + 15);
       cx += cardMaxW + 5;
@@ -257,9 +262,9 @@ function buildPDF(opts: {
     });
 
     // Body rows + optional totals row
-    const bodyRows = section.rows.map((r) => r.map(String));
+    const bodyRows = section.rows.map((r) => r.map((cell) => pdfRs(cell)));
     if (section.totalsRow) {
-      bodyRows.push(section.totalsRow.map(String));
+      bodyRows.push(section.totalsRow.map((cell) => pdfRs(cell)));
     }
 
     autoTable(doc, {
