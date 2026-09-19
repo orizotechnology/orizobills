@@ -93,6 +93,11 @@ export function getDefaultPrisma(): PrismaClientType {
 // ── Branch client ─────────────────────────────────────────────
 
 export function getPrismaForBranch(branchId: string): PrismaClientType {
+  // Reject clearly invalid or reserved IDs — fall back to default
+  if (!branchId || branchId === "default" || branchId.length > 36) {
+    return getDefaultPrisma();
+  }
+
   // Check in-memory cache first
   if (_clients.has(branchId)) return _clients.get(branchId)!;
 

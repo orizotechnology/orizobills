@@ -210,5 +210,12 @@ export async function initDatabase(prisma: PrismaLike): Promise<void> {
   // 4. Auto-create Main Branch if first run
   await ensureMainBranch(prisma);
 
+  // 5. Ensure the default branch is always in the registry
+  //    (so getPrismaForBranch(defaultId) resolves properly without fallback)
+  const { registerDefaultBranchInRegistry } = await import("../services/branch.service");
+  await registerDefaultBranchInRegistry().catch((e: Error) =>
+    warn(`Could not register default branch: ${e.message}`)
+  );
+
   log("=== DB init complete — erp_system is ready ===");
 }

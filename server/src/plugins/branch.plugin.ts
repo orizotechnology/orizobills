@@ -24,7 +24,11 @@ const branchPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.decorateRequest("branchId", null);
 
   fastify.addHook("onRequest", async (req) => {
-    const branchId = req.headers["x-branch-id"] as string | undefined;
+    const raw      = req.headers["x-branch-id"] as string | undefined;
+    // Sanitise: strip whitespace, reject "default" literal, enforce UUID-ish max length
+    const branchId = raw?.trim() && raw.trim() !== "default" && raw.trim().length <= 36
+      ? raw.trim()
+      : undefined;
     req.branchId = branchId ?? null;
     req.prisma   = branchId
       ? getPrismaForBranch(branchId)

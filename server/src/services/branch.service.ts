@@ -1,4 +1,4 @@
-import * as path      from "path";
+﻿import * as path      from "path";
 import * as mysql     from "mysql2/promise";
 import { getDefaultPrisma } from "../database/prisma/manager";
 import {
@@ -15,7 +15,8 @@ import type { CreateBranchInput, CreateBranchResponse, Branch } from "../types/b
 // Each branch gets its own MySQL database.
 // =============================================================
 
-const prisma = getDefaultPrisma();
+// ── Lazy default prisma — avoids module-load race with db-init ──
+function getDb() { return getDefaultPrisma(); }
 
 // ── Utilities ─────────────────────────────────────────────────
 
@@ -112,14 +113,14 @@ function pushSchemaToBranchDb(dbUrl: string): Promise<void> {
 // ── Service methods ───────────────────────────────────────────
 
 export async function listBranches(): Promise<Branch[]> {
-  return prisma.branch.findMany({
+  return getDb().branch.findMany({
     where:   { isActive: true },
     orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
   });
 }
 
 export async function getBranchById(id: string): Promise<Branch | null> {
-  return prisma.branch.findUnique({ where: { id } });
+  return getDb().branch.findUnique({ where: { id } });
 }
 
 export async function createBranch(input: CreateBranchInput): Promise<CreateBranchResponse> {
@@ -131,18 +132,18 @@ export async function createBranch(input: CreateBranchInput): Promise<CreateBran
   const dbName = dbNameFromSlug(slug);
   const dbUrl  = buildDbUrl(dbName);
 
-  const existing = await prisma.branch.findFirst({
+  const existing = await getDb().branch.findFirst({
     where: { OR: [{ name: { equals: trimmedName } }, { slug }] },
   });
   if (existing) throw new Error(`A branch named "${trimmedName}" already exists.`);
 
-  const count     = await prisma.branch.count();
+  const count     = await getDb().branch.count();
   const isDefault = count === 0;
 
   await createBranchDatabase(dbName);
   await pushSchemaToBranchDb(dbUrl);
 
-  const branch: Branch = await prisma.branch.create({
+  const branch: Branch = await getDb().branch.create({
     data: { name: trimmedName, slug, address: address?.trim() || null, isDefault, isActive: true },
   });
 
@@ -172,7 +173,7 @@ export async function registerDefaultBranchInRegistry(): Promise<void> {
   const existing = getAllRegisteredBranches();
   if (existing.length > 0) return;
 
-  const defaultBranch = await prisma.branch.findFirst({ where: { isDefault: true } });
+  const defaultBranch = await getDb().branch.findFirst({ where: { isDefault: true } });
   if (!defaultBranch) return;
 
   const dbUrl  = process.env.DATABASE_URL ?? "";
@@ -190,12 +191,13 @@ export async function registerDefaultBranchInRegistry(): Promise<void> {
 
 export async function deleteBranch(id: string): Promise<Branch> {
   evictBranchClient(id);
-  return prisma.branch.update({ where: { id }, data: { isActive: false } });
+  return getDb().branch.update({ where: { id }, data: { isActive: false } });
 }
 
 export async function setDefaultBranch(id: string): Promise<Branch> {
   // Wrap in a transaction so we never end up with 0 or 2 default branches
-  return prisma.$transaction(async (tx: typeof prisma) => {
+  const db = getDb();
+  return db.$transaction(async (tx: typeof db) => {
     await tx.branch.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
     return tx.branch.update({ where: { id }, data: { isDefault: true } });
   });
