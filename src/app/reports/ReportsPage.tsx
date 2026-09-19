@@ -102,80 +102,200 @@ function exportExcel(
     const ws = XLSX.utils.aoa_to_sheet([hdrs, ...rws]);
     ws["!cols"] = hdrs.map((h, i) => {
       const maxLen = Math.max(h.length, ...rws.map((r) => String(r[i] ?? "").length));
-      return { wch: Math.min(Math.max(maxLen + 3, 12), 40) };
+      return { wch: Math.min(Math.max(maxLen + 3, 12), 45) };
     });
     XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
   };
 
   addSheet(sheetName, headers, rows);
   extraSheets?.forEach((s) => addSheet(s.sheetName, s.headers, s.rows));
-
   XLSX.writeFile(wb, filename);
 }
 
-function exportPDF(opts: {
-  filename: string; title: string; subtitle: string;
-  headers: string[]; rows: (string | number)[][];
-  extraTables?: { heading: string; headers: string[]; rows: (string | number)[][] }[];
+// ── Rich PDF builder ──────────────────────────────────────────
+// Generates a professional multi-section PDF:
+//   Page 1 — cover: report title, period, generated date, summary key-values
+//   Pages 2+ — detail tables (one per section)
+interface PdfSection {
+  heading: string;
+  subheading?: string;
+  headers: string[];
+  rows: (string | number)[][];
+  /** Column alignments: "left" | "right" | "center" — defaults all "left" */
+  alignments?: ("left" | "right" | "center")[];
+  /** Totals row appended after the last data row */
+  totalsRow?: (string | number)[];
+}
+
+interface PdfSummaryItem { label: string; value: string }
+
+function buildPDF(opts: {
+  filename:    string;
+  reportTitle: string;
+  reportDesc:  string;
+  period:      string;
+  generatedBy: string;
+  summary:     PdfSummaryItem[];
+  sections:    PdfSection[];
 }) {
-  const { filename, title, subtitle, headers, rows, extraTables } = opts;
-  const doc = new jsPDF();
+  const { filename, reportTitle, reportDesc, period, generatedBy, summary, sections } = opts;
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const W   = doc.internal.pageSize.width;   // 297mm landscape
+  const H   = doc.internal.pageSize.height;  // 210mm
 
-  doc.setFontSize(16);
-  doc.setTextColor(15, 23, 42);
+  const ORANGE_RGB: [number, number, number] = [249, 115, 22];
+  const DARK_RGB:   [number, number, number] = [15,  23,  42];
+  const MID_RGB:    [number, number, number] = [51,  65,  85];
+  const MUTED_RGB:  [number, number, number] = [148, 163, 184];
+
+  // ── COVER PAGE ─────────────────────────────────────────────
+
+  // Orange accent bar on left
+  doc.setFillColor(...ORANGE_RGB);
+  doc.rect(0, 0, 6, H, "F");
+
+  // Business name
   doc.setFont("helvetica", "bold");
-  doc.text("Orizo Bills", 14, 16);
-  doc.setFont("helvetica", "normal");
+  doc.setFontSize(22);
+  doc.setTextColor(...DARK_RGB);
+  doc.text("ORIZO BILLS", 16, 22);
+
+  // Divider
+  doc.setDrawColor(...ORANGE_RGB);
+  doc.setLineWidth(0.6);
+  doc.line(16, 26, W - 14, 26);
+
+  // Report title block
+  doc.setFontSize(28);
+  doc.setTextColor(...ORANGE_RGB);
+  doc.setFont("helvetica", "bold");
+  doc.text(reportTitle.toUpperCase(), 16, 46);
+
   doc.setFontSize(13);
-  doc.setTextColor(51, 65, 85);
-  doc.text(title, 14, 25);
-  doc.setFontSize(9.5);
-  doc.setTextColor(148, 163, 184);
-  doc.text(subtitle, 14, 31);
+  doc.setTextColor(...MID_RGB);
+  doc.setFont("helvetica", "normal");
+  doc.text(reportDesc, 16, 55);
 
-  autoTable(doc, {
-    startY: 38,
-    head: [headers],
-    body: rows.map((r) => r.map(String)),
-    theme: "striped",
-    headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontSize: 9, fontStyle: "bold" },
-    bodyStyles: { fontSize: 8.5, textColor: [51, 65, 85] },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-    margin: { left: 14, right: 14 },
-  });
+  // Period badge
+  doc.setFillColor(255, 247, 237);
+  doc.setDrawColor(...ORANGE_RGB);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(16, 60, Math.min(doc.getTextWidth(`  Period: ${period}  `) + 8, W - 30), 9, 2, 2, "FD");
+  doc.setFontSize(10);
+  doc.setTextColor(...ORANGE_RGB);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Period: ${period}`, 20, 66.5);
 
-  if (extraTables && extraTables.length > 0) {
-    for (const t of extraTables) {
-      doc.addPage();
-      doc.setFontSize(13);
-      doc.setTextColor(51, 65, 85);
-      doc.setFont("helvetica", "bold");
-      doc.text(t.heading, 14, 16);
+  // Generated info
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...MUTED_RGB);
+  doc.text(`Generated: ${new Date().toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" })}`, 16, 76);
+  doc.text(`By: ${generatedBy}`, 16, 82);
+
+  // Summary key-value cards
+  if (summary.length > 0) {
+    const cardW    = (W - 32 - (summary.length - 1) * 6) / Math.min(summary.length, 5);
+    const cardMaxW = Math.min(cardW, 52);
+    let cx = 16;
+    const cy = 95;
+
+    summary.slice(0, 6).forEach((item) => {
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(cx, cy, cardMaxW, 22, 2, 2, "FD");
       doc.setFont("helvetica", "normal");
-
-      autoTable(doc, {
-        startY: 22,
-        head: [t.headers],
-        body: t.rows.map((r) => r.map(String)),
-        theme: "striped",
-        headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontSize: 9, fontStyle: "bold" },
-        bodyStyles: { fontSize: 8, textColor: [51, 65, 85] },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
-        margin: { left: 14, right: 14 },
-      });
-    }
+      doc.setFontSize(7.5);
+      doc.setTextColor(...MUTED_RGB);
+      doc.text(item.label.toUpperCase(), cx + 3, cy + 6);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(...DARK_RGB);
+      // Truncate long values
+      const val = String(item.value);
+      const maxChars = Math.floor(cardMaxW / 3.2);
+      doc.text(val.length > maxChars ? val.slice(0, maxChars - 1) + "…" : val, cx + 3, cy + 15);
+      cx += cardMaxW + 5;
+    });
   }
 
+  // Footer note
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.setTextColor(...MUTED_RGB);
+  doc.text("This report was generated automatically by Orizo Bills. All amounts are in INR (₹).", 16, H - 12);
+
+  // ── DETAIL SECTIONS ────────────────────────────────────────
+  for (const section of sections) {
+    if (section.rows.length === 0) continue;
+    doc.addPage();
+
+    // Section heading bar
+    doc.setFillColor(...ORANGE_RGB);
+    doc.rect(0, 0, 6, H, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(...DARK_RGB);
+    doc.text(section.heading, 14, 14);
+    if (section.subheading) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...MUTED_RGB);
+      doc.text(section.subheading, 14, 20);
+    }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...MUTED_RGB);
+    const cnt = `${section.rows.length} record${section.rows.length !== 1 ? "s" : ""}`;
+    doc.text(cnt, W - 14 - doc.getTextWidth(cnt), 14);
+
+    // Build column styles
+    const colStyles: Record<number, { halign: "left" | "right" | "center" }> = {};
+    section.headers.forEach((_, i) => {
+      colStyles[i] = { halign: section.alignments?.[i] ?? "left" };
+    });
+
+    // Body rows + optional totals row
+    const bodyRows = section.rows.map((r) => r.map(String));
+    if (section.totalsRow) {
+      bodyRows.push(section.totalsRow.map(String));
+    }
+
+    autoTable(doc, {
+      startY:      section.subheading ? 26 : 22,
+      head:        [section.headers],
+      body:        bodyRows,
+      theme:       "grid",
+      styles:      { fontSize: 8, cellPadding: { top: 2.5, bottom: 2.5, left: 3, right: 3 }, overflow: "linebreak" },
+      headStyles:  { fillColor: ORANGE_RGB, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
+      bodyStyles:  { textColor: MID_RGB },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      // Bold + shaded totals row
+      willDrawCell: (data) => {
+        if (section.totalsRow && data.row.index === bodyRows.length - 1 && data.section === "body") {
+          data.cell.styles.fillColor = [241, 245, 249];
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.textColor = DARK_RGB;
+        }
+      },
+      columnStyles: colStyles,
+      margin: { left: 14, right: 14 },
+    });
+  }
+
+  // ── PAGE FOOTERS ───────────────────────────────────────────
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(148, 163, 184);
-    doc.text(
-      `Generated ${new Date().toLocaleDateString("en-IN")} · Page ${i} of ${pageCount}`,
-      14,
-      doc.internal.pageSize.height - 10,
-    );
+    doc.setFontSize(7.5);
+    doc.setTextColor(...MUTED_RGB);
+    doc.setFont("helvetica", "normal");
+    const footer = `Orizo Bills  ·  ${reportTitle}  ·  ${period}  ·  Page ${i} of ${pageCount}`;
+    doc.text(footer, 14, H - 6);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.line(14, H - 9, W - 14, H - 9);
   }
 
   doc.save(filename);
@@ -437,13 +557,46 @@ function SalesSummaryReport({ dateRange, prevDateRange, isAllTime }: { dateRange
       ? [{ sheetName: "Bill Details", headers: billHeaders, rows: billDataRows }]
       : undefined,
   );
-  const handleExportPDF = () => exportPDF({
-    filename: "sale-summary.pdf", title: "Sale Summary",
-    subtitle: `Total sales, returns & net revenue · ${periodLabel(dateRange)}`,
-    headers, rows: dataRows,
-    extraTables: billDataRows.length > 0
-      ? [{ heading: "Bill Details", headers: billHeaders, rows: billDataRows }]
-      : undefined,
+  const handleExportPDF = () => buildPDF({
+    filename:    "sale-summary.pdf",
+    reportTitle: "Sale Summary Report",
+    reportDesc:  "Total sales, invoices, tax collected and outstanding dues",
+    period:      periodLabel(dateRange),
+    generatedBy: "Orizo Bills",
+    summary: [
+      { label: "Total Revenue",   value: `₹${Math.round(s?.totalSales    ?? 0).toLocaleString("en-IN")}` },
+      { label: "Total Purchases", value: `₹${Math.round(s?.totalPurchases ?? 0).toLocaleString("en-IN")}` },
+      { label: "Net Profit",      value: `₹${Math.round(s?.totalProfit    ?? 0).toLocaleString("en-IN")}` },
+      { label: "Outstanding Due", value: `₹${Math.round(s?.outstanding    ?? 0).toLocaleString("en-IN")}` },
+      { label: "Total Invoices",  value: String(invoiceRows.length) },
+    ],
+    sections: [
+      {
+        heading:    "Summary",
+        subheading: `Key financial metrics · ${periodLabel(dateRange)}`,
+        headers:    ["Metric", "Value"],
+        rows:       dataRows,
+        alignments: ["left", "right"],
+      },
+      ...(billDataRows.length > 0 ? [{
+        heading:    "Invoice Detail",
+        subheading: `All ${invoiceRows.length} invoice${invoiceRows.length !== 1 ? "s" : ""} in this period`,
+        headers:    billHeaders,
+        rows:       billDataRows,
+        alignments: ["left","left","left","left","right","right","right","right","right","right","right","right","left"] as ("left"|"right"|"center")[],
+        totalsRow:  [
+          "TOTAL", "", "", "", "",
+          `₹${Math.round(invoiceRows.reduce((s, r) => s + Number(r.subtotal ?? 0), 0)).toLocaleString("en-IN")}`,
+          `₹${Math.round(invoiceRows.reduce((s, r) => s + Number(r.discountAmt ?? 0), 0)).toLocaleString("en-IN")}`,
+          `₹${Math.round(invoiceRows.reduce((s, r) => s + Number(r.cgst ?? 0), 0)).toLocaleString("en-IN")}`,
+          `₹${Math.round(invoiceRows.reduce((s, r) => s + Number(r.sgst ?? 0), 0)).toLocaleString("en-IN")}`,
+          `₹${Math.round(invoiceRows.reduce((s, r) => s + Number(r.totalAmt ?? 0), 0)).toLocaleString("en-IN")}`,
+          `₹${Math.round(invoiceRows.reduce((s, r) => s + Number(r.paidAmt ?? 0), 0)).toLocaleString("en-IN")}`,
+          `₹${Math.round(invoiceRows.reduce((s, r) => s + Number(r.balanceDue ?? 0), 0)).toLocaleString("en-IN")}`,
+          "",
+        ],
+      }] : []),
+    ],
   });
 
   const rows: { label: string; value: number; formatted: string; color: string; trend?: boolean }[] = [
@@ -475,7 +628,7 @@ function SalesSummaryReport({ dateRange, prevDateRange, isAllTime }: { dateRange
 function PurchaseSummaryReport({ dateRange }: { dateRange: DateRange }) {
   const { data, isLoading } = useQuery({
     queryKey: ["report-purchase-stats", dateRange.start, dateRange.end],
-    queryFn: () => http.get<ApiResp<{ data: Array<{ totalAmt: number; taxAmt: number; discountAmt: number }>; total: number }>>(
+    queryFn: () => http.get<ApiResp<{ data: Array<{ invoiceNumber: string; supplierName: string; billDate: string; paymentMethod: string; itemCount: number; subtotal: number; taxAmt: number; discountAmt: number; totalAmt: number; status: string }>; total: number }>>(
       "/purchases", { params: { page: 1, pageSize: 10000, ...dp(dateRange) } },
     ),
     staleTime: 30_000,
@@ -508,11 +661,64 @@ function PurchaseSummaryReport({ dateRange }: { dateRange: DateRange }) {
     ["Avg Bill Value", avg],
   ];
 
-  const handleExportExcel = () => exportExcel("purchase-summary.xlsx", "Purchase Summary", headers, dataRows);
-  const handleExportPDF = () => exportPDF({
-    filename: "purchase-summary.pdf", title: "Purchase Summary",
-    subtitle: `Total purchases & net spend · ${periodLabel(dateRange)}`,
-    headers, rows: dataRows,
+  const purchaseHeaders = ["Bill #", "Supplier", "Date", "Payment", "Items", "Subtotal", "Discount", "Tax", "Total", "Status"];
+  const purchaseDetailRows: (string | number)[][] = rows.map((r) => [
+    r.invoiceNumber ?? "",
+    r.supplierName  ?? "",
+    r.billDate ? new Date(r.billDate).toLocaleDateString("en-IN") : "",
+    r.paymentMethod ?? "",
+    r.itemCount ?? "",
+    `₹${Math.round(r.subtotal  ?? 0)}`,
+    `₹${Math.round(r.discountAmt ?? 0)}`,
+    `₹${Math.round(r.taxAmt    ?? 0)}`,
+    `₹${Math.round(r.totalAmt  ?? 0)}`,
+    r.status ?? "",
+  ]);
+
+  const handleExportExcel = () => exportExcel(
+    "purchase-summary.xlsx", "Purchase Summary", headers, dataRows,
+    purchaseDetailRows.length > 0
+      ? [{ sheetName: "Purchase Detail", headers: purchaseHeaders, rows: purchaseDetailRows }]
+      : undefined,
+  );
+  const handleExportPDF = () => buildPDF({
+    filename:    "purchase-summary.pdf",
+    reportTitle: "Purchase Summary Report",
+    reportDesc:  "Total purchases, tax paid and discount received",
+    period:      periodLabel(dateRange),
+    generatedBy: "Orizo Bills",
+    summary: [
+      { label: "Total Bills",    value: String(rows.length) },
+      { label: "Total Amount",   value: `₹${Math.round(total).toLocaleString("en-IN")}` },
+      { label: "Total Tax Paid", value: `₹${Math.round(tax).toLocaleString("en-IN")}` },
+      { label: "Total Discount", value: `₹${Math.round(discount).toLocaleString("en-IN")}` },
+      { label: "Avg Bill Value", value: `₹${Math.round(avg).toLocaleString("en-IN")}` },
+    ],
+    sections: [
+      {
+        heading:    "Summary",
+        subheading: `Key purchase metrics · ${periodLabel(dateRange)}`,
+        headers:    headers,
+        rows:       dataRows,
+        alignments: ["left", "right"],
+      },
+      ...(purchaseDetailRows.length > 0 ? [{
+        heading:    "Purchase Detail",
+        subheading: `All ${rows.length} purchase bill${rows.length !== 1 ? "s" : ""} in this period`,
+        headers:    purchaseHeaders,
+        rows:       purchaseDetailRows,
+        alignments: ["left","left","left","left","right","right","right","right","right","left"] as ("left"|"right"|"center")[],
+        totalsRow:  [
+          "TOTAL", "", "", "",
+          String(rows.reduce((s, r) => s + (r.itemCount ?? 0), 0)),
+          `₹${Math.round(rows.reduce((s, r) => s + (r.subtotal ?? 0), 0)).toLocaleString("en-IN")}`,
+          `₹${Math.round(discount).toLocaleString("en-IN")}`,
+          `₹${Math.round(tax).toLocaleString("en-IN")}`,
+          `₹${Math.round(total).toLocaleString("en-IN")}`,
+          "",
+        ],
+      }] : []),
+    ],
   });
 
   return (
@@ -574,10 +780,42 @@ function StockReport() {
   ]);
 
   const handleExportExcel = () => exportExcel("stock-report.xlsx", "Stock Report", headers, dataRows);
-  const handleExportPDF = () => exportPDF({
-    filename: "stock-report.pdf", title: "Stock Report",
-    subtitle: `Current stock levels & valuation · as of ${new Date().toLocaleDateString("en-IN")}`,
-    headers, rows: dataRows,
+  const handleExportPDF = () => buildPDF({
+    filename:    "stock-report.pdf",
+    reportTitle: "Stock Report",
+    reportDesc:  "Current inventory levels and stock valuation",
+    period:      `As of ${new Date().toLocaleDateString("en-IN", { dateStyle: "long" })}`,
+    generatedBy: "Orizo Bills",
+    summary: [
+      { label: "Total Products",  value: String(summary?.total      ?? 0) },
+      { label: "In Stock",        value: String(summary?.inStock     ?? 0) },
+      { label: "Low Stock",       value: String(summary?.lowStock    ?? 0) },
+      { label: "Out of Stock",    value: String((summary?.total ?? 0) - (summary?.inStock ?? 0) - (summary?.lowStock ?? 0)) },
+      { label: "Total Value",     value: `₹${Math.round(summary?.totalValue ?? 0).toLocaleString("en-IN")}` },
+    ],
+    sections: [
+      {
+        heading:    "Stock Detail",
+        subheading: `${items.length} active product${items.length !== 1 ? "s" : ""}`,
+        headers:    ["#", "Product Name", "Code", "Unit", "Stock Qty", "Stock Value (₹)", "Status"],
+        rows:       items.map((item, i) => [
+          i + 1,
+          item.productName,
+          item.productCode,
+          item.unit,
+          item.currentStock,
+          Math.round(item.stockValue),
+          item.status.replace("_", " "),
+        ]),
+        alignments: ["right","left","left","left","right","right","left"],
+        totalsRow: [
+          "", "TOTAL", "", "",
+          items.reduce((s, i) => s + i.currentStock, 0),
+          `₹${Math.round(summary?.totalValue ?? 0).toLocaleString("en-IN")}`,
+          "",
+        ],
+      },
+    ],
   });
 
   return (
@@ -665,10 +903,41 @@ function CustomerReport() {
   ]);
 
   const handleExportExcel = () => exportExcel("customer-report.xlsx", "Customer Report", headers, dataRows);
-  const handleExportPDF = () => exportPDF({
-    filename: "customer-report.pdf", title: "Customer Report",
-    subtitle: `Customer-wise outstanding & sales · as of ${new Date().toLocaleDateString("en-IN")}`,
-    headers, rows: dataRows,
+  const handleExportPDF = () => buildPDF({
+    filename:    "customer-report.pdf",
+    reportTitle: "Customer Report",
+    reportDesc:  "Customer-wise balances, outstanding dues and credit notes",
+    period:      `As of ${new Date().toLocaleDateString("en-IN", { dateStyle: "long" })}`,
+    generatedBy: "Orizo Bills",
+    summary: [
+      { label: "Total Customers",  value: String(customers.length) },
+      { label: "With Outstanding", value: String(customers.filter(c => c.balance > 0).length) },
+      { label: "In Credit",        value: String(customers.filter(c => c.balance < 0).length) },
+      { label: "Settled",          value: String(customers.filter(c => c.balance === 0).length) },
+      { label: "Total Outstanding",value: `₹${Math.round(totalOutstanding).toLocaleString("en-IN")}` },
+    ],
+    sections: [
+      {
+        heading:    "Customer Balance List",
+        subheading: `Sorted by balance — debtors first`,
+        headers:    ["#", "Customer Name", "Phone", "Balance (₹)", "Type", "Member Since"],
+        rows:       customers.map((c, i) => [
+          i + 1,
+          c.name,
+          c.phone ?? "—",
+          Math.round(Math.abs(c.balance)),
+          c.balance > 0 ? "DR (Owes you)" : c.balance < 0 ? "CR (You owe)" : "Settled",
+          new Date(c.createdAt).toLocaleDateString("en-IN"),
+        ]),
+        alignments: ["right","left","left","right","left","left"],
+        totalsRow: [
+          "", "TOTAL", "",
+          Math.round(totalOutstanding),
+          `${customers.filter(c => c.balance > 0).length} DR · ${customers.filter(c => c.balance < 0).length} CR`,
+          "",
+        ],
+      },
+    ],
   });
 
   return (
@@ -766,12 +1035,64 @@ function PnLReport({ dateRange }: { dateRange: DateRange }) {
     ["Net Profit / (Loss)", netProfit],
   ];
 
-  const handleExportExcel = () => exportExcel("profit-and-loss.xlsx", "Profit & Loss", headers, dataRows);
-  const handleExportPDF = () => exportPDF({
-    filename: "profit-and-loss.pdf", title: "Profit & Loss",
-    subtitle: `Net profit, expenses & GST summary · ${periodLabel(dateRange)}`,
-    headers, rows: dataRows,
-  });
+  const handleExportExcel = () => exportExcel(
+    "profit-and-loss.xlsx", "P&L Summary", headers, dataRows,
+    expRows.length > 0 ? [{
+      sheetName: "Expense Detail",
+      headers: ["Category", "Description", "Amount (₹)", "Date"],
+      rows: expRows.map((e: { amount: number; category: string; description?: string; expenseDate?: string }) => [
+        e.category, (e as { description?: string }).description ?? "—",
+        Math.round(e.amount), (e as { expenseDate?: string }).expenseDate
+          ? new Date((e as { expenseDate: string }).expenseDate).toLocaleDateString("en-IN") : "—",
+      ]),
+    }] : undefined,
+  );
+  const handleExportPDF = () => {
+    // Build per-category expense summary
+    const byCat: Record<string, number> = {};
+    expRows.forEach((e: { category: string; amount: number }) => { byCat[e.category] = (byCat[e.category] ?? 0) + e.amount; });
+    const catRows: (string | number)[][] = Object.entries(byCat)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat, amt]) => [cat, `₹${Math.round(amt).toLocaleString("en-IN")}`]);
+
+    buildPDF({
+      filename:    "profit-and-loss.pdf",
+      reportTitle: "Profit & Loss Statement",
+      reportDesc:  "Revenue, cost of purchases, expenses and net profit",
+      period:      periodLabel(dateRange),
+      generatedBy: "Orizo Bills",
+      summary: [
+        { label: "Revenue",       value: `₹${Math.round(s?.totalSales    ?? 0).toLocaleString("en-IN")}` },
+        { label: "Purchases",     value: `₹${Math.round(s?.totalPurchases ?? 0).toLocaleString("en-IN")}` },
+        { label: "Expenses",      value: `₹${Math.round(totalExp).toLocaleString("en-IN")}` },
+        { label: "Net Profit",    value: `₹${Math.round(Math.abs(netProfit)).toLocaleString("en-IN")}` },
+        { label: "Profit/Loss",   value: netProfit >= 0 ? "PROFIT" : "LOSS" },
+      ],
+      sections: [
+        {
+          heading:    "P&L Summary",
+          subheading: periodLabel(dateRange),
+          headers:    ["Line Item", "Amount (₹)", "Note"],
+          rows: [
+            ["Total Revenue",       `₹${Math.round(s?.totalSales    ?? 0).toLocaleString("en-IN")}`, "All sales invoices"],
+            ["Cost of Purchases",   `(₹${Math.round(s?.totalPurchases ?? 0).toLocaleString("en-IN")})`, "Purchase bills"],
+            ["Total Expenses",      `(₹${Math.round(totalExp).toLocaleString("en-IN")})`,              `${expRows.length} expense entries`],
+            ["Net Profit / (Loss)", `₹${Math.round(Math.abs(netProfit)).toLocaleString("en-IN")}`,     netProfit >= 0 ? "✓ Profit" : "✗ Loss"],
+          ],
+          alignments: ["left", "right", "left"],
+          totalsRow:  ["NET", `₹${Math.round(Math.abs(netProfit)).toLocaleString("en-IN")}`, netProfit >= 0 ? "PROFIT" : "LOSS"],
+        },
+        ...(catRows.length > 0 ? [{
+          heading:    "Expense Breakdown by Category",
+          subheading: `${expRows.length} expense entries · total ₹${Math.round(totalExp).toLocaleString("en-IN")}`,
+          headers:    ["Category", "Total Amount"],
+          rows:       catRows,
+          alignments: ["left", "right"] as ("left" | "right" | "center")[],
+          totalsRow:  ["TOTAL", `₹${Math.round(totalExp).toLocaleString("en-IN")}`],
+        }] : []),
+      ],
+    });
+  };
 
   return (
     <div>
@@ -795,7 +1116,7 @@ function PnLReport({ dateRange }: { dateRange: DateRange }) {
 function GstReport({ dateRange }: { dateRange: DateRange }) {
   const { data, isLoading } = useQuery({
     queryKey: ["report-gst", dateRange.start, dateRange.end],
-    queryFn: () => http.get<ApiResp<{ data: Array<{ cgst: number; sgst: number; totalAmt: number; invoiceDate: string }>; total: number }>>(
+    queryFn: () => http.get<ApiResp<{ data: Array<{ cgst: number; sgst: number; totalAmt: number; invoiceDate: string; invoiceNumber: string; customerName: string; paymentMethod: string }>; total: number }>>(
       "/sales", { params: { page: 1, pageSize: 10000, ...dp(dateRange) } },
     ),
     staleTime: 30_000,
@@ -817,16 +1138,50 @@ function GstReport({ dateRange }: { dateRange: DateRange }) {
   const totalSgst = rows.reduce((s, r) => s + r.sgst, 0);
   const fmt = (v: number) => `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
-  const headers = ["Invoice Date", "CGST", "SGST", "Total Amount"];
+  const headers = ["Invoice #", "Date", "Customer", "Payment", "CGST (₹)", "SGST (₹)", "Total GST (₹)", "Invoice Total (₹)"];
   const dataRows: (string | number)[][] = rows.map((r) => [
-    new Date(r.invoiceDate).toLocaleDateString("en-IN"), r.cgst.toFixed(2), r.sgst.toFixed(2), r.totalAmt.toFixed(2),
+    r.invoiceNumber,
+    new Date(r.invoiceDate).toLocaleDateString("en-IN"),
+    r.customerName,
+    r.paymentMethod,
+    Math.round(r.cgst),
+    Math.round(r.sgst),
+    Math.round(r.cgst + r.sgst),
+    Math.round(r.totalAmt),
   ]);
 
-  const handleExportExcel = () => exportExcel("gst-report.xlsx", "GST Report", headers, dataRows);
-  const handleExportPDF = () => exportPDF({
-    filename: "gst-report.pdf", title: "GST Report",
-    subtitle: `GSTR-1, GSTR-3B and HSN summary · ${periodLabel(dateRange)}`,
-    headers, rows: dataRows,
+  const handleExportExcel = () => exportExcel(
+    "gst-report.xlsx", "GST Report",
+    headers, dataRows,
+  );
+  const handleExportPDF = () => buildPDF({
+    filename:    "gst-report.pdf",
+    reportTitle: "GST Report",
+    reportDesc:  "CGST, SGST collected invoice-wise",
+    period:      periodLabel(dateRange),
+    generatedBy: "Orizo Bills",
+    summary: [
+      { label: "Invoices",    value: String(rows.length) },
+      { label: "Total CGST",  value: `₹${Math.round(totalCgst).toLocaleString("en-IN")}` },
+      { label: "Total SGST",  value: `₹${Math.round(totalSgst).toLocaleString("en-IN")}` },
+      { label: "Total GST",   value: `₹${Math.round(totalCgst + totalSgst).toLocaleString("en-IN")}` },
+    ],
+    sections: [
+      {
+        heading:    "Invoice-wise GST Detail",
+        subheading: `${rows.length} invoice${rows.length !== 1 ? "s" : ""} · ${periodLabel(dateRange)}`,
+        headers,
+        rows:       dataRows,
+        alignments: ["left","left","left","left","right","right","right","right"],
+        totalsRow:  [
+          "TOTAL", "", "", "",
+          Math.round(totalCgst),
+          Math.round(totalSgst),
+          Math.round(totalCgst + totalSgst),
+          Math.round(rows.reduce((s, r) => s + r.totalAmt, 0)),
+        ],
+      },
+    ],
   });
 
   return (
