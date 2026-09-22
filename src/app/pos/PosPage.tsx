@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   UserRound, Printer, Save, CheckCircle2, AlertCircle, X, Loader2,
-  Calculator,
+  Calculator, Search,
 } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,179 @@ import { useBusinessStore } from "@/store/business.store";
 import { generateQrDataUrl } from "./components/PosPrintReceipt";
 import { http } from "@/lib/axios";
 import "@/styles/print.css";
+
+// =============================================================
+// CUSTOMER SEARCH DROPDOWN
+// =============================================================
+interface CustomerSuggestion { id: string; name: string; phone: string | null; balance: number; }
+
+function CustomerSearchInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (name: string) => void;
+}) {
+  const [query,    setQuery]    = useState(value);
+  const [results,  setResults]  = useState<CustomerSuggestion[]>([]);
+  const [open,     setOpen]     = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const inputRef   = useRef<HTMLInputElement>(null);
+  const dropRef    = useRef<HTMLDivElement>(null);
+  const debRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync if parent resets value externally
+  useEffect(() => { setQuery(value); }, [value]);
+
+  // Close on outside click
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (!inputRef.current?.contains(e.target as Node) && !dropRef.current?.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  const doSearch = useCallback(async (q: string) => {
+    if (!q.trim()) { setResults([]); setOpen(false); return; }
+    setLoading(true);
+    try {
+      const res = await http.get<{ success: boolean; data: CustomerSuggestion[] | { data: CustomerSuggestion[] } }>(
+        "/customers", { params: { search: q, pageSize: 10 } }
+      );
+      if (res.success) {
+        const list: CustomerSuggestion[] = Array.isArray(res.data) ? res.data : (res.data as { data: CustomerSuggestion[] }).data ?? [];
+        setResults(list.slice(0, 10));
+        setOpen(list.length > 0);
+        setActiveIdx(-1);
+      }
+    } catch { setResults([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setQuery(v);
+    onChange(v);
+    if (debRef.current) clearTimeout(debRef.current);
+    debRef.current = setTimeout(() => doSearch(v), 200);
+  };
+
+  const pick = (c: CustomerSuggestion) => {
+    setQuery(c.name);
+    onChange(c.name);
+    setOpen(false);
+    setResults([]);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, results.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
+    else if (e.key === "Enter" && activeIdx >= 0) { e.preventDefault(); pick(results[activeIdx]); }
+    else if (e.key === "Escape") { setOpen(false); }
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <div style={{ position: "relative" }}>
+        {loading && (
+          <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+            <Loader2 size={13} color="#94A3B8" style={{ animation: "spin 0.7s linear infinite" }} />
+          </span>
+        )}
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Customer name or mobile..."
+          value={query}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => { if (results.length > 0) setOpen(true); }}
+          style={{
+            border: "1px solid #E2E8F0", borderRadius: 7, padding: "7px 30px 7px 12px",
+            fontSize: 13, color: "#475569", outline: "none", fontFamily: "inherit",
+            width: 260, background: "#F8FAFC", transition: "border-color 0.15s",
+          }}
+          onFocusCapture={(e) => { e.currentTarget.style.borderColor = "#F97316"; }}
+          onBlurCapture={(e)  => { e.currentTarget.style.borderColor = "#E2E8F0"; }}
+        />
+      </div>
+
+      <AnimatePresence>
+        {open && results.length > 0 && (
+          <motion.div
+            ref={dropRef}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.1 }}
+            style={{
+              position: "absolute",
+              top: "calc(100% + 5px)",
+              left: 0,
+              width: 280,
+              background: "#fff",
+              border: "1.5px solid #E2E8F0",
+              borderRadius: 10,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+              zIndex: 500,
+              maxHeight: 240,
+              overflowY: "auto",
+            }}
+          >
+            <div style={{
+              padding: "6px 12px 5px",
+              borderBottom: "1px solid #F1F5F9",
+              fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em",
+            }}>
+              CUSTOMERS — {results.length} match{results.length !== 1 ? "es" : ""}
+            </div>
+            {results.map((c, idx) => (
+              <div
+                key={c.id}
+                onMouseDown={(e) => { e.preventDefault(); pick(c); }}
+                onMouseEnter={() => setActiveIdx(idx)}
+                style={{
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                  background: idx === activeIdx ? "#FFF7ED" : "transparent",
+                  borderBottom: "1px solid #F8FAFC",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1E293B",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {c.name}
+                  </div>
+                  {c.phone && (
+                    <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 1 }}>{c.phone}</div>
+                  )}
+                </div>
+                {c.balance !== 0 && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "2px 6px",
+                    background: c.balance > 0 ? "rgba(249,115,22,0.1)" : "rgba(34,197,94,0.1)",
+                    color:      c.balance > 0 ? "#F97316" : "#16A34A",
+                    flexShrink: 0,
+                  }}>
+                    {c.balance > 0 ? `₹${Math.round(c.balance)} due` : `₹${Math.round(Math.abs(c.balance))} cr`}
+                  </span>
+                )}
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 export default function PosPage() {
   const navigate  = useNavigate();
   const qc        = useQueryClient();
@@ -315,14 +488,9 @@ export default function PosPage() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderBottom: "1px solid #E2E8F0", background: "#fff", flexShrink: 0 }}>
         <UserRound size={16} color="#64748B" />
         <span style={{ fontSize: 13, fontWeight: 600, color: "#1E293B" }}>Customer</span>
-        <input
-          type="text"
-          placeholder="Customer name or mobile..."
+        <CustomerSearchInput
           value={bill.customer}
-          onChange={(e) => updateBill(bill.id, { customer: e.target.value })}
-          style={{ border: "1px solid #E2E8F0", borderRadius: 7, padding: "7px 12px", fontSize: 13, color: "#475569", outline: "none", fontFamily: "inherit", width: 260, background: "#F8FAFC" }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = "#F97316"; }}
-          onBlur={(e)  => { e.currentTarget.style.borderColor = "#E2E8F0"; }}
+          onChange={(name) => updateBill(bill.id, { customer: name })}
         />
         <button
           onClick={() => setShowCustDlg(true)}
