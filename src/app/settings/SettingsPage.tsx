@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   Image,
+  Pencil,
 } from "lucide-react";
 import FlashToast from "@/components/FlashToast"; 
 import { toast } from "sonner";
@@ -83,20 +84,42 @@ function SettingRow({
 }
 
 // =============================================================
-// TOGGLE
+// TOGGLE (supports both uncontrolled `defaultOn` and controlled
+// `checked` + `onChange`, plus `disabled`)
 // =============================================================
 
 function Toggle({
   defaultOn = false,
+  checked,
+  onChange,
+  disabled = false,
 }: {
   defaultOn?: boolean;
+  checked?: boolean;
+  onChange?: () => void;
+  disabled?: boolean;
 }) {
-  const [on, setOn] = useState(defaultOn);
+  const [internalOn, setInternalOn] = useState(defaultOn);
+
+  // If `checked` is passed, the component is controlled by the parent.
+  const isControlled = checked !== undefined;
+  const on = isControlled ? checked : internalOn;
+
+  const handleClick = () => {
+    if (disabled) return;
+
+    if (isControlled) {
+      onChange?.();
+    } else {
+      setInternalOn((prev) => !prev);
+    }
+  };
 
   return (
     <button
       type="button"
-      onClick={() => setOn((prev) => !prev)}
+      onClick={handleClick}
+      disabled={disabled}
       aria-pressed={on}
       style={{
         width: 44,
@@ -104,11 +127,12 @@ function Toggle({
         borderRadius: 12,
         background: on ? "#F97316" : "#CBD5E1",
         border: "none",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         outline: "none",
         position: "relative",
         transition: "background 0.2s ease",
         flexShrink: 0,
+        opacity: disabled ? 0.5 : 1,
         boxShadow: on
           ? "inset 0 0 0 1px rgba(249,115,22,0.4)"
           : "inset 0 0 0 1px rgba(148,163,184,0.3)",
@@ -907,76 +931,102 @@ function ProductSettings() {
 // =============================================================
 
 function ReminderSettings() {
+  const [enabled, setEnabled] = useState(false);
+  const [daysBefore, setDaysBefore] = useState("3");
+  const [channel, setChannel] = useState<"none" | "whatsapp" | "sms" | "both">("none");
+  const [repeatInterval, setRepeatInterval] = useState("1");
+  const [maxReminders, setMaxReminders] = useState("3");
+  const [afterDueDate, setAfterDueDate] = useState(true);
+  const [autoCreateNext, setAutoCreateNext] = useState(false);
+
+  // Disable everything below the master toggle when reminders are off
+  const disabled = !enabled;
+  const rowStyle = disabled ? { opacity: 0.45, pointerEvents: "none" as const } : {};
+
   return (
     <Section title="Service Reminder Configuration">
       <SettingRow
         label="Enable Service Reminders"
         description="Turn on automatic reminders for upcoming services"
       >
-        <Toggle />
+        <Toggle checked={enabled} onChange={() => setEnabled(v => !v)} />
       </SettingRow>
 
-      <SettingRow
-        label="Reminder Days Before Due"
-        description="Send the first reminder this many days before the due date"
-      >
-        <input
-          style={inp}
-          type="text" inputMode="decimal"
-          placeholder="3"
-        />
-      </SettingRow>
+      <div style={rowStyle}>
+        <SettingRow
+          label="Reminder Days Before Due"
+          description="Send the first reminder this many days before the due date"
+        >
+          <input
+            style={inp}
+            type="text" inputMode="decimal"
+            placeholder="3"
+            value={daysBefore}
+            disabled={disabled}
+            onChange={e => setDaysBefore(e.target.value)}
+          />
+        </SettingRow>
 
-      <SettingRow
-        label="Send WhatsApp Reminder"
-        description="Notify customers via WhatsApp"
-      >
-        <Toggle />
-      </SettingRow>
+        <SettingRow
+          label="Notification Channel"
+          description="How customers should be notified about reminders"
+        >
+          <select
+            style={inp}
+            value={channel}
+            disabled={disabled}
+            onChange={e => setChannel(e.target.value as typeof channel)}
+          >
+            <option value="none">None</option>
+            <option value="whatsapp">WhatsApp only</option>
+            <option value="sms">SMS only</option>
+            <option value="both">WhatsApp + SMS</option>
+          </select>
+        </SettingRow>
 
-      <SettingRow
-        label="Send SMS Reminder"
-        description="Notify customers via SMS"
-      >
-        <Toggle />
-      </SettingRow>
+        <SettingRow
+          label="Repeat Settings"
+          description="Repeat every N days, up to a maximum number of reminders"
+        >
+          <div style={{ display: "flex", gap: 8, alignItems: "center", whiteSpace: "nowrap" }}>
+            <input
+              style={{ ...inp, width: 60 }}
+              type="text" inputMode="decimal"
+              placeholder="1"
+              value={repeatInterval}
+              disabled={disabled}
+              onChange={e => setRepeatInterval(e.target.value)}
+            />
+            <span style={{ fontSize: 12, color: "#94A3B8" }}>days apart</span>
+            <span style={{ fontSize: 12, color: "#CBD5E1" }}>|</span>
+            <span style={{ fontSize: 12, color: "#94A3B8" }}>max</span>
+            <input
+              style={{ ...inp, width: 60 }}
+              type="text" inputMode="decimal"
+              placeholder="3"
+              min={1}
+              value={maxReminders}
+              disabled={disabled}
+              onChange={e => setMaxReminders(e.target.value)}
+            />
+            <span style={{ fontSize: 12, color: "#94A3B8" }}>times</span>
+          </div>
+        </SettingRow>
 
-      <SettingRow
-        label="Reminder Repeat Interval"
-        description="Days between repeated reminders"
-      >
-        <input
-          style={inp}
-          type="text" inputMode="decimal"
-          placeholder="1"
-        />
-      </SettingRow>
+        <SettingRow
+          label="Send Reminder After Due Date Also"
+          description="Continue sending reminders even after the due date has passed"
+        >
+          <Toggle checked={afterDueDate} disabled={disabled} onChange={() => setAfterDueDate(v => !v)} />
+        </SettingRow>
 
-      <SettingRow
-        label="Maximum Reminders to Send"
-        description="Stop sending after this many reminders"
-      >
-        <input
-          style={inp}
-          type="text" inputMode="decimal"
-          placeholder="3"
-          min={1}
-        />
-      </SettingRow>
-
-      <SettingRow
-        label="Send Reminder After Due Date Also"
-        description="Continue sending reminders even after the due date has passed"
-      >
-        <Toggle defaultOn />
-      </SettingRow>
-
-      <SettingRow
-        label="Auto-create Next Service Reminder After Completion"
-        description="Automatically schedule the next reminder once a service is marked complete"
-      >
-        <Toggle />
-      </SettingRow>
+        <SettingRow
+          label="Auto-create Next Service Reminder After Completion"
+          description="Automatically schedule the next reminder once a service is marked complete"
+        >
+          <Toggle checked={autoCreateNext} disabled={disabled} onChange={() => setAutoCreateNext(v => !v)} />
+        </SettingRow>
+      </div>
     </Section>
   );
 }
@@ -986,39 +1036,78 @@ function ReminderSettings() {
 // =============================================================
 
 function AccountingSettings() {
+  const [doubleEntryEnabled, setDoubleEntryEnabled] = useState(false);
+  const [cashAccountName, setCashAccountName] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [openingBalanceDate, setOpeningBalanceDate] = useState("");
+  const [openingBalanceAmount, setOpeningBalanceAmount] = useState("");
+  const [autoCreateJournal, setAutoCreateJournal] = useState(false);
+
+  // Disable everything below the master toggle when double-entry is off
+  const disabled = !doubleEntryEnabled;
+  const rowStyle = disabled ? { opacity: 0.45, pointerEvents: "none" as const } : {};
+
   return (
     <Section title="Accounting Setup">
-      <SettingRow label="Enable Double-Entry Accounting">
-        <Toggle />
-      </SettingRow>
-
-      <SettingRow label="Cash Account Name">
-        <input
-          style={inp}
-          placeholder="Cash"
-        />
-      </SettingRow>
-
-      <SettingRow label="Bank Account Name">
-        <input
-          style={inp}
-          placeholder="HDFC Bank"
-        />
-      </SettingRow>
-
-      <SettingRow label="Opening Balance Date">
-        <input
-          style={inp}
-          type="date"
-        />
-      </SettingRow>
-
       <SettingRow
-        label="Auto-create Journal Entries"
-        description="Create journal entries for each transaction"
+        label="Enable Double-Entry Accounting"
+        description="Track every transaction as both a debit and a credit"
       >
-        <Toggle />
+        <Toggle checked={doubleEntryEnabled} onChange={() => setDoubleEntryEnabled(v => !v)} />
       </SettingRow>
+
+      <div style={rowStyle}>
+        <SettingRow label="Cash Account Name">
+          <input
+            style={inp}
+            placeholder="Cash"
+            value={cashAccountName}
+            disabled={disabled}
+            onChange={e => setCashAccountName(e.target.value)}
+          />
+        </SettingRow>
+
+        <SettingRow label="Bank Account Name">
+          <input
+            style={inp}
+            placeholder="HDFC Bank"
+            value={bankAccountName}
+            disabled={disabled}
+            onChange={e => setBankAccountName(e.target.value)}
+          />
+        </SettingRow>
+
+        <SettingRow label="Opening Balance Date">
+          <input
+            style={inp}
+            type="date"
+            value={openingBalanceDate}
+            disabled={disabled}
+            onChange={e => setOpeningBalanceDate(e.target.value)}
+          />
+        </SettingRow>
+
+        <SettingRow
+          label="Opening Balance Amount"
+          description="Cash + bank balance as of the opening date"
+        >
+          <input
+            style={inp}
+            type="text" inputMode="decimal"
+            placeholder="0"
+            value={openingBalanceAmount}
+            disabled={disabled}
+            onChange={e => setOpeningBalanceAmount(e.target.value)}
+          />
+        </SettingRow>
+
+        <SettingRow
+          label="Auto-create Journal Entries"
+          description="Create journal entries for each transaction"
+        >
+          <Toggle checked={autoCreateJournal} disabled={disabled} onChange={() => setAutoCreateJournal(v => !v)} />
+        </SettingRow>
+      </div>
     </Section>
   );
 }
@@ -1039,10 +1128,17 @@ function OfficerManagement() {
 
   const isAdmin = session?.role === "admin";
 
+  const ROLE_OPTIONS = [
+    { value: "biller", label: "Biller" },
+    { value: "inventory", label: "Inventory Manager" },
+    { value: "full", label: "Full Access" },
+  ] as const;
+
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<string>("biller");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState("");
@@ -1051,6 +1147,14 @@ function OfficerManagement() {
   const [localOfficers, setLocalOfficers] = useState(officers);
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [search, setSearch] = useState("");
+
+  // ── Edit officer state ──
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editMobile, setEditMobile] = useState("");
+  const [editRole, setEditRole] = useState("biller");
 
   useEffect(() => {
     setLocalOfficers(officers);
@@ -1093,6 +1197,7 @@ function OfficerManagement() {
       setName("");
       setMobile("");
       setPassword("");
+      setRole("biller");
       setShowForm(false);
     } else {
       setFormError(result.error ?? "Failed to add officer.");
@@ -1113,6 +1218,42 @@ function OfficerManagement() {
     setLocalOfficers((prev) => prev.filter((o) => o.id !== id));
     setIsDirty(true);
     setSuccess("");
+  };
+
+  const startEdit = (o: (typeof officers)[number]) => {
+    setEditingId(o.id);
+    setEditName(o.name);
+    setEditMobile(o.mobile);
+    setEditRole((o as any).role ?? "biller");
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const saveEdit = (id: string) => {
+    if (!editName.trim() || editName.trim().length < 2) {
+      setFormError("Name must be at least 2 characters.");
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(editMobile.replace(/\s/g, ""))) {
+      setFormError("Enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    setLocalOfficers((prev) =>
+      prev.map((o) =>
+        o.id === id
+          ? ({
+              ...o,
+              name: editName.trim(),
+              mobile: editMobile.replace(/\s/g, ""),
+              role: editRole,
+            } as any)
+          : o
+      )
+    );
+    setIsDirty(true);
+    setEditingId(null);
+    setFormError("");
   };
 
   const handleSaveChanges = async () => {
@@ -1158,6 +1299,18 @@ function OfficerManagement() {
     setSuccess("");
   };
 
+  const roleLabel = (value?: string) =>
+    ROLE_OPTIONS.find((r) => r.value === value)?.label ?? "Biller";
+
+  const filteredOfficers = localOfficers.filter((o) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      o.name.toLowerCase().includes(q) ||
+      o.mobile.toLowerCase().includes(q)
+    );
+  });
+
   if (!isAdmin) {
     return (
       <div style={{ padding: "32px", textAlign: "center" }}>
@@ -1195,6 +1348,8 @@ function OfficerManagement() {
           alignItems: "center",
           justifyContent: "space-between",
           marginBottom: 18,
+          gap: 12,
+          flexWrap: "wrap",
         }}
       >
         <div>
@@ -1207,31 +1362,41 @@ function OfficerManagement() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setShowForm((p) => !p);
-            setFormError("");
-            setSuccess("");
-          }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: "#F97316",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 14px",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          <Plus size={14} />
-          Add Officer
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <input
+            placeholder="Search by name or mobile"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ ...inp2, width: 220 }}
+          />
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowForm((p) => !p);
+              setFormError("");
+              setSuccess("");
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#F97316",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 14px",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Plus size={14} />
+            Add Officer
+          </button>
+        </div>
       </div>
 
       {success && (
@@ -1309,38 +1474,61 @@ function OfficerManagement() {
               </div>
             </div>
 
-            <div>
-              <label style={lbl2}>Password</label>
-              <div style={{ position: "relative" }}>
-                <input
-                  type={showPass ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 6 characters"
-                  style={{
-                    ...inp2,
-                    paddingRight: 36,
-                    width: "100%",
-                    boxSizing: "border-box",
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass((p) => !p)}
-                  style={{
-                    position: "absolute",
-                    right: 10,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "#94A3B8",
-                    display: "flex",
-                  }}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+              }}
+            >
+              <div>
+                <label style={lbl2}>Password</label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPass ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    style={{
+                      ...inp2,
+                      paddingRight: 36,
+                      width: "100%",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass((p) => !p)}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#94A3B8",
+                      display: "flex",
+                    }}
+                  >
+                    {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={lbl2}>Role</label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  style={inp2}
                 >
-                  {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
+                  {ROLE_OPTIONS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -1419,6 +1607,20 @@ function OfficerManagement() {
             Add officers to let staff access the app
           </div>
         </div>
+      ) : filteredOfficers.length === 0 ? (
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid #E2E8F0",
+            borderRadius: 10,
+            padding: "40px",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#94A3B8" }}>
+            No officers match "{search}"
+          </div>
+        </div>
       ) : (
         <div
           style={{
@@ -1436,7 +1638,7 @@ function OfficerManagement() {
                   borderBottom: "1px solid #E2E8F0",
                 }}
               >
-                {["Name", "Mobile", "Status", "Added", ""].map((h) => (
+                {["Name", "Mobile", "Role", "Status", "Added", ""].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -1455,16 +1657,101 @@ function OfficerManagement() {
             </thead>
 
             <tbody>
-              {localOfficers.map((o, idx) => {
+              {filteredOfficers.map((o, idx) => {
                 const orig = officers.find((x) => x.id === o.id);
                 const rowChanged = orig && orig.isActive !== o.isActive;
+                const isEditing = editingId === o.id;
+
+                if (isEditing) {
+                  return (
+                    <tr
+                      key={o.id}
+                      style={{
+                        borderBottom:
+                          idx < filteredOfficers.length - 1
+                            ? "1px solid #F1F5F9"
+                            : "none",
+                        background: "#FFFBEB",
+                      }}
+                    >
+                      <td style={{ padding: "10px 14px" }}>
+                        <input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          style={{ ...inp2, padding: "6px 8px" }}
+                        />
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <input
+                          value={editMobile}
+                          onChange={(e) => setEditMobile(e.target.value)}
+                          maxLength={10}
+                          style={{ ...inp2, padding: "6px 8px" }}
+                        />
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <select
+                          value={editRole}
+                          onChange={(e) => setEditRole(e.target.value)}
+                          style={{ ...inp2, padding: "6px 8px" }}
+                        >
+                          {ROLE_OPTIONS.map((r) => (
+                            <option key={r.value} value={r.value}>
+                              {r.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#94A3B8" }}>
+                        —
+                      </td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#94A3B8" }}>
+                        —
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(o.id)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#16A34A",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                            }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#64748B",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
 
                 return (
                   <tr
                     key={o.id}
                     style={{
                       borderBottom:
-                        idx < localOfficers.length - 1
+                        idx < filteredOfficers.length - 1
                           ? "1px solid #F1F5F9"
                           : "none",
                       background: rowChanged
@@ -1491,6 +1778,16 @@ function OfficerManagement() {
                       }}
                     >
                       {o.mobile}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "12px 14px",
+                        fontSize: 12,
+                        color: "#475569",
+                      }}
+                    >
+                      {roleLabel((o as any).role)}
                     </td>
 
                     <td style={{ padding: "12px 14px" }}>
@@ -1532,6 +1829,22 @@ function OfficerManagement() {
                           justifyContent: "flex-end",
                         }}
                       >
+                        <button
+                          type="button"
+                          onClick={() => startEdit(o)}
+                          title="Edit"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "#F97316",
+                            display: "flex",
+                            padding: 4,
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => handleToggle(o.id)}
