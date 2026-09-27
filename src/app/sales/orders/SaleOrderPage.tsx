@@ -323,7 +323,7 @@ export default function SaleOrderPage() {
     return getPreset(period);
   }, [period, fromDate, toDate]);
 
-  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+  const { data, isLoading, isError, error: queryError, refetch, isFetching } = useQuery({
     queryKey: ["sale-orders", page, dateRange.start, dateRange.end, statusF],
     queryFn: async () => {
       let url = `/sales/orders?page=${page}&pageSize=20`;
@@ -334,6 +334,7 @@ export default function SaleOrderPage() {
       return res.data;
     },
     staleTime: 30_000,
+    retry: 1,
     placeholderData: prev => prev,
   });
 
@@ -517,8 +518,14 @@ export default function SaleOrderPage() {
                 ))}
                 {isError && (
                   <tr><td colSpan={9} style={{ padding: "40px", textAlign: "center", color: "#EF4444", fontSize: 13 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                      <AlertTriangle size={16} /> Backend not connected
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <AlertTriangle size={16} /> {(queryError as Error)?.message || "Failed to load orders"}
+                      </div>
+                      <button onClick={() => void refetch()}
+                        style={{ fontSize: 12, color: "#F97316", background: "none", border: "1px solid #F97316", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+                        Retry
+                      </button>
                     </div>
                   </td></tr>
                 )}
